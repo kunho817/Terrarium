@@ -6,7 +6,7 @@
 import {
   readTextFile,
   writeTextFile,
-  createDir,
+  mkdir,
   readDir,
   exists,
   remove,
@@ -26,7 +26,7 @@ export async function writeJson(path: string, data: unknown): Promise<void> {
 
 export async function ensureDir(path: string): Promise<void> {
   if (!(await exists(path, BASE))) {
-    await createDir(path, { ...BASE, recursive: true });
+    await mkdir(path, { ...BASE, recursive: true });
   }
 }
 

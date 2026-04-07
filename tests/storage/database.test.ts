@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => import('../__mocks__/tauri-plugin-fs'));
 
-import { readTextFile, writeTextFile, createDir, readDir, exists, remove } from '@tauri-apps/plugin-fs';
+import { readTextFile, writeTextFile, mkdir, readDir, exists, remove } from '@tauri-apps/plugin-fs';
 import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from '$lib/storage/database';
 
 describe('database', () => {
@@ -39,11 +39,11 @@ describe('database', () => {
   describe('ensureDir', () => {
     it('creates directory if it does not exist', async () => {
       vi.mocked(exists).mockResolvedValue(false);
-      vi.mocked(createDir).mockResolvedValue(undefined);
+      vi.mocked(mkdir).mockResolvedValue(undefined);
 
       await ensureDir('characters/abc');
 
-      expect(createDir).toHaveBeenCalledWith(
+      expect(mkdir).toHaveBeenCalledWith(
         'characters/abc',
         { baseDir: 1, recursive: true }
       );
@@ -54,7 +54,7 @@ describe('database', () => {
 
       await ensureDir('characters/abc');
 
-      expect(createDir).not.toHaveBeenCalled();
+      expect(mkdir).not.toHaveBeenCalled();
     });
   });
 
