@@ -48,6 +48,13 @@ export class PluginRegistry {
     }
     this.cardFormatsById.set(plugin.id, plugin);
     for (const ext of plugin.supportedExtensions) {
+      const existing = this.cardFormatsByExtension.get(ext);
+      if (existing) {
+        throw new Error(
+          `Card format plugin "${plugin.id}" conflicts on extension "${ext}" ` +
+          `(already registered by "${existing.id}")`
+        );
+      }
       this.cardFormatsByExtension.set(ext, plugin);
     }
   }

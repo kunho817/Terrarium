@@ -141,6 +141,14 @@ describe('PluginRegistry', () => {
       expect(() => registry.getCardFormat('.xml')).toThrow('not found');
     });
 
+    it('throws when two plugins register the same extension', () => {
+      const registry = new PluginRegistry();
+      const f1 = createMockCardFormat({ id: 'f1', name: 'F1', supportedExtensions: ['.json'] });
+      const f2 = createMockCardFormat({ id: 'f2', name: 'F2', supportedExtensions: ['.json'] });
+      registry.registerCardFormat(f1);
+      expect(() => registry.registerCardFormat(f2)).toThrow('conflicts on extension');
+    });
+
     it('lists all registered card formats', () => {
       const registry = new PluginRegistry();
       const f1 = createMockCardFormat({ id: 'f1', name: 'F1' });
@@ -162,6 +170,11 @@ describe('PluginRegistry', () => {
       const agent = createMockAgent();
       registry.registerAgent(agent);
       expect(registry.getAgent('test-agent')).toBe(agent);
+    });
+
+    it('throws when retrieving a non-existent agent', () => {
+      const registry = new PluginRegistry();
+      expect(() => registry.getAgent('nonexistent')).toThrow('not found');
     });
 
     it('throws when registering a duplicate agent', () => {
@@ -191,6 +204,19 @@ describe('PluginRegistry', () => {
       expect(registry.getImageProvider('test-image-provider')).toBe(img);
     });
 
+    it('throws when retrieving a non-existent image provider', () => {
+      const registry = new PluginRegistry();
+      expect(() => registry.getImageProvider('nonexistent')).toThrow('not found');
+    });
+
+    it('throws when registering a duplicate image provider', () => {
+      const registry = new PluginRegistry();
+      registry.registerImageProvider(createMockImageProvider());
+      expect(() => registry.registerImageProvider(createMockImageProvider())).toThrow(
+        'already registered'
+      );
+    });
+
     it('lists all registered image providers', () => {
       const registry = new PluginRegistry();
       registry.registerImageProvider(createMockImageProvider());
@@ -210,6 +236,25 @@ describe('PluginRegistry', () => {
       };
       registry.registerPromptBuilder(builder);
       expect(registry.getPromptBuilder('default-builder')).toBe(builder);
+    });
+
+    it('throws when retrieving a non-existent prompt builder', () => {
+      const registry = new PluginRegistry();
+      expect(() => registry.getPromptBuilder('nonexistent')).toThrow('not found');
+    });
+
+    it('throws when registering a duplicate prompt builder', () => {
+      const registry = new PluginRegistry();
+      const b = {
+        id: 'dup-builder',
+        name: 'Dup Builder',
+        buildSystemPrompt: () => '',
+        buildContext: () => '',
+      };
+      registry.registerPromptBuilder(b);
+      expect(() => registry.registerPromptBuilder({ ...b })).toThrow(
+        'already registered'
+      );
     });
 
     it('lists all registered prompt builders', () => {
