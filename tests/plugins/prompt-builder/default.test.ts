@@ -159,3 +159,67 @@ describe('Default Prompt Builder', () => {
     });
   });
 });
+
+describe('buildSystemPrompt — variable substitution', () => {
+  const cardWithVars: CharacterCard = {
+    ...mockCard,
+    systemPrompt: 'HP: {{var.player.hp}}, Location: {{var.location}}, Name: {{var.name}}',
+  };
+  const sceneWithVars: SceneState = {
+    ...mockScene,
+    variables: {
+      'player.hp': 85,
+      location: 'dark_forest',
+      name: 'Alice',
+      active: true,
+    },
+  };
+
+  it('substitutes {{var.key}} with variable values', () => {
+    const prompt = defaultPromptBuilder.buildSystemPrompt(cardWithVars, sceneWithVars);
+    expect(prompt).toBe('HP: 85, Location: dark_forest, Name: Alice');
+  });
+
+  it('replaces unknown variable with empty string', () => {
+    const card = { ...mockCard, systemPrompt: 'Value: {{var.unknown_key}}' };
+    const prompt = defaultPromptBuilder.buildSystemPrompt(card, { ...mockScene, variables: {} });
+    expect(prompt).toBe('Value: ');
+  });
+
+  it('handles boolean variable values', () => {
+    const card = { ...mockCard, systemPrompt: 'Active: {{var.active}}' };
+    const scene = { ...mockScene, variables: { active: true } };
+    const prompt = defaultPromptBuilder.buildSystemPrompt(card, scene);
+    expect(prompt).toBe('Active: true');
+  });
+
+  it('handles empty variables object', () => {
+    const card = { ...mockCard, systemPrompt: '{{var.test}}' };
+    const prompt = defaultPromptBuilder.buildSystemPrompt(card, { ...mockScene, variables: {} });
+    expect(prompt).toBe('');
+  });
+
+  it('works alongside other template variables', () => {
+    const card = {
+      ...mockCard,
+      systemPrompt: '{{char}} has {{var.player.hp}} HP. User: {{user}}',
+    };
+    const scene = { ...mockScene, variables: { 'player.hp': 100 } };
+    const prompt = defaultPromptBuilder.buildSystemPrompt(card, scene);
+    expect(prompt).toBe('Alice has 100 HP. User: User');
+  });
+});
+
+describe('buildContext — variable substitution', () => {
+  it('substitutes {{var.*}} in message content', () => {
+    const messages: Message[] = [
+      { role: 'user', content: 'HP is {{var.player.hp}}', type: 'dialogue', timestamp: 1000 },
+    ];
+    const scene: SceneState = {
+      ...mockScene,
+      variables: { 'player.hp': 75 },
+    };
+    const context = defaultPromptBuilder.buildContext(messages, scene);
+    expect(context).toContain('HP is 75');
+  });
+});

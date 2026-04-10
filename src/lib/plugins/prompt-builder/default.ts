@@ -14,7 +14,11 @@ function substituteTemplates(text: string, card: CharacterCard, scene: SceneStat
     .replace(/\{\{user\}\}/g, 'User')
     .replace(/\{\{scene\.location\}\}/g, scene.location || '')
     .replace(/\{\{scene\.time\}\}/g, scene.time || '')
-    .replace(/\{\{scene\.mood\}\}/g, scene.mood || '');
+    .replace(/\{\{scene\.mood\}\}/g, scene.mood || '')
+    .replace(/\{\{var\.([a-zA-Z0-9_.]+)\}\}/g, (_, key: string) => {
+      const value = scene.variables[key];
+      return value !== undefined ? String(value) : '';
+    });
 }
 
 export const defaultPromptBuilder: PromptBuilderPlugin = {
