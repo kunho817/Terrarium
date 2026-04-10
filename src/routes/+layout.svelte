@@ -2,6 +2,7 @@
 	import '../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 
+	let { children } = $props();
 	let sidebarCollapsed = $state(false);
 </script>
 

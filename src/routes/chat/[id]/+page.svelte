@@ -15,7 +15,7 @@
   let error = $state('');
 
   onMount(async () => {
-    const characterId = $page.params.id;
+    const characterId = $page.params.id!;
     try {
       await charactersStore.selectCharacter(characterId);
       await chatStore.loadChat(characterId);
