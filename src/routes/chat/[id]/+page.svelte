@@ -50,6 +50,7 @@
     <TopBar
       characterName={$charactersStore.current.name}
       modelName={($settingsStore.providers[$settingsStore.defaultProvider] as any)?.model || ''}
+      characterId={$page.params.id}
     />
     <SceneInfoBar
       location={$sceneStore.location}
