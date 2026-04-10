@@ -1,6 +1,13 @@
 <script lang="ts">
 	import '../app.css';
-	let { children } = $props();
+	import Sidebar from '$lib/components/Sidebar.svelte';
+
+	let sidebarCollapsed = $state(false);
 </script>
 
-{@render children()}
+<div class="flex h-screen overflow-hidden">
+	<Sidebar collapsed={sidebarCollapsed} onToggle={() => sidebarCollapsed = !sidebarCollapsed} />
+	<main class="flex-1 flex flex-col overflow-hidden">
+		{@render children()}
+	</main>
+</div>
