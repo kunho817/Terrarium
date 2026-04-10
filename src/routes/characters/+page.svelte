@@ -68,14 +68,23 @@
 <div class="flex-1 flex flex-col overflow-hidden">
   <div class="flex items-center justify-between p-4 border-b border-surface0">
     <h1 class="text-lg font-semibold text-text">Characters</h1>
-    <button
-      onclick={handleImport}
-      disabled={importing}
-      class="px-3 py-1.5 bg-mauve text-crust rounded-md text-sm font-medium
-             hover:bg-lavender disabled:opacity-50 transition-colors"
-    >
-      {importing ? 'Importing...' : '+ Import Card'}
-    </button>
+    <div class="flex gap-2">
+      <a
+        href="/characters/new"
+        class="px-3 py-1.5 bg-surface1 text-text rounded-md text-sm font-medium
+               hover:bg-surface2 transition-colors"
+      >
+        + Create
+      </a>
+      <button
+        onclick={handleImport}
+        disabled={importing}
+        class="px-3 py-1.5 bg-mauve text-crust rounded-md text-sm font-medium
+               hover:bg-lavender disabled:opacity-50 transition-colors"
+      >
+        {importing ? 'Importing...' : 'Import Card'}
+      </button>
+    </div>
   </div>
 
   {#if error}
