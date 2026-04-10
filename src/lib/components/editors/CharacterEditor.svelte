@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { CharacterCard } from '$lib/types/character';
-  import type { DepthPrompt } from '$lib/types/character';
   import type { LorebookEntry } from '$lib/types/lorebook';
   import type { Trigger } from '$lib/types/trigger';
   import type { RegexScript } from '$lib/types/script';
@@ -48,43 +47,37 @@
     update({ [key]: value } as Partial<CharacterCard>);
   }
 
-  // Sync depth prompt when local state changes
-  $effect(() => {
+  function updateDepthPrompt() {
     if (depthPromptContent.trim()) {
-      const dp: DepthPrompt = { prompt: depthPromptContent, depth: depthPromptDepth };
-      onchange({ ...card, depthPrompt: dp });
+      update({ depthPrompt: { prompt: depthPromptContent, depth: depthPromptDepth } });
     } else {
       const { depthPrompt: _, ...rest } = { ...card, depthPrompt: undefined };
       onchange(rest as CharacterCard);
     }
-  });
+  }
 
-  // Sync tags string
-  $effect(() => {
-    const parsed = tagsString
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
-    onchange({ ...card, tags: parsed });
-  });
-
-  // Sync alternate greetings
-  $effect(() => {
-    onchange({ ...card, alternateGreetings: [...alternateGreetings] });
-  });
+  function updateTags() {
+    const parsed = tagsString.split(',').map((t) => t.trim()).filter(Boolean);
+    updateField('tags', parsed);
+  }
 
   function addGreeting() {
-    alternateGreetings = [...alternateGreetings, ''];
+    const next = [...alternateGreetings, ''];
+    alternateGreetings = next;
+    updateField('alternateGreetings', next);
   }
 
   function removeGreeting(index: number) {
-    alternateGreetings = alternateGreetings.filter((_: string, i: number) => i !== index);
+    const next = alternateGreetings.filter((_: string, i: number) => i !== index);
+    alternateGreetings = next;
+    updateField('alternateGreetings', next);
   }
 
   function updateGreeting(index: number, value: string) {
     const next = [...alternateGreetings];
     next[index] = value;
     alternateGreetings = next;
+    updateField('alternateGreetings', next);
   }
 </script>
 
@@ -257,7 +250,7 @@
             <div class="flex-1">
               <textarea
                 value={depthPromptContent}
-                oninput={(e) => depthPromptContent = (e.target as HTMLTextAreaElement).value}
+                oninput={(e) => { depthPromptContent = (e.target as HTMLTextAreaElement).value; updateDepthPrompt(); }}
                 placeholder="Prompt inserted at a specific depth in the message history..."
                 rows="3"
                 class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
@@ -270,7 +263,7 @@
                 id="char-depth"
                 type="number"
                 value={depthPromptDepth}
-                oninput={(e) => depthPromptDepth = parseInt((e.target as HTMLInputElement).value) || 0}
+                oninput={(e) => { depthPromptDepth = parseInt((e.target as HTMLInputElement).value) || 0; updateDepthPrompt(); }}
                 min="0"
                 class="w-20 bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                        focus:outline-none focus:border-mauve"
@@ -343,7 +336,7 @@
             id="char-tags"
             type="text"
             value={tagsString}
-            oninput={(e) => tagsString = (e.target as HTMLInputElement).value}
+            oninput={(e) => { tagsString = (e.target as HTMLInputElement).value; updateTags(); }}
             placeholder="Comma-separated tags (e.g. fantasy, original, adventure)"
             class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                    focus:outline-none focus:border-mauve placeholder:text-subtext0"
