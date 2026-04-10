@@ -52,8 +52,8 @@ function entryMatches(
   if (entry.mode === 'selective') {
     const primaryMatch = entry.keywords.length > 0
       && matchesKeywords(text, entry.keywords, entry.caseSensitive, fullWord);
-    const secondaryMatch = entry.secondaryKeywords && entry.secondaryKeywords.length > 0
-      && matchesKeywords(text, entry.secondaryKeywords, entry.caseSensitive, fullWord);
+    const secondaryMatch = !!(entry.secondaryKeywords && entry.secondaryKeywords.length > 0
+      && matchesKeywords(text, entry.secondaryKeywords, entry.caseSensitive, fullWord));
     return primaryMatch && secondaryMatch;
   }
 
