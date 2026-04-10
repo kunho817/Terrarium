@@ -14,6 +14,8 @@ function makeEntry(overrides: Partial<LorebookEntry> & { keywords?: string[] }):
     id: crypto.randomUUID(),
     name: overrides.name || 'test entry',
     keywords: overrides.keywords || [],
+    secondaryKeywords: overrides.secondaryKeywords,
+    regex: overrides.regex,
     caseSensitive: overrides.caseSensitive ?? false,
     content: overrides.content || 'lore content',
     position: overrides.position || 'before_char',
@@ -21,6 +23,7 @@ function makeEntry(overrides: Partial<LorebookEntry> & { keywords?: string[] }):
     enabled: overrides.enabled ?? true,
     scanDepth: overrides.scanDepth ?? 5,
     scope: overrides.scope || 'global',
+    characterIds: overrides.characterIds,
     mode: overrides.mode || 'normal',
     constant: overrides.constant ?? false,
   };
@@ -140,5 +143,267 @@ describe('matchLorebook', () => {
 
     const result = matchLorebook(messages, entries, defaultSettings);
     expect(result).toHaveLength(0);
+  });
+});
+
+describe('matchLorebook — selective mode', () => {
+  it('requires both keywords AND secondaryKeywords in selective mode', () => {
+    const messages = [makeMessage('The dragon used magic')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        secondaryKeywords: ['magic'],
+        mode: 'selective',
+        content: 'Dragon magic lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toBe('Dragon magic lore');
+  });
+
+  it('does not match selective entry when only primary keyword present', () => {
+    const messages = [makeMessage('The dragon attacked')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        secondaryKeywords: ['magic'],
+        mode: 'selective',
+        content: 'Dragon magic lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(0);
+  });
+
+  it('does not match selective entry when only secondary keyword present', () => {
+    const messages = [makeMessage('Some magic spell')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        secondaryKeywords: ['magic'],
+        mode: 'selective',
+        content: 'Dragon magic lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(0);
+  });
+
+  it('normal mode ignores secondaryKeywords', () => {
+    const messages = [makeMessage('The dragon attacked')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        secondaryKeywords: ['magic'],
+        mode: 'normal',
+        content: 'Dragon lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(1);
+  });
+});
+
+describe('matchLorebook — regex matching', () => {
+  it('matches entry using regex pattern', () => {
+    const messages = [makeMessage('Damage: 42 points')];
+    const entries = [
+      makeEntry({
+        keywords: [],
+        regex: 'Damage:\\s*\\d+',
+        content: 'Combat lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toBe('Combat lore');
+  });
+
+  it('does not match when regex does not match', () => {
+    const messages = [makeMessage('Healing: 10 points')];
+    const entries = [
+      makeEntry({
+        keywords: [],
+        regex: 'Damage:\\s*\\d+',
+        content: 'Combat lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(0);
+  });
+
+  it('matches when either keywords or regex matches', () => {
+    const messages = [makeMessage('The dragon breathed fire')];
+    const entries = [
+      makeEntry({
+        keywords: ['unicorn'],
+        regex: 'dragon',
+        content: 'Dragon lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(1);
+  });
+
+  it('skips invalid regex patterns gracefully', () => {
+    const messages = [makeMessage('Hello world')];
+    const entries = [
+      makeEntry({
+        keywords: [],
+        regex: '[invalid',
+        content: 'Broken lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe('matchLorebook — scope filtering', () => {
+  it('includes global scope entries regardless of characterId', () => {
+    const messages = [makeMessage('The dragon appeared')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        scope: 'global',
+        content: 'Global dragon lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings, 'char-alice');
+    expect(result).toHaveLength(1);
+  });
+
+  it('includes character scope entry when characterId matches', () => {
+    const messages = [makeMessage('The dragon appeared')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        scope: 'character',
+        characterIds: ['char-alice', 'char-bob'],
+        content: 'Alice-specific dragon lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings, 'char-alice');
+    expect(result).toHaveLength(1);
+  });
+
+  it('excludes character scope entry when characterId does not match', () => {
+    const messages = [makeMessage('The dragon appeared')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        scope: 'character',
+        characterIds: ['char-bob'],
+        content: 'Bob-specific dragon lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings, 'char-alice');
+    expect(result).toHaveLength(0);
+  });
+
+  it('excludes character scope entry when no characterId provided', () => {
+    const messages = [makeMessage('The dragon appeared')];
+    const entries = [
+      makeEntry({
+        keywords: ['dragon'],
+        scope: 'character',
+        characterIds: ['char-alice'],
+        content: 'Alice dragon lore',
+      }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe('matchLorebook — full-word matching', () => {
+  const fullWordSettings: LorebookSettings = {
+    ...defaultSettings,
+    fullWordMatching: true,
+  };
+
+  it('matches whole words only when fullWordMatching is true', () => {
+    const messages = [makeMessage('The cat sat down')];
+    const entries = [
+      makeEntry({ keywords: ['cat'], content: 'Cat lore' }),
+    ];
+
+    const result = matchLorebook(messages, entries, fullWordSettings);
+    expect(result).toHaveLength(1);
+  });
+
+  it('does not match partial words when fullWordMatching is true', () => {
+    const messages = [makeMessage('The category is wrong')];
+    const entries = [
+      makeEntry({ keywords: ['cat'], content: 'Cat lore' }),
+    ];
+
+    const result = matchLorebook(messages, entries, fullWordSettings);
+    expect(result).toHaveLength(0);
+  });
+
+  it('matches word boundaries at punctuation', () => {
+    const messages = [makeMessage('The cat, sat down')];
+    const entries = [
+      makeEntry({ keywords: ['cat'], content: 'Cat lore' }),
+    ];
+
+    const result = matchLorebook(messages, entries, fullWordSettings);
+    expect(result).toHaveLength(1);
+  });
+});
+
+describe('matchLorebook — recursive scanning', () => {
+  const recursiveSettings: LorebookSettings = {
+    ...defaultSettings,
+    recursiveScanning: true,
+  };
+
+  it('matches entries triggered by matched entry content', () => {
+    const messages = [makeMessage('The elf used magic')];
+    const entries = [
+      makeEntry({ keywords: ['elf'], content: 'Elves are magical beings from the forest.' }),
+      makeEntry({ keywords: ['forest'], content: 'The forest is ancient.' }),
+    ];
+
+    const result = matchLorebook(messages, entries, recursiveSettings);
+    expect(result).toHaveLength(2);
+    expect(result.some((e) => e.content === 'The forest is ancient.')).toBe(true);
+  });
+
+  it('does not recurse when recursiveScanning is false', () => {
+    const messages = [makeMessage('The elf used magic')];
+    const entries = [
+      makeEntry({ keywords: ['elf'], content: 'Elves are magical beings from the forest.' }),
+      makeEntry({ keywords: ['forest'], content: 'The forest is ancient.' }),
+    ];
+
+    const result = matchLorebook(messages, entries, defaultSettings);
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toContain('Elves');
+  });
+
+  it('prevents infinite recursion via visited set', () => {
+    const messages = [makeMessage('alpha')];
+    const entries = [
+      makeEntry({ keywords: ['alpha'], content: 'alpha and beta' }),
+      makeEntry({ keywords: ['beta'], content: 'beta and alpha' }),
+    ];
+
+    const result = matchLorebook(messages, entries, recursiveSettings);
+    expect(result).toHaveLength(2);
   });
 });
