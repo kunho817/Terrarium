@@ -59,7 +59,15 @@
 
       <!-- Theme -->
       <section class="space-y-3">
-        <h2 class="text-sm font-medium text-text">Theme</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-medium text-text">Theme</h2>
+          <a
+            href="/settings/theme-editor"
+            class="text-mauve hover:text-lavender text-sm"
+          >
+            Theme Editor →
+          </a>
+        </div>
         <select
           value={$settingsStore.theme}
           onchange={(e) => {
