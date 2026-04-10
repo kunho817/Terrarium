@@ -1,9 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChatEngine, consumeStream } from '$lib/core/chat/engine';
 import type { SendMessageOptions } from '$lib/core/chat/engine';
 import { PluginRegistry } from '$lib/plugins/registry';
 import { registerBuiltinPromptBuilders } from '$lib/plugins/prompt-builder/builtin';
 import type { ProviderPlugin, Message, UserConfig, CharacterCard, SceneState } from '$lib/types';
+
+// Mock script bridge
+const mockExecuteScript = vi.fn();
+vi.mock('$lib/core/scripting/bridge', () => ({
+  executeScript: (...args: unknown[]) => mockExecuteScript(...args),
+}));
 
 // === Mock provider ===
 
@@ -322,6 +328,139 @@ describe('ChatEngine', () => {
       });
       const { message } = await consumeStream(result);
       expect(message.content).toBe('ok');
+    });
+  });
+
+  describe('trigger integration', () => {
+    // Reset mock before each test in this block
+    beforeEach(() => {
+      mockExecuteScript.mockReset();
+    });
+
+    it('fires on_user_message triggers before AI call', async () => {
+      const cardWithTrigger: CharacterCard = {
+        ...baseCard,
+        triggers: [
+          {
+            id: 't1',
+            name: 'Track damage',
+            enabled: true,
+            event: 'on_user_message',
+            pattern: '\\[attack.*\\]',
+            script: 'setVar("last_action", "attack")',
+          },
+        ],
+      };
+
+      mockExecuteScript.mockResolvedValue({
+        success: true,
+        mutations: [{ type: 'setVar', key: 'last_action', value: 'attack' }],
+        logs: [],
+      });
+
+      const { engine } = createEngine();
+      const result = await engine.send({
+        input: '[attack] the dragon',
+        type: 'dialogue',
+        card: cardWithTrigger,
+        scene: { ...baseScene, variables: {} },
+        config: baseConfig,
+        messages: [],
+      });
+      await consumeStream(result);
+
+      expect(mockExecuteScript).toHaveBeenCalledTimes(1);
+    });
+
+    it('fires on_ai_message triggers after AI response', async () => {
+      const cardWithTrigger: CharacterCard = {
+        ...baseCard,
+        triggers: [
+          {
+            id: 't2',
+            name: 'Track AI damage',
+            enabled: true,
+            event: 'on_ai_message',
+            script: 'setVar("ai_responded", true)',
+          },
+        ],
+      };
+
+      mockExecuteScript.mockResolvedValue({
+        success: true,
+        mutations: [{ type: 'setVar', key: 'ai_responded', value: true }],
+        logs: [],
+      });
+
+      const { engine } = createEngine();
+      const result = await engine.send({
+        input: 'Hello',
+        type: 'dialogue',
+        card: cardWithTrigger,
+        scene: { ...baseScene, variables: {} },
+        config: baseConfig,
+        messages: [],
+      });
+      await consumeStream(result);
+
+      expect(mockExecuteScript).toHaveBeenCalled();
+    });
+
+    it('does not fire disabled triggers', async () => {
+      const cardWithTrigger: CharacterCard = {
+        ...baseCard,
+        triggers: [
+          {
+            id: 't3',
+            name: 'Disabled trigger',
+            enabled: false,
+            event: 'on_user_message',
+            script: 'log("should not run")',
+          },
+        ],
+      };
+
+      const { engine } = createEngine();
+      const result = await engine.send({
+        input: 'Hello',
+        type: 'dialogue',
+        card: cardWithTrigger,
+        scene: baseScene,
+        config: baseConfig,
+        messages: [],
+      });
+      await consumeStream(result);
+
+      expect(mockExecuteScript).not.toHaveBeenCalled();
+    });
+
+    it('skips triggers when pattern does not match', async () => {
+      const cardWithTrigger: CharacterCard = {
+        ...baseCard,
+        triggers: [
+          {
+            id: 't4',
+            name: 'Attack only',
+            enabled: true,
+            event: 'on_user_message',
+            pattern: '\\[attack.*\\]',
+            script: 'setVar("attacked", true)',
+          },
+        ],
+      };
+
+      const { engine } = createEngine();
+      const result = await engine.send({
+        input: 'Just saying hello',
+        type: 'dialogue',
+        card: cardWithTrigger,
+        scene: baseScene,
+        config: baseConfig,
+        messages: [],
+      });
+      await consumeStream(result);
+
+      expect(mockExecuteScript).not.toHaveBeenCalled();
     });
   });
 });
