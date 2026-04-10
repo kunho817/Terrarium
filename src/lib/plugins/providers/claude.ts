@@ -78,12 +78,6 @@ export function createClaudeProvider(): ProviderPlugin {
       type: 'text',
       defaultValue: 'claude-sonnet-4-20250514',
     },
-    {
-      key: 'baseUrl',
-      label: 'Base URL',
-      type: 'text',
-      defaultValue: DEFAULT_BASE_URL,
-    },
     { key: 'temperature', label: 'Temperature', type: 'number', defaultValue: 0.7 },
     { key: 'maxTokens', label: 'Max Tokens', type: 'number', defaultValue: 2048 },
   ];

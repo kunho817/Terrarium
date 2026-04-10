@@ -61,12 +61,6 @@ export function createOpenAICompatibleProvider(
       : []),
     { key: 'model', label: 'Model', type: 'text' as const, defaultValue: '' },
     {
-      key: 'baseUrl',
-      label: 'Base URL',
-      type: 'text' as const,
-      defaultValue: options.defaultBaseUrl,
-    },
-    {
       key: 'temperature',
       label: 'Temperature',
       type: 'number' as const,

@@ -11,6 +11,17 @@ import { charactersStore } from '$lib/stores/characters';
 import { getEngine } from '$lib/core/bootstrap';
 import type { MessageType } from '$lib/types';
 
+/**
+ * Strips thinking/reasoning tags from AI output.
+ */
+function stripThinking(text: string): string {
+  // Remove complete thinking blocks
+  let result = text.replace(/<(?:think|thinking)(?:\s[^>]*)?>[\s\S]*?<\/(?:think|thinking)\s*>/gi, '');
+  // Remove incomplete thinking block (opening tag without closing)
+  result = result.replace(/<(?:think|thinking)(?:\s[^>]*)?>[\s\S]*$/gi, '');
+  return result.trim();
+}
+
 export async function sendMessage(input: string, type: MessageType): Promise<void> {
   const state = get(chatStore);
   const scene = get(sceneStore);
@@ -44,21 +55,22 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
   // Add user message to store
   chatStore.addMessage(result.userMessage);
 
-  // Stream tokens into the streaming message
+  // Stream tokens into the streaming message (strip thinking tags from display)
   chatStore.setStreamingMessage('');
-  let fullText = '';
+  let rawText = '';
 
   try {
     for await (const token of result.stream) {
-      fullText += token;
-      chatStore.setStreamingMessage(fullText);
+      rawText += token;
+      chatStore.setStreamingMessage(stripThinking(rawText));
     }
   } catch {
     // Stream interrupted
   }
 
-  // Get final message
-  const assistantMessage = await result.onComplete;
+  // Get final message and strip thinking tags
+  const rawMessage = await result.onComplete;
+  const assistantMessage = { ...rawMessage, content: stripThinking(rawMessage.content) };
 
   // Clear streaming and add final message
   chatStore.clearStreamingMessage();
