@@ -4,6 +4,12 @@
   import { DEFAULT_ART_PRESETS } from '$lib/types';
   import type { ImageGenerationConfig } from '$lib/types';
   import { DEFAULT_IMAGE_CONFIG } from '$lib/types';
+  import {
+    NOVELAI_MODELS,
+    NOVELAI_SAMPLERS,
+    getCompatibleNoiseSchedules,
+  } from '$lib/core/image-gen/novelai-constants';
+  import type { ArtStylePreset } from '$lib/types/art-style';
 
   let loaded = $state(false);
 
@@ -27,9 +33,26 @@
   let comfyuiWorkflow = $state('');
   let comfyuiTimeout = $state(60);
 
-  let selectedPreset = $derived(
-    DEFAULT_ART_PRESETS.find((p) => p.id === artStylePresetId) ?? DEFAULT_ART_PRESETS[0]
-  );
+  // Custom preset state
+  let customPresets = $state<ArtStylePreset[]>([]);
+  let editingPreset: ArtStylePreset | null = $state(null);
+  let showPresetEditor = $state(false);
+  let newPresetName = $state('');
+  let newPresetPositive = $state('');
+  let newPresetNegative = $state('');
+
+  // Derived values
+  const allPresets = $derived([...DEFAULT_ART_PRESETS, ...customPresets]);
+  const compatibleSchedules = $derived(getCompatibleNoiseSchedules(novelaiModel, novelaiSampler));
+
+  const modelGroups = $derived(() => {
+    const groups: Record<string, typeof NOVELAI_MODELS> = {};
+    for (const m of NOVELAI_MODELS) {
+      if (!groups[m.group]) groups[m.group] = [];
+      groups[m.group].push(m);
+    }
+    return Object.entries(groups);
+  });
 
   function loadFromStore() {
     const ig = $settingsStore.imageGeneration ?? { ...DEFAULT_IMAGE_CONFIG };
@@ -37,10 +60,6 @@
     autoGenerate = ig.autoGenerate ?? false;
     artStylePresetId = ig.artStylePresetId ?? 'anime';
     imagePromptInstructions = ig.imagePromptInstructions ?? DEFAULT_IMAGE_CONFIG.imagePromptInstructions;
-
-    const preset = DEFAULT_ART_PRESETS.find((p) => p.id === artStylePresetId) ?? DEFAULT_ART_PRESETS[0];
-    positivePrompt = preset.positivePrompt;
-    negativePrompt = preset.negativePrompt;
 
     novelaiApiKey = ig.novelai?.apiKey ?? '';
     novelaiModel = ig.novelai?.model ?? 'nai-diffusion-4-5-full';
@@ -54,13 +73,81 @@
     comfyuiUrl = ig.comfyui?.url ?? 'http://localhost:8188';
     comfyuiWorkflow = ig.comfyui?.workflow ?? '';
     comfyuiTimeout = ig.comfyui?.timeout ?? 60;
+
+    // Load custom presets
+    const settings = $settingsStore;
+    customPresets = settings.customArtStylePresets ?? [];
+
+    // Load prompt values from the selected preset
+    const preset = allPresets.find((p) => p.id === artStylePresetId) ?? DEFAULT_ART_PRESETS[0];
+    positivePrompt = preset.positivePrompt;
+    negativePrompt = preset.negativePrompt;
   }
 
   function handlePresetChange(id: string) {
     artStylePresetId = id;
-    const preset = DEFAULT_ART_PRESETS.find((p) => p.id === id) ?? DEFAULT_ART_PRESETS[0];
-    positivePrompt = preset.positivePrompt;
-    negativePrompt = preset.negativePrompt;
+    const preset = allPresets.find((p) => p.id === id);
+    if (preset) {
+      positivePrompt = preset.positivePrompt;
+      negativePrompt = preset.negativePrompt;
+    }
+  }
+
+  function handleNewPreset() {
+    newPresetName = '';
+    newPresetPositive = positivePrompt;
+    newPresetNegative = negativePrompt;
+    editingPreset = null;
+    showPresetEditor = true;
+  }
+
+  function handleEditPreset(id: string) {
+    const preset = customPresets.find((p) => p.id === id);
+    if (!preset) return;
+    newPresetName = preset.name;
+    newPresetPositive = preset.positivePrompt;
+    newPresetNegative = preset.negativePrompt;
+    editingPreset = preset;
+    showPresetEditor = true;
+  }
+
+  function handleSavePreset() {
+    if (!newPresetName.trim()) return;
+    if (editingPreset) {
+      // Update existing
+      const idx = customPresets.findIndex((p) => p.id === editingPreset!.id);
+      if (idx >= 0) {
+        customPresets[idx] = {
+          ...editingPreset,
+          name: newPresetName,
+          positivePrompt: newPresetPositive,
+          negativePrompt: newPresetNegative,
+        };
+        customPresets = [...customPresets];
+      }
+    } else {
+      // Create new
+      const newPreset: ArtStylePreset = {
+        id: crypto.randomUUID(),
+        name: newPresetName,
+        positivePrompt: newPresetPositive,
+        negativePrompt: newPresetNegative,
+      };
+      customPresets = [...customPresets, newPreset];
+      artStylePresetId = newPreset.id;
+      positivePrompt = newPreset.positivePrompt;
+      negativePrompt = newPreset.negativePrompt;
+    }
+    showPresetEditor = false;
+    editingPreset = null;
+  }
+
+  function handleDeletePreset(id: string) {
+    customPresets = customPresets.filter((p) => p.id !== id);
+    // If the deleted preset was selected, fall back to anime
+    if (artStylePresetId === id) {
+      handlePresetChange('anime');
+    }
   }
 
   function buildConfig(): ImageGenerationConfig {
@@ -88,7 +175,10 @@
   }
 
   async function handleSave() {
-    settingsStore.update({ imageGeneration: buildConfig() });
+    settingsStore.update({
+      imageGeneration: buildConfig(),
+      customArtStylePresets: customPresets,
+    });
     await settingsStore.save();
   }
 
@@ -164,10 +254,88 @@
           class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                  focus:outline-none focus:border-mauve"
         >
-          {#each DEFAULT_ART_PRESETS as preset}
-            <option value={preset.id}>{preset.name}</option>
-          {/each}
+          <optgroup label="Built-in">
+            {#each DEFAULT_ART_PRESETS as preset}
+              <option value={preset.id}>{preset.name}</option>
+            {/each}
+          </optgroup>
+          {#if customPresets.length > 0}
+            <optgroup label="My Presets">
+              {#each customPresets as preset}
+                <option value={preset.id}>{preset.name}</option>
+              {/each}
+            </optgroup>
+          {/if}
         </select>
+
+        <!-- Preset management buttons -->
+        <div class="flex gap-2">
+          <button
+            type="button"
+            onclick={handleNewPreset}
+            class="text-xs bg-surface1 text-text px-3 py-1 rounded hover:bg-surface2"
+          >
+            + New
+          </button>
+          {#if customPresets.find((p) => p.id === artStylePresetId)}
+            <button
+              type="button"
+              onclick={() => handleEditPreset(artStylePresetId)}
+              class="text-xs bg-surface1 text-text px-3 py-1 rounded hover:bg-surface2"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onclick={() => handleDeletePreset(artStylePresetId)}
+              class="text-xs bg-surface1 text-red px-3 py-1 rounded hover:bg-surface2"
+            >
+              Delete
+            </button>
+          {/if}
+        </div>
+
+        <!-- Preset editor (collapsible) -->
+        {#if showPresetEditor}
+          <div class="space-y-2 p-3 bg-surface0 rounded-md border border-surface1">
+            <input
+              bind:value={newPresetName}
+              placeholder="Preset name"
+              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+                     focus:outline-none focus:border-mauve"
+            />
+            <textarea
+              bind:value={newPresetPositive}
+              rows={2}
+              placeholder="Positive prompt"
+              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+                     focus:outline-none focus:border-mauve resize-y"
+            ></textarea>
+            <textarea
+              bind:value={newPresetNegative}
+              rows={2}
+              placeholder="Negative prompt"
+              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+                     focus:outline-none focus:border-mauve resize-y"
+            ></textarea>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                onclick={handleSavePreset}
+                class="text-xs bg-mauve text-crust px-3 py-1 rounded hover:opacity-90"
+              >
+                Save Preset
+              </button>
+              <button
+                type="button"
+                onclick={() => { showPresetEditor = false; }}
+                class="text-xs bg-surface1 text-text px-3 py-1 rounded hover:bg-surface2"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        {/if}
 
         <!-- Positive Prompt -->
         <div class="space-y-1">
@@ -229,17 +397,23 @@
             />
           </div>
 
-          <!-- Model -->
+          <!-- Model (dropdown with optgroups) -->
           <div class="space-y-1">
             <label class="text-xs font-medium text-subtext0" for="nai-model">Model</label>
-            <input
+            <select
               id="nai-model"
-              type="text"
               bind:value={novelaiModel}
               class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                      focus:outline-none focus:border-mauve"
-              placeholder="nai-diffusion-4-5-full"
-            />
+            >
+              {#each modelGroups() as [group, models]}
+                <optgroup label={group}>
+                  {#each models as model}
+                    <option value={model.value}>{model.label}</option>
+                  {/each}
+                </optgroup>
+              {/each}
+            </select>
           </div>
 
           <!-- Width & Height -->
@@ -290,17 +464,34 @@
             </div>
           </div>
 
-          <!-- Sampler -->
+          <!-- Sampler (dropdown) -->
           <div class="space-y-1">
             <label class="text-xs font-medium text-subtext0" for="nai-sampler">Sampler</label>
-            <input
+            <select
               id="nai-sampler"
-              type="text"
               bind:value={novelaiSampler}
               class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                      focus:outline-none focus:border-mauve"
-              placeholder="k_euler_ancestral"
-            />
+            >
+              {#each NOVELAI_SAMPLERS as s}
+                <option value={s.value}>{s.label}</option>
+              {/each}
+            </select>
+          </div>
+
+          <!-- Noise Schedule (dropdown, reactive) -->
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-subtext0" for="nai-noise-schedule">Noise Schedule</label>
+            <select
+              id="nai-noise-schedule"
+              bind:value={novelaiNoiseSchedule}
+              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+                     focus:outline-none focus:border-mauve"
+            >
+              {#each compatibleSchedules as s}
+                <option value={s.value}>{s.label}</option>
+              {/each}
+            </select>
           </div>
         </section>
       {/if}
