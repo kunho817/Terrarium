@@ -28,4 +28,9 @@ export const PATHS = {
   // Themes
   themes: 'themes',
   themeDir: (name: string) => `themes/${name}`,
+
+  // Personas
+  personas: 'personas',
+  personaDir: (id: string) => `personas/${id}`,
+  personaFile: (id: string) => `personas/${id}/persona.json`,
 } as const;

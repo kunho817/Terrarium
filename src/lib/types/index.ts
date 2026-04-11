@@ -62,6 +62,9 @@ export type {
 // Character
 export type { DepthPrompt, CharacterCard } from './character';
 
+// Persona
+export type { UserPersona } from './persona';
+
 // Plugin & ChatContext
 export type {
   ProviderPlugin,

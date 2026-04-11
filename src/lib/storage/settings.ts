@@ -17,6 +17,7 @@ export interface AppSettings {
   promptPresets?: PromptPresetSettings;
   developerMode?: boolean;
   imageGeneration?: ImageGenerationConfig;
+  defaultPersonaId?: string;
   customArtStylePresets?: ArtStylePreset[];
   [key: string]: unknown;
 }
