@@ -56,6 +56,7 @@ const defaultImageConfig: ImageGenerationConfig = {
     steps: 28,
     scale: 5,
     sampler: 'k_euler',
+    noiseSchedule: 'karras',
   },
   comfyui: { url: '', workflow: '', timeout: 30 },
 };

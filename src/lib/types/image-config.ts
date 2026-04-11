@@ -11,6 +11,7 @@ export interface ImageGenerationConfig {
     steps: number;
     scale: number;
     sampler: string;
+    noiseSchedule: string;
   };
   comfyui: {
     url: string;
@@ -38,6 +39,7 @@ Output ONLY the image prompt text, nothing else. Keep it under 200 tokens. Use c
     steps: 28,
     scale: 5,
     sampler: 'k_euler_ancestral',
+    noiseSchedule: 'karras',
   },
   comfyui: {
     url: 'http://localhost:8188',

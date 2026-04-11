@@ -21,6 +21,7 @@
   let novelaiSteps = $state(28);
   let novelaiScale = $state(5);
   let novelaiSampler = $state('');
+  let novelaiNoiseSchedule = $state('karras');
 
   let comfyuiUrl = $state('');
   let comfyuiWorkflow = $state('');
@@ -48,6 +49,7 @@
     novelaiSteps = ig.novelai?.steps ?? 28;
     novelaiScale = ig.novelai?.scale ?? 5;
     novelaiSampler = ig.novelai?.sampler ?? 'k_euler_ancestral';
+    novelaiNoiseSchedule = ig.novelai?.noiseSchedule ?? 'karras';
 
     comfyuiUrl = ig.comfyui?.url ?? 'http://localhost:8188';
     comfyuiWorkflow = ig.comfyui?.workflow ?? '';
@@ -75,6 +77,7 @@
         steps: novelaiSteps,
         scale: novelaiScale,
         sampler: novelaiSampler,
+        noiseSchedule: novelaiNoiseSchedule,
       },
       comfyui: {
         url: comfyuiUrl,
