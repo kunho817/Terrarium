@@ -1,0 +1,153 @@
+<h2>시뮬레이션 챗봇 UI 방향</h2>
+<p class="subtitle">다대1 서술형 시뮬레이션 + HTML/CSS 커스터마이징 지원</p>
+
+<h3>A. 기본 내장 뷰 (디폴트 테마)</h3>
+<div class="mockup">
+  <div class="mockup-header">시뮬레이션 채팅 — 서술형 뷰</div>
+  <div class="mockup-body" style="background:#1e1e2e;color:#cdd6f4;padding:0;font-size:13px;min-height:420px;display:flex;flex-direction:column;">
+    <!-- 상단바 -->
+    <div style="background:#181825;padding:10px 16px;border-bottom:1px solid #313244;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="color:#6c7086;cursor:pointer;font-size:16px;">☰</span>
+        <span style="font-weight:600;">어두운 숲의 모험</span>
+        <span style="background:#45475a;padding:2px 8px;border-radius:4px;font-size:11px;color:#a6adc8;">시나리오 #3</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span style="background:#313244;padding:4px 10px;border-radius:6px;font-size:11px;">참여 캐릭터: 3</span>
+        <span style="background:#313244;padding:4px 10px;border-radius:6px;font-size:11px;">UI 커스텀</span>
+        <span style="background:#313244;padding:4px 10px;border-radius:6px;font-size:11px;">설정</span>
+      </div>
+    </div>
+
+    <!-- 장면 정보 -->
+    <div style="background:#11111b;padding:8px 16px;border-bottom:1px solid #313244;display:flex;gap:12px;align-items:center;">
+      <span style="color:#f9e2af;font-size:11px;">📍 장소:</span>
+      <span style="font-size:12px;">깊은 숲 속, 고대의 유적 앞</span>
+      <span style="color:#f9e2af;font-size:11px;margin-left:16px;">🌙 시간:</span>
+      <span style="font-size:12px;">밤</span>
+      <span style="color:#f9e2af;font-size:11px;margin-left:16px;">🎭 분위기:</span>
+      <span style="font-size:12px;">긴장감</span>
+    </div>
+
+    <!-- 서술형 메시지 영역 -->
+    <div style="flex:1;padding:20px 24px;overflow-y:auto;line-height:1.7;">
+
+      <!-- 서술 (내레이터) -->
+      <div style="margin-bottom:20px;padding:12px 16px;background:#1a1b2e;border-left:3px solid #585b70;border-radius:0 8px 8px 0;">
+        <div style="font-size:10px;color:#585b70;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">서술</div>
+        <span style="color:#bac2de;">달빛이 희미하게 비추는 숲속, 세 사람은 고대 유적의 입구 앞에 섰다. 차가운 바람이 불어올 때마다 유적의 벽에 새겨진 문양이 희미하게 빛났다.</span>
+      </div>
+
+      <!-- 캐릭터 대화 — 아리아 -->
+      <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;">
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:8px;background:#f38ba8;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;">아</div>
+          <div style="font-size:10px;color:#f38ba8;margin-top:2px;">아리아</div>
+        </div>
+        <div style="flex:1;">
+          <div style="color:#cdd6f4;">"이 문양... 고대 엘프어로 쓰여 있어요. 조심하세요, 여기 함정이 있을 수도 있어요."</div>
+          <div style="margin-top:4px;color:#6c7086;font-size:12px;font-style:italic;">*아리아는 지팡이를 들어 벽의 문양을 조명하며 뒤의 동료들에게 경고했다.*</div>
+        </div>
+      </div>
+
+      <!-- 캐릭터 대화 — 카이 -->
+      <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;">
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:8px;background:#89b4fa;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;">카</div>
+          <div style="font-size:10px;color:#89b4fa;margin-top:2px;">카이</div>
+        </div>
+        <div style="flex:1;">
+          <div style="color:#cdd6f4;">"함정? 좋아, 내가 먼저 들어가지."</div>
+          <div style="margin-top:4px;color:#6c7086;font-size:12px;font-style:italic;">*카이는 검을 뽑아들고 먼저 유적 안으로 발을 들였다.*</div>
+        </div>
+      </div>
+
+      <!-- 사용자 입력 (서술형) -->
+      <div style="margin-bottom:16px;display:flex;gap:12px;align-items:flex-start;">
+        <div style="text-align:center;flex-shrink:0;">
+          <div style="width:40px;height:40px;border-radius:8px;background:#a6e3a1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;">나</div>
+          <div style="font-size:10px;color:#a6e3a1;margin-top:2px;">나</div>
+        </div>
+        <div style="flex:1;">
+          <div style="color:#cdd6f4;">"잠깐, 먼저 문양을 더 자세히 살펴보자. 아리아, 저 글자를 읽을 수 있어?"</div>
+          <div style="margin-top:4px;color:#6c7086;font-size:12px;font-style:italic;">*나는 아리아의 어깨 너머로 벽의 문양을 들여다보았다.*</div>
+        </div>
+      </div>
+
+      <!-- AI 응답 생성 중 -->
+      <div style="padding:12px 16px;background:#1a1b2e;border-left:3px solid #585b70;border-radius:0 8px 8px 0;">
+        <div style="font-size:10px;color:#585b70;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">서술</div>
+        <span style="color:#585b70;">아리아가 지팡이를 더 가까이 대자, 문양이 푸른빛을 내며 반짝였다. 그녀의 눈이 커졌다...</span>
+        <span style="display:inline-block;width:8px;height:14px;background:#89b4fa;animation:blink 1s infinite;margin-left:2px;vertical-align:middle;"></span>
+      </div>
+      <style>@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}</style>
+
+    </div>
+
+    <!-- 입력 영역 — 서술형 -->
+    <div style="padding:12px 16px;border-top:1px solid #313244;background:#181825;">
+      <div style="display:flex;gap:8px;margin-bottom:6px;">
+        <span style="background:#45475a;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer;">💬 대화</span>
+        <span style="background:#89b4fa;color:#1e1e2e;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer;">📝 서술</span>
+        <span style="background:#45475a;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer;">🎯 행동</span>
+        <span style="background:#45475a;padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer;">⚙️ 시스템</span>
+      </div>
+      <div style="background:#313244;border-radius:12px;padding:10px 14px;display:flex;align-items:flex-start;gap:8px;">
+        <textarea style="flex:1;background:transparent;border:none;color:#cdd6f4;font-size:13px;resize:none;outline:none;min-height:20px;font-family:inherit;" placeholder="행동이나 대화를 서술하세요...">*아리아에게 다가가 벽의 문양을 함께 살펴본다.* "이 기호는 뭐야?"</textarea>
+        <span style="background:#89b4fa;color:#1e1e2e;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;align-self:flex-end;">전송</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:24px;">B. 커스텀 HTML/CSS 테마 적용 예시</h3>
+<p class="subtitle">사용자가 HTML/CSS로 직접 채팅 뷰를 커스터마이징 가능</p>
+
+<div class="mockup">
+  <div class="mockup-header">동일한 채팅 — 사용자 커스텀 테마 적용</div>
+  <div class="mockup-body" style="background:#0d0d0d;color:#e0e0e0;padding:0;font-size:13px;min-height:280px;display:flex;flex-direction:column;">
+    <div style="padding:20px 28px;flex:1;overflow-y:auto;line-height:1.8;font-family:Georgia,serif;">
+      <div style="text-align:center;color:#666;font-size:11px;margin-bottom:20px;border-bottom:1px solid #222;padding-bottom:8px;">━━━ 깊은 숲 속, 고대의 유적 앞 ┃ 밤 ━━━</div>
+
+      <p style="color:#888;font-style:italic;margin-bottom:16px;">달빛이 희미하게 비추는 숲속, 세 사람은 고대 유적의 입구 앞에 섰다. 차가운 바람이 불어올 때마다 유적의 벽에 새겨진 문양이 희미하게 빛났다.</p>
+
+      <p style="margin-bottom:12px;">
+        <span style="color:#ff79c6;font-weight:bold;">[아리아]</span>
+        <span style="color:#e0e0e0;">"이 문양... 고대 엘프어로 쓰여 있어요. 조심하세요, 여기 함정이 있을 수도 있어요."</span>
+      </p>
+
+      <p style="margin-bottom:12px;">
+        <span style="color:#8be9fd;font-weight:bold;">[카이]</span>
+        <span style="color:#e0e0e0;">"함정? 좋아, 내가 먼저 들어가지."</span>
+      </p>
+
+      <p style="margin-bottom:12px;">
+        <span style="color:#50fa7b;font-weight:bold;">[나]</span>
+        <span style="color:#e0e0e0;">"잠깐, 먼저 문양을 더 자세히 살펴보자."</span>
+      </p>
+
+      <div style="background:#1a1a1a;padding:12px;margin-top:16px;border-radius:4px;border:1px dashed #333;">
+        <p style="color:#555;font-size:12px;margin:0;font-style:italic;">
+          이 뷰는 사용자가 작성한 HTML/CSS 템플릿으로 렌더링됩니다.<br>
+          &lt;div class="message" data-char="아리아"&gt;{{content}}&lt;/div&gt; 같은 템플릿 변수 사용
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:24px;">UI 커스터마이징 시스템 구조</h3>
+<div style="background:#313244;color:#cdd6f4;padding:16px;border-radius:8px;font-family:monospace;font-size:12px;line-height:1.8;">
+  <div style="color:#f9e2af;">// 사용자 커스텀 테마 예시</div>
+  <div style="color:#6c7086;">theme.html:</div>
+  <div>&lt;div class="msg" <span style="color:#89b4fa;">data-type</span>="{{type}}"&gt;</div>
+  <div>  &lt;span class="name" <span style="color:#89b4fa;">style</span>="color:{{char.color}}"&gt;{{char.name}}&lt;/span&gt;</div>
+  <div>  &lt;div class="content"&gt;{{content}}&lt;/div&gt;</div>
+  <div>  <span style="color:#6c7086;">{{#if action}}&lt;i class="action"&gt;{{action}}&lt;/i&gt;{{/if}}</span></div>
+  <div>&lt;/div&gt;</div>
+  <br>
+  <div style="color:#6c7086;">theme.css:</div>
+  <div>.msg[data-type="narrator"] { border-left: 3px solid #666; font-style: italic; }</div>
+  <div>.name { font-weight: bold; }</div>
+  <div>.action { color: #888; }</div>
+</div>

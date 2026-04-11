@@ -51,6 +51,14 @@ export function createDefaultPreset(): PromptPreset {
     },
     {
       id: uid(),
+      type: 'persona',
+      name: 'User Persona',
+      enabled: true,
+      role: 'system',
+      content: '',
+    },
+    {
+      id: uid(),
       type: 'description',
       name: 'Description',
       enabled: true,

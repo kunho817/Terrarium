@@ -1,0 +1,117 @@
+<h2>Image Generation Settings — Redesign</h2>
+<p class="subtitle">NovelAI provider settings with dropdown selectors and multi-preset support</p>
+
+<div class="split">
+  <!-- Current State -->
+  <div class="mockup">
+    <div class="mockup-header">Current: Text Inputs</div>
+    <div class="mockup-body" style="padding:16px; background:#1e1e2e;">
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Model</label>
+        <input class="mock-input" value="nai-diffusion-4-5-full" style="width:100%; opacity:0.5;" readonly>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Sampler</label>
+        <input class="mock-input" value="k_euler_ancestral" style="width:100%; opacity:0.5;" readonly>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Noise Schedule</label>
+        <span style="color:#f38ba8; font-size:12px;">Hardcoded: native (no UI)</span>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Art Style Preset</label>
+        <select style="width:100%; padding:8px; background:#313244; color:#cdd6f4; border:1px solid #45475a; border-radius:6px;">
+          <option>Anime</option>
+          <option>Realistic</option>
+          <option>Custom</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proposed State -->
+  <div class="mockup">
+    <div class="mockup-header">Proposed: Dropdowns + Multi-Preset</div>
+    <div class="mockup-body" style="padding:16px; background:#1e1e2e;">
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Model</label>
+        <select style="width:100%; padding:8px; background:#313244; color:#cdd6f4; border:1px solid #45475a; border-radius:6px;">
+          <optgroup label="V4.5 (Latest)">
+            <option selected>NAI Diffusion 4.5 Full</option>
+            <option>NAI Diffusion 4.5 Curated</option>
+          </optgroup>
+          <optgroup label="V4">
+            <option>NAI Diffusion 4 Full</option>
+            <option>NAI Diffusion 4 Curated</option>
+          </optgroup>
+          <optgroup label="V3">
+            <option>NAI Diffusion 3</option>
+            <option>NAI Diffusion Furry 3</option>
+          </optgroup>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Sampler</label>
+        <select style="width:100%; padding:8px; background:#313244; color:#cdd6f4; border:1px solid #45475a; border-radius:6px;">
+          <option>Euler</option>
+          <option selected>Euler Ancestral</option>
+          <option>DPM++ 2S Ancestral</option>
+          <option>DPM++ 2M</option>
+          <option>DPM++ SDE</option>
+          <option>DPM++ 2M SDE</option>
+          <option>DDIM</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Noise Schedule</label>
+        <select style="width:100%; padding:8px; background:#313244; color:#cdd6f4; border:1px solid #45475a; border-radius:6px;">
+          <option>Native</option>
+          <option selected>Karras</option>
+          <option>Exponential</option>
+          <option>Polyexponential</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="color:#a6adc8; font-size:12px; display:block; margin-bottom:4px;">Art Style Preset</label>
+        <select style="width:100%; padding:8px; background:#313244; color:#cdd6f4; border:1px solid #45475a; border-radius:6px;">
+          <optgroup label="─── Built-in ───" style="color:#89b4fa;">
+            <option>🎨 Anime</option>
+            <option>📷 Realistic</option>
+          </optgroup>
+          <optgroup label="─── My Presets ───" style="color:#a6e3a1;">
+            <option>✨ Dark Fantasy</option>
+            <option>🌸 Soft Pastel</option>
+            <option>🖋️ Ink Sketch</option>
+          </optgroup>
+        </select>
+        <div style="margin-top:6px; display:flex; gap:6px;">
+          <button class="mock-button" style="font-size:11px; padding:4px 10px;">+ New Preset</button>
+          <button class="mock-button" style="font-size:11px; padding:4px 10px;">Edit</button>
+          <button class="mock-button" style="font-size:11px; padding:4px 10px; color:#f38ba8;">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Key Changes</h3>
+  <div style="display:grid; gap:8px;">
+    <div style="padding:10px; background:#1e1e2e; border-radius:8px; border-left:3px solid #89b4fa;">
+      <strong style="color:#89b4fa;">Model</strong>
+      <p style="color:#a6adc8; font-size:13px; margin:4px 0 0;">Grouped by version (V4.5 → V1) with optgroup. API value (e.g. nai-diffusion-4-5-full) stored internally, human-readable name shown.</p>
+    </div>
+    <div style="padding:10px; background:#1e1e2e; border-radius:8px; border-left:3px solid #a6e3a1;">
+      <strong style="color:#a6e3a1;">Sampler</strong>
+      <p style="color:#a6adc8; font-size:13px; margin:4px 0 0;">All 17 samplers as dropdown. Most popular ones listed first (Euler Ancestral, DPM++ 2M, etc).</p>
+    </div>
+    <div style="padding:10px; background:#1e1e2e; border-radius:8px; border-left:3px solid #f9e2af;">
+      <strong style="color:#f9e2af;">Noise Schedule</strong>
+      <p style="color:#a6adc8; font-size:13px; margin:4px 0 0;">Now configurable. Karras as default for most samplers. Auto-filtered based on model family compatibility.</p>
+    </div>
+    <div style="padding:10px; background:#1e1e2e; border-radius:8px; border-left:3px solid #cba6f7;">
+      <strong style="color:#cba6f7;">Multi-Preset</strong>
+      <p style="color:#a6adc8; font-size:13px; margin:4px 0 0;">Built-in (Anime/Realistic) separated from user-created presets. Create/Edit/Delete custom presets inline.</p>
+    </div>
+  </div>
+</div>

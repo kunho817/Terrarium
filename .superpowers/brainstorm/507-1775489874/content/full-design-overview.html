@@ -1,0 +1,313 @@
+<h2>시스템 전체 설계 오버뷰</h2>
+<p class="subtitle">TextChatbot — 플러그인 + 스크립팅 + 시뮬레이션 챗봇 아키텍처</p>
+
+<!-- ===== 1. 전체 파이프라인 ===== -->
+<h3 style="margin-top:24px;">1. 채팅 파이프라인</h3>
+<div class="mockup">
+  <div class="mockup-header">사용자 입력 → AI 응답 → 화면 렌더링</div>
+  <div class="mockup-body" style="background:#11111b;color:#cdd6f4;padding:20px;font-size:12px;line-height:1.6;">
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:600px;margin:0 auto;">
+
+      <!-- 사용자 입력 -->
+      <div style="background:#1e3a5f;padding:10px 14px;border-radius:8px;border-left:3px solid #89b4fa;">
+        <div style="font-size:10px;color:#89b4fa;margin-bottom:4px;">① 사용자 입력</div>
+        <div>"*아리아에게 다가가 벽의 문양을 함께 살펴본다.*"</div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Regex Script (입력 변환) -->
+      <div style="background:#2a1f3d;padding:10px 14px;border-radius:8px;border-left:3px solid #cba6f7;">
+        <div style="font-size:10px;color:#cba6f7;margin-bottom:4px;">② Regex Script — modify_input</div>
+        <div style="color:#888;">입력 텍스트 변환 (예: 단어 치환, 포맷 정리)</div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Trigger on_user_message -->
+      <div style="background:#3d1f2a;padding:10px 14px;border-radius:8px;border-left:3px solid #f38ba8;">
+        <div style="font-size:10px;color:#f38ba8;margin-bottom:4px;">③ Trigger — on_user_message</div>
+        <div style="font-family:monospace;font-size:11px;color:#a6adc8;">
+          if matchRegex(msg, "공격|전투") then<br>
+          &nbsp;&nbsp;setVar("combat.active", true)<br>
+          &nbsp;&nbsp;playEffect("screen_flash")<br>
+          end
+        </div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Lorebook 매칭 -->
+      <div style="background:#1f3d2a;padding:10px 14px;border-radius:8px;border-left:3px solid #a6e3a1;">
+        <div style="font-size:10px;color:#a6e3a1;margin-bottom:4px;">④ Lorebook 스캔</div>
+        <div style="color:#888;">키워드 매칭: "문양" → <span style="color:#a6e3a1;">고대 엘프어 해석 가이드</span> (320토큰 주입)</div>
+        <div style="color:#888;">키워드 매칭: "아리아" → <span style="color:#a6e3a1;">아리아 캐릭터 로어</span> (512토큰 주입)</div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Agent onBeforeSend -->
+      <div style="background:#2a2a3d;padding:10px 14px;border-radius:8px;border-left:3px solid #6c7086;">
+        <div style="font-size:10px;color:#6c7086;margin-bottom:4px;">⑤ Agent onBeforeSend (v2)</div>
+        <div style="color:#888;">Memory Agent: 관련 기억 주입 | Director: 연출 지시 추가</div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Prompt 조립 -->
+      <div style="background:#1e1e2e;border:1px solid #45475a;padding:10px 14px;border-radius:8px;">
+        <div style="font-size:10px;color:#f9e2af;margin-bottom:4px;">⑥ Prompt Builder — 프롬프트 조립</div>
+        <div style="font-family:monospace;font-size:10px;line-height:1.8;color:#7f849c;">
+          [System Prompt] → [Character Card] → [Lorebook] → [Chat History]<br>
+          → [Author's Note] → [Variables as context] → [User Message]
+        </div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- AI 호출 -->
+      <div style="background:#1e2a3d;padding:10px 14px;border-radius:8px;border-left:3px solid #74c7ec;">
+        <div style="font-size:10px;color:#74c7ec;margin-bottom:4px;">⑦ ProviderPlugin.chat() — NanoGPT</div>
+        <div style="color:#89b4fa;">→ AI 응답 스트리밍 (AsyncGenerator)</div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Trigger on_ai_message -->
+      <div style="background:#3d1f2a;padding:10px 14px;border-radius:8px;border-left:3px solid #f38ba8;">
+        <div style="font-size:10px;color:#f38ba8;margin-bottom:4px;">⑧ Trigger — on_ai_message</div>
+        <div style="font-family:monospace;font-size:11px;color:#a6adc8;">
+          local mood = analyzeSentiment(response)<br>
+          &nbsp;&nbsp;setMood(mood)<br>
+          &nbsp;&nbsp;if mood == "tense" then playEffect("bg_dim") end
+        </div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- Regex Script (출력 변환) -->
+      <div style="background:#2a1f3d;padding:10px 14px;border-radius:8px;border-left:3px solid #cba6f7;">
+        <div style="font-size:10px;color:#cba6f7;margin-bottom:4px;">⑨ Regex Script — modify_output</div>
+        <div style="color:#888;">출력 텍스트 변환 (예: *행동* → 이탤릭 처리, 마크다운 렌더링)</div>
+      </div>
+      <div style="text-align:center;color:#585b70;">▼</div>
+
+      <!-- 화면 렌더링 -->
+      <div style="background:#1e1e2e;border:2px solid #89b4fa;padding:10px 14px;border-radius:8px;">
+        <div style="font-size:10px;color:#89b4fa;margin-bottom:4px;">⑩ UI 렌더링 — 커스텀 테마 적용</div>
+        <div style="color:#cdd6f4;">서술형 뷰로 AI 응답 표시 + 이펙트 재생</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== 2. 스크립팅 엔진 레이어 ===== -->
+<h3 style="margin-top:32px;">2. 스크립팅 엔진 — 4레이어 아키텍처</h3>
+<div class="mockup">
+  <div class="mockup-header">Block Editor ↔ Lua Script ↔ Script API ↔ Sandboxed Runtime</div>
+  <div class="mockup-body" style="background:#11111b;padding:20px;font-size:12px;">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- Layer 3: Block Editor -->
+      <div style="background:#1e1e2e;border:1px solid #cba6f7;border-radius:10px;padding:14px;">
+        <div style="color:#cba6f7;font-size:11px;font-weight:bold;margin-bottom:10px;">Layer 3: Block Editor (UI)</div>
+        <div style="color:#888;font-size:11px;margin-bottom:8px;">비개발자용 — 블록 조립 → Lua 자동 생성</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#cba6f7;">IF</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#f9e2af;">SET VAR</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#a6e3a1;">ROLL</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#f38ba8;">EFFECT</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#89b4fa;">LORE</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#74c7ec;">SCENE</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#fab387;">SEND</div>
+          <div style="background:#45475a;padding:4px 8px;border-radius:4px;font-size:10px;color:#94e2d5;">CHAR</div>
+        </div>
+        <div style="margin-top:8px;padding:6px 8px;background:#181825;border-radius:4px;font-size:10px;color:#6c7086;">
+          ↓ 드래그 앤 드롭으로 스크립트 생성
+        </div>
+      </div>
+
+      <!-- Layer 2: Lua Script -->
+      <div style="background:#1e1e2e;border:1px solid #f38ba8;border-radius:10px;padding:14px;">
+        <div style="color:#f38ba8;font-size:11px;font-weight:bold;margin-bottom:10px;">Layer 2: Lua Script</div>
+        <div style="color:#888;font-size:11px;margin-bottom:8px;">파워유저용 — 직접 Lua 작성</div>
+        <div style="background:#181825;padding:8px;border-radius:6px;font-family:monospace;font-size:10px;line-height:1.6;">
+          <span style="color:#cba6f7;">local</span> <span style="color:#f9e2af;">hp</span> = <span style="color:#89b4fa;">getVar</span>(<span style="color:#a6e3a1;">"player.hp"</span>)<br>
+          <span style="color:#cba6f7;">if</span> hp < <span style="color:#fab387;">30</span> <span style="color:#cba6f7;">then</span><br>
+          &nbsp;&nbsp;<span style="color:#89b4fa;">setVar</span>(<span style="color:#a6e3a1;">"status"</span>, <span style="color:#a6e3a1;">"injured"</span>)<br>
+          &nbsp;&nbsp;<span style="color:#89b4fa;">injectLore</span>(<span style="color:#a6e3a1;">"injury"</span>)<br>
+          &nbsp;&nbsp;<span style="color:#89b4fa;">playEffect</span>(<span style="color:#a6e3a1;">"shake"</span>)<br>
+          <span style="color:#cba6f7;">end</span>
+        </div>
+      </div>
+
+      <!-- Layer 1: Script API -->
+      <div style="background:#1e1e2e;border:1px solid #a6e3a1;border-radius:10px;padding:14px;">
+        <div style="color:#a6e3a1;font-size:11px;font-weight:bold;margin-bottom:10px;">Layer 1: Script API</div>
+        <div style="color:#888;font-size:11px;margin-bottom:8px;">공통 런타임 — 모든 레이어가 호출</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-family:monospace;font-size:10px;">
+          <div style="color:#f9e2af;">setVar / getVar</div>
+          <div style="color:#74c7ec;">setLocation</div>
+          <div style="color:#a6e3a1;">rollDice</div>
+          <div style="color:#f38ba8;">playEffect</div>
+          <div style="color:#cba6f7;">injectLore</div>
+          <div style="color:#89b4fa;">llmCall</div>
+          <div style="color:#fab387;">sendMessage</div>
+          <div style="color:#94e2d5;">generateImage</div>
+        </div>
+      </div>
+
+      <!-- Layer 0: Sandboxed Runtime -->
+      <div style="background:#1e1e2e;border:1px solid #f38ba8;border-radius:10px;padding:14px;">
+        <div style="color:#f38ba8;font-size:11px;font-weight:bold;margin-bottom:10px;">Layer 0: Sandboxed Runtime</div>
+        <div style="color:#888;font-size:11px;margin-bottom:8px;">Tauri Rust — mlua crate 기반 Lua VM</div>
+        <div style="background:#2a1a1a;padding:8px;border-radius:6px;font-size:10px;line-height:1.6;">
+          <div style="color:#f38ba8;">🚫 파일 시스템 접근 불가</div>
+          <div style="color:#f38ba8;">🚫 네트워크 접근 불가</div>
+          <div style="color:#f38ba8;">🚫 OS 명령어 실행 불가</div>
+          <div style="color:#a6e3a1;">✅ Script API 함수만 호출 가능</div>
+          <div style="color:#a6e3a1;">✅ 실행 시간/메모리 제한</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== 3. 실제 사용 예시: 보드게임 ===== -->
+<h3 style="margin-top:32px;">3. 활용 예시 — RPG 보드게임 시뮬레이션</h3>
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Trigger + Lorebook + Variables 연동</div>
+    <div class="mockup-body" style="background:#11111b;color:#cdd6f4;padding:16px;font-size:11px;line-height:1.6;">
+
+      <div style="color:#f9e2af;font-weight:bold;margin-bottom:8px;">📜 Lorebook 설정</div>
+      <div style="background:#1a2a1f;padding:8px;border-radius:6px;margin-bottom:12px;font-size:10px;">
+        <div><span style="color:#a6e3a1;">키워드:</span> "상점", "구매"</div>
+        <div><span style="color:#a6e3a1;">내용:</span> 상점 시스템 규칙 설명 (가격표, 거래 규칙)</div>
+        <div><span style="color:#a6e3a1;">조건:</span> getVar("location") == "town"</div>
+      </div>
+
+      <div style="color:#f38ba8;font-weight:bold;margin-bottom:8px;">⚡ Trigger: on_user_message — 패턴 "구매|살|샀"</div>
+      <div style="background:#2a1a2a;padding:8px;border-radius:6px;margin-bottom:12px;font-family:monospace;font-size:10px;">
+        <span style="color:#cba6f7;">local</span> item = matchRegex(msg, "구매%s+(.+)")<br>
+        <span style="color:#cba6f7;">local</span> gold = <span style="color:#89b4fa;">getVar</span>(<span style="color:#a6e3a1;">"player.gold"</span>)<br>
+        <span style="color:#cba6f7;">local</span> price = prices[item] <span style="color:#cba6f7;">or</span> <span style="color:#fab387;">10</span><br>
+        <br>
+        <span style="color:#cba6f7;">if</span> gold >= price <span style="color:#cba6f7;">then</span><br>
+        &nbsp;&nbsp;<span style="color:#89b4fa;">setVar</span>(<span style="color:#a6e3a1;">"player.gold"</span>, gold - price)<br>
+        &nbsp;&nbsp;<span style="color:#89b4fa;">setVar</span>(<span style="color:#a6e3a1;">"inventory."..item</span>, <span style="color:#cba6f7;">true</span>)<br>
+        &nbsp;&nbsp;<span style="color:#89b4fa;">sendMessage</span>(<span style="color:#a6e3a1;">"✅ "..item.." 구매! (남은 골드: "..(gold-price)..")"</span>, <span style="color:#a6e3a1;">"system"</span>)<br>
+        &nbsp;&nbsp;<span style="color:#89b4fa;">playEffect</span>(<span style="color:#a6e3a1;">"coin_sound"</span>)<br>
+        <span style="color:#cba6f7;">else</span><br>
+        &nbsp;&nbsp;<span style="color:#89b4fa;">sendMessage</span>(<span style="color:#a6e3a1;">"❌ 골드가 부족합니다! (필요: "..price..", 보유: "..gold..")"</span>, <span style="color:#a6e3a1;">"system"</span>)<br>
+        &nbsp;&nbsp;<span style="color:#89b4fa;">playEffect</span>(<span style="color:#a6e3a1;">"error"</span>)<br>
+        <span style="color:#cba6f7;">end</span>
+      </div>
+
+      <div style="color:#89b4fa;font-weight:bold;margin-bottom:8px;">📊 현재 변수 상태</div>
+      <div style="background:#1a1a2a;padding:8px;border-radius:6px;font-family:monospace;font-size:10px;">
+        player.hp = <span style="color:#a6e3a1;">78</span> | player.gold = <span style="color:#f9e2af;">45</span><br>
+        location = <span style="color:#74c7ec;">"town"</span> | quest.main = <span style="color:#cba6f7;">"dragon_slain"<br></span>
+        inventory.sword = <span style="color:#a6e3a1;">true</span> | flags.met_king = <span style="color:#a6e3a1;">true</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">사용자에게 보이는 화면</div>
+    <div class="mockup-body" style="background:#1e1e2e;color:#cdd6f4;padding:0;font-size:12px;line-height:1.6;">
+      <!-- 장면 정보 -->
+      <div style="background:#11111b;padding:6px 12px;border-bottom:1px solid #313244;display:flex;gap:12px;font-size:10px;">
+        <span style="color:#f9e2af;">📍 마을</span>
+        <span style="color:#89b4fa;">🌙 저녁</span>
+        <span style="color:#a6e3a1;">💰 골드: 45</span>
+        <span style="color:#f38ba8;">❤️ HP: 78</span>
+      </div>
+
+      <div style="padding:12px;">
+        <!-- 내레이터 -->
+        <div style="background:#1a1b2e;padding:8px 10px;border-left:2px solid #585b70;border-radius:0 6px 6px 0;margin-bottom:10px;font-style:italic;color:#888;font-size:11px;">
+          상점 주인이 당신을 반기며 웃습니다. 진열대에는 다양한 물약과 무기가 놓여 있습니다.
+        </div>
+
+        <!-- 사용자 -->
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <div style="width:24px;height:24px;background:#a6e3a1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;">나</div>
+          <div style="color:#cdd6f4;">"포션 구매"</div>
+        </div>
+
+        <!-- 시스템 메시지 (Trigger 실행 결과) -->
+        <div style="background:#1a2a1f;padding:6px 10px;border-radius:6px;border:1px solid #313244;margin-bottom:10px;color:#a6e3a1;font-size:11px;text-align:center;">
+          ✅ 포션 구매! (남은 골드: 35)
+        </div>
+
+        <!-- AI 응답 -->
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <div style="width:24px;height:24px;background:#f38ba8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;">상</div>
+          <div style="color:#cdd6f4;">"좋은 선택이에요, 모험자님. 이 포션이라면 상처도 금방 치료될 겁니다. 또 필요한 건 있으신가요?"</div>
+        </div>
+
+        <!-- Lorebook 주입 표시 -->
+        <div style="background:#1a1b2e;padding:4px 8px;border-radius:4px;color:#585b70;font-size:9px;text-align:center;">
+          📖 Lorebook 활성: 상점 시스템 규칙 (320토큰)
+        </div>
+      </div>
+
+      <!-- 입력 영역 -->
+      <div style="padding:8px 12px;border-top:1px solid #313244;background:#181825;">
+        <div style="background:#313244;border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:6px;">
+          <span style="color:#6c7086;font-size:10px;">💬 대화</span>
+          <span style="flex:1;color:#6c7086;font-size:11px;">행동이나 대화를 서술하세요...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 4. 플러그인 생태계 ===== -->
+<h3 style="margin-top:32px;">4. 플러그인 생태계</h3>
+<div class="mockup">
+  <div class="mockup-header">플러그인 타입별 역할</div>
+  <div class="mockup-body" style="background:#11111b;padding:16px;font-size:11px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+      <div style="background:#1e1e2e;padding:12px;border-radius:8px;border-left:3px solid #89b4fa;">
+        <div style="color:#89b4fa;font-weight:bold;margin-bottom:6px;">🔌 ProviderPlugin</div>
+        <div style="color:#888;margin-bottom:4px;">AI 백엔드 연동</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">NanoGPT</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">OpenAI</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Claude</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Ollama</span>
+        </div>
+      </div>
+
+      <div style="background:#1e1e2e;padding:12px;border-radius:8px;border-left:3px solid #a6e3a1;">
+        <div style="color:#a6e3a1;font-weight:bold;margin-bottom:6px;">🃏 CardFormatPlugin</div>
+        <div style="color:#888;margin-bottom:4px;">카드 포맷 변환</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">RisuAI</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">SillyTavern</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Generic JSON</span>
+        </div>
+      </div>
+
+      <div style="background:#1e1e2e;padding:12px;border-radius:8px;border-left:3px solid #f38ba8;">
+        <div style="color:#f38ba8;font-weight:bold;margin-bottom:6px;">🤖 AgentPlugin</div>
+        <div style="color:#888;margin-bottom:4px;">백그라운드 AI 에이전트 (v2)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Memory</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Director</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Illustrator</span>
+        </div>
+      </div>
+
+      <div style="background:#1e1e2e;padding:12px;border-radius:8px;border-left:3px solid #cba6f7;">
+        <div style="color:#cba6f7;font-weight:bold;margin-bottom:6px;">🎨 ImageProviderPlugin</div>
+        <div style="color:#888;margin-bottom:4px;">이미지 생성 (v2)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">NovelAI</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">Stable Diffusion</span>
+          <span style="background:#45475a;padding:2px 6px;border-radius:3px;font-size:10px;">DALL-E</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

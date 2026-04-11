@@ -1,0 +1,96 @@
+<h2>UI 레이아웃 구조</h2>
+<p class="subtitle">RisuAI 스타일 다크 테마 기반 메인 화면 레이아웃</p>
+
+<div class="split">
+  <!-- 왼쪽: 사이드바 -->
+  <div class="mockup">
+    <div class="mockup-header">사이드바 (접기/펼치기)</div>
+    <div class="mockup-body" style="background:#1a1b2e;color:#cdd6f4;padding:12px;font-size:13px;min-height:300px;">
+      <div style="background:#313244;padding:8px 12px;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <span style="background:#45475a;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">+</span>
+        <span style="font-size:13px;">새 채팅</span>
+      </div>
+      <div style="color:#6c7086;font-size:11px;margin:12px 0 6px 4px;">캐릭터</div>
+      <div style="background:#313244;padding:8px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:center;gap:8px;border-left:3px solid #89b4fa;">
+        <span style="background:#f38ba8;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">AI</span>
+        <div>
+          <div style="font-size:13px;">캐릭터 이름</div>
+          <div style="font-size:11px;color:#6c7086;">마지막 메시지...</div>
+        </div>
+      </div>
+      <div style="background:#313244;padding:8px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+        <span style="background:#a6e3a1;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;">BJ</span>
+        <div>
+          <div style="font-size:13px;">다른 캐릭터</div>
+          <div style="font-size:11px;color:#6c7086;">그룹 채팅...</div>
+        </div>
+      </div>
+      <div style="color:#6c7086;font-size:11px;margin:12px 0 6px 4px;">설정</div>
+      <div style="padding:6px 12px;font-size:13px;border-radius:6px;cursor:pointer;">API 설정</div>
+      <div style="padding:6px 12px;font-size:13px;border-radius:6px;cursor:pointer;">일반 설정</div>
+      <div style="padding:6px 12px;font-size:13px;border-radius:6px;cursor:pointer;">플러그인 관리</div>
+    </div>
+  </div>
+
+  <!-- 오른쪽: 채팅 영역 -->
+  <div class="mockup">
+    <div class="mockup-header">메인 채팅 영역</div>
+    <div class="mockup-body" style="background:#1e1e2e;color:#cdd6f4;padding:0;font-size:13px;min-height:300px;display:flex;flex-direction:column;">
+      <!-- 상단바 -->
+      <div style="background:#181825;padding:10px 16px;border-bottom:1px solid #313244;display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="background:#f38ba8;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;">AI</span>
+          <div>
+            <div style="font-weight:600;">캐릭터 이름</div>
+            <div style="font-size:11px;color:#6c7086;">GPT-4 | NanoGPT</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <span style="background:#313244;padding:4px 10px;border-radius:6px;font-size:11px;">카드 정보</span>
+          <span style="background:#313244;padding:4px 10px;border-radius:6px;font-size:11px;">설정</span>
+        </div>
+      </div>
+      <!-- 메시지 영역 -->
+      <div style="flex:1;padding:16px;overflow-y:auto;">
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <span style="background:#f38ba8;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;">AI</span>
+          <div style="background:#313244;padding:10px 14px;border-radius:12px;max-width:80%;line-height:1.5;">
+            안녕하세요! 저는 캐릭터 이름입니다. 오늘 어떤 이야기를 나누고 싶으신가요?
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-direction:row-reverse;">
+          <span style="background:#89b4fa;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;">U</span>
+          <div style="background:#45475a;padding:10px 14px;border-radius:12px;max-width:80%;line-height:1.5;">
+            안녕! 오늘 날씨가 좋네. 같이 산책할래?
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <span style="background:#f38ba8;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;">AI</span>
+          <div style="background:#313244;padding:10px 14px;border-radius:12px;max-width:80%;line-height:1.5;">
+            좋아요! 공원으로 가는 길은 벚꽃이 만개라고 들었어요. 같이 가시죠! 🌸
+          </div>
+        </div>
+      </div>
+      <!-- 입력 영역 -->
+      <div style="padding:12px 16px;border-top:1px solid #313244;background:#181825;">
+        <div style="background:#313244;border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+          <span style="color:#6c7086;cursor:pointer;">📎</span>
+          <span style="flex:1;color:#6c7086;">메시지를 입력하세요...</span>
+          <span style="background:#89b4fa;color:#1e1e2e;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;">전송</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:24px;">라우팅 구조</h3>
+<div style="background:#313244;color:#cdd6f4;padding:16px;border-radius:8px;font-family:monospace;font-size:13px;line-height:2;">
+  <div>/ → <span style="color:#89b4fa;">채팅 목록 (홈)</span></div>
+  <div>/chat/[id] → <span style="color:#89b4fa;">채팅 화면</span></div>
+  <div>/chat/[id]/info → <span style="color:#89b4fa;">채팅/캐릭터 정보 패널 (슬라이드인)</span></div>
+  <div>/characters → <span style="color:#89b4fa;">캐릭터 갤러리</span></div>
+  <div>/characters/new → <span style="color:#89b4fa;">캐릭터 생성/편집</span></div>
+  <div>/settings → <span style="color:#89b4fa;">설정</span></div>
+  <div>/settings/providers → <span style="color:#89b4fa;">API 프로바이더 설정</span></div>
+  <div>/settings/plugins → <span style="color:#89b4fa;">플러그인 관리</span></div>
+</div>

@@ -1,0 +1,172 @@
+<h2>커스텀 테마 샘플 갤러리</h2>
+<p class="subtitle">같은 채팅 데이터, 다른 HTML/CSS 테마로 렌더링한 4가지 예시</p>
+
+<!-- 테마 1: 비주얼 노벨 스타일 -->
+<h3 style="margin-top:16px;">1. 비주얼 노벨 스타일</h3>
+<div class="mockup">
+  <div class="mockup-header">테마: 비주얼 노벨 — 캐릭터 초상화 + 대화창</div>
+  <div class="mockup-body" style="background:linear-gradient(180deg,#1a0a2e,#16213e);color:#e0e0e0;padding:0;font-size:13px;min-height:280px;display:flex;flex-direction:column;">
+    <!-- 배경 이미지 영역 -->
+    <div style="flex:1;position:relative;display:flex;align-items:flex-end;justify-content:center;">
+      <!-- 캐릭터 스프라이트 (심플 표현) -->
+      <div style="position:absolute;bottom:80px;display:flex;gap:40px;justify-content:center;">
+        <div style="text-align:center;">
+          <div style="width:60px;height:80px;background:#f38ba8;border-radius:8px 8px 0 0;opacity:0.7;display:flex;align-items:center;justify-content:center;font-size:20px;">🧝</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:60px;height:80px;background:#89b4fa;border-radius:8px 8px 0 0;opacity:0.9;display:flex;align-items:center;justify-content:center;font-size:20px;">⚔️</div>
+        </div>
+      </div>
+
+      <!-- 대화창 오버레이 -->
+      <div style="width:100%;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.85));padding:60px 20px 0;">
+        <div style="background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);border-radius:12px;padding:16px 20px;border:1px solid rgba(255,255,255,0.1);">
+          <div style="color:#f38ba8;font-weight:bold;font-size:14px;margin-bottom:6px;">아리아</div>
+          <div style="line-height:1.6;">"이 문양... 고대 엘프어로 쓰여 있어요. 조심하세요, 여기 함정이 있을 수도 있어요."</div>
+          <div style="text-align:right;margin-top:8px;color:#666;font-size:11px;">▼ 클릭하여 계속</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#1e1e2e;color:#6c7086;padding:10px 16px;border-radius:6px;margin:8px 0 20px;font-size:11px;">
+  <strong style="color:#cdd6f4;">템플릿 구조:</strong> 전체 화면 배경 + 캐릭터 포즈/표정 + 하단 대화창 오버레이. 메시지 단위가 아닌 "장면 단위" 렌더링.
+</div>
+
+<!-- 테마 2: 라이트 노벨 / 소설책 -->
+<h3>2. 라이트 노벨 / 소설책 스타일</h3>
+<div class="mockup">
+  <div class="mockup-header">테마: 소설책 — 종이 질감 + 활자체</div>
+  <div class="mockup-body" style="background:#f5f0e8;color:#2c2c2c;padding:24px 32px;font-size:13px;min-height:280px;font-family:'Georgia','Noto Serif KR',serif;line-height:2;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="color:#8b7355;font-size:11px;letter-spacing:3px;">CHAPTER III</div>
+      <div style="color:#4a4a4a;font-size:16px;font-weight:bold;">깊은 숲 속의 유적</div>
+      <div style="color:#c4a882;font-size:11px;">━━━━━━━━━━━━━━━━━━━━━</div>
+    </div>
+
+    <p style="text-indent:1em;margin-bottom:12px;color:#3c3c3c;">달빛이 희미하게 비추는 숲속, 세 사람은 고대 유적의 입구 앞에 섰다. 차가운 바람이 불어올 때마다 유적의 벽에 새겨진 문양이 희미하게 빛났다.</p>
+
+    <p style="margin-bottom:12px;color:#3c3c3c;">
+      <span style="color:#b8405c;font-weight:bold;">"이 문양... 고대 엘프어로 쓰여 있어요."</span>
+      아리아가 지팡이를 들어 벽의 문양을 비추며 말했다.
+      <span style="color:#b8405c;font-weight:bold;">"조심하세요, 여기 함정이 있을 수도 있어요."</span>
+    </p>
+
+    <p style="margin-bottom:12px;color:#3c3c3c;">
+      카이는 검을 뽑아들었다.
+      <span style="color:#2a6fb5;font-weight:bold;">"함정? 좋아, 내가 먼저 들어가지."</span>
+      그는 주저 없이 유적 안으로 발을 들였다.
+    </p>
+
+    <p style="color:#3c3c3c;">
+      나는 카이를 말리려 했다.
+      <span style="color:#2e8b57;font-weight:bold;">"잠깐, 먼저 문양을 더 자세히 살펴보자."</span>
+      아리아의 어깨 너머로 벽의 문양을 들여다보았다.
+    </p>
+
+    <div style="text-align:center;margin-top:16px;color:#c4a882;font-size:11px;">─ ─ ─ ─ ─</div>
+  </div>
+</div>
+
+<div style="background:#1e1e2e;color:#6c7086;padding:10px 16px;border-radius:6px;margin:8px 0 20px;font-size:11px;">
+  <strong style="color:#cdd6f4;">템플릿 구조:</strong> 전체 텍스트를 하나의 연속된 소설 본문으로 렌더링. 대화는 인라인 따옴표, 행동은 서술문, 캐릭터별 색상 구분. 페이지네이션 지원.
+</div>
+
+<!-- 테마 3: TRPG 로그 스타일 -->
+<h3>3. TRPG 세션 로그 스타일</h3>
+<div class="mockup">
+  <div class="mockup-header">테마: TRPG — 다이스 + 세션 로그</div>
+  <div class="mockup-body" style="background:#0a0a0a;color:#b0b0b0;padding:16px;font-size:12px;min-height:280px;font-family:'Courier New',monospace;line-height:1.8;">
+    <div style="border:1px solid #333;border-radius:4px;overflow:hidden;">
+      <div style="background:#1a1a1a;padding:6px 12px;border-bottom:1px solid #333;display:flex;justify-content:space-between;">
+        <span style="color:#f9e2af;">⚔️ Session #3 — 어두운 숲의 모험</span>
+        <span style="color:#666;">Turn 12</span>
+      </div>
+
+      <div style="padding:12px;">
+        <div style="margin-bottom:8px;">
+          <span style="color:#585b70;">[GM]</span>
+          <span style="color:#888;">달빛이 희미하게 비추는 숲속, 세 사람은 고대 유적의 입구 앞에 섰다.</span>
+        </div>
+
+        <div style="margin-bottom:8px;padding:4px 8px;background:#1a1a1a;border-left:2px solid #f38ba8;">
+          <span style="color:#f38ba8;font-weight:bold;">아리아</span>
+          <span style="color:#666;"> [지혜 체크: <span style="color:#a6e3a1;">성공 17</span>]</span>
+          <br><span style="color:#cdd6f4;">"이 문양... 고대 엘프어로 쓰여 있어요. 조심하세요, 여기 함정이 있을 수도 있어요."</span>
+        </div>
+
+        <div style="margin-bottom:8px;padding:4px 8px;background:#1a1a1a;border-left:2px solid #89b4fa;">
+          <span style="color:#89b4fa;font-weight:bold;">카이</span>
+          <span style="color:#666;"> [용기 체크: <span style="color:#a6e3a1;">성공 19</span>]</span>
+          <br><span style="color:#cdd6f4;">"함정? 좋아, 내가 먼저 들어가지."</span>
+          <br><span style="color:#666;font-style:italic;">→ 카이는 검을 뽑아 유적 안으로 진입했다.</span>
+        </div>
+
+        <div style="margin-bottom:8px;padding:4px 8px;background:#1a1a1a;border-left:2px solid #a6e3a1;">
+          <span style="color:#a6e3a1;font-weight:bold;">플레이어</span>
+          <span style="color:#666;"> [지혜 체크: <span style="color:#f38ba8;">실패 8</span>]</span>
+          <br><span style="color:#cdd6f4;">"잠깐, 먼저 문양을 더 자세히 살펴보자."</span>
+          <br><span style="color:#666;font-style:italic;">→ 아리아에게 다가가 벽의 문양을 함께 살펴본다.</span>
+        </div>
+
+        <div style="margin-top:12px;padding:8px;background:#111;border:1px dashed #333;border-radius:4px;">
+          <span style="color:#f9e2af;">⚙ 시스템:</span>
+          <span style="color:#666;"> 장면 업데이트 — 유적 내부 탐험 시작. 다이스 롤 대기 중...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#1e1e2e;color:#6c7086;padding:10px 16px;border-radius:6px;margin:8px 0 20px;font-size:11px;">
+  <strong style="color:#cdd6f4;">템플릿 구조:</strong> 턴 기반 로그. 다이스 롤 결과 표시, GM 서술, 캐릭터 행동 + 체크 결과. 시스템 메시지가 게임 로그처럼 표시.
+</div>
+
+<!-- 테마 4: 메신저 + 서술 하이브리드 -->
+<h3>4. 하이브리드 메신저 + 서술</h3>
+<div class="mockup">
+  <div class="mockup-header">테마: 하이브리드 — 대화는 버블, 서술은 배경에</div>
+  <div class="mockup-body" style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#e0e0e0;padding:0;font-size:13px;min-height:280px;display:flex;flex-direction:column;">
+    <!-- 배경 서술 텍스트 -->
+    <div style="flex:1;padding:16px 20px;position:relative;">
+      <div style="position:absolute;top:8px;left:20px;right:20px;color:rgba(255,255,255,0.2);font-style:italic;font-size:12px;text-align:center;pointer-events:none;">
+        달빛이 희미하게 비추는 숲속, 고대 유적 앞 — 밤
+      </div>
+
+      <div style="margin-top:40px;">
+        <!-- 대화 버블 — 캐릭터별 색상 -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;">
+          <div style="width:32px;height:32px;background:#f38ba8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">아</div>
+          <div style="background:rgba(243,139,168,0.15);border:1px solid rgba(243,139,168,0.3);padding:10px 14px;border-radius:14px 14px 14px 4px;max-width:75%;">
+            "이 문양... 고대 엘프어로 쓰여 있어요."
+          </div>
+        </div>
+
+        <!-- 행동 서술 — 배경에 녹아듦 -->
+        <div style="text-align:center;color:rgba(255,255,255,0.25);font-style:italic;font-size:11px;margin:12px 0;padding:4px 20px;">
+          아리아가 지팡이로 벽의 문양을 비추자, 푸른빛이 일렁였다.
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;">
+          <div style="width:32px;height:32px;background:#89b4fa;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">카</div>
+          <div style="background:rgba(137,180,250,0.15);border:1px solid rgba(137,180,250,0.3);padding:10px 14px;border-radius:14px 14px 14px 4px;max-width:75%;">
+            "함정? 좋아, 내가 먼저 들어가지."
+          </div>
+        </div>
+
+        <!-- 사용자 입력 — 오른쪽 정렬 -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;flex-direction:row-reverse;">
+          <div style="width:32px;height:32px;background:#a6e3a1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">나</div>
+          <div style="background:rgba(166,227,161,0.15);border:1px solid rgba(166,227,161,0.3);padding:10px 14px;border-radius:14px 14px 4px 14px;max-width:75%;">
+            "잠깐, 먼저 문양을 더 자세히 살펴보자."
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="background:#1e1e2e;color:#6c7086;padding:10px 16px;border-radius:6px;margin:8px 0 20px;font-size:11px;">
+  <strong style="color:#cdd6f4;">템플릿 구조:</strong> 대화는 캐릭터별 색상의 버블로, 서술/행동은 배경에 반투명 텍스트로. 캐릭터 아바타 + 이름 + 고유 색상 자동 할당.
+</div>

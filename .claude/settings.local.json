@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash:*)",
+      "Bash(cat \"D:/Project/TextChatbot/.superpowers/brainstorm/\"*/state/server-info)",
+      "WebSearch",
+      "Bash(mkdir:*)",
+      "Bash(npm install:*)",
+      "Bash(npx svelte-kit:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tauri:*)",
+      "Bash(cargo check:*)",
+      "Bash(npm test:*)",
+      "Bash(npx vitest:*)",
+      "Bash(node -e \"const fs = require\\('@tauri-apps/plugin-fs'\\); console.log\\(Object.keys\\(fs\\)\\)\")",
+      "Bash(ls \"D:/Project/TextChatbot/vitest.config\"*)",
+      "Bash(ls \"D:/Project/TextChatbot/vitest\"*)",
+      "Bash(node -e ':*)",
+      "Bash(npx svelte-check:*)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/kwaroran/RisuAI/main/src/ts/storage/defaultPrompts.ts\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/kwaroran/RisuAI/main/src/ts/process/prompt.ts\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
