@@ -101,6 +101,7 @@ export class ImageGenerator {
         steps: ctx.imageConfig.novelai.steps,
         scale: ctx.imageConfig.novelai.scale,
         sampler: ctx.imageConfig.novelai.sampler,
+        noiseSchedule: ctx.imageConfig.novelai.noiseSchedule,
         negativePrompt: ctx.artStyle.negativePrompt,
       } as UserConfig;
     }

@@ -26,6 +26,10 @@ function createSettingsStore() {
       if (!settings.promptPresets) {
         settings.promptPresets = createDefaultPresetSettings();
       }
+      // Migrate: add noiseSchedule to novelai config if missing
+      if (settings.imageGeneration?.novelai && !(settings.imageGeneration.novelai as any).noiseSchedule) {
+        settings.imageGeneration.novelai.noiseSchedule = 'karras';
+      }
       set(settings);
     },
 

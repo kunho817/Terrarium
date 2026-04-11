@@ -88,7 +88,7 @@ export function createNovelAIProvider(): ImageProviderPlugin {
           steps,
           scale,
           negative_prompt: negativePrompt,
-          noise_schedule: 'native',
+          noise_schedule: (config.noiseSchedule as string) || 'karras',
           legacy_v3_extend: false,
           seed,
         },
