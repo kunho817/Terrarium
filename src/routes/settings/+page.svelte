@@ -140,6 +140,22 @@
           Customize prompt assembly order, templates, and presets.
         </p>
       </section>
+
+      <!-- Personas -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-medium text-text">User Personas</h2>
+          <a
+            href="/settings/personas"
+            class="text-mauve hover:text-lavender text-sm"
+          >
+            Manage Personas &rarr;
+          </a>
+        </div>
+        <p class="text-xs text-subtext0">
+          Create and manage user personas for roleplay identity.
+        </p>
+      </section>
     </div>
   </div>
 {/if}
