@@ -15,6 +15,9 @@ function makeVars(overrides: Partial<TemplateVariables> = {}): TemplateVariables
     sceneTime: 'Afternoon',
     sceneMood: 'Dreamy',
     variables: {},
+    userPersona: '',
+    userDescription: '',
+    userExampleDialogue: '',
     ...overrides,
   };
 }
@@ -116,5 +119,32 @@ describe('substituteVariables', () => {
   it('handles underscores in var keys', () => {
     const vars = makeVars({ variables: { my_key: 'value' } });
     expect(substituteVariables('{{var.my_key}}', vars)).toBe('value');
+  });
+
+  it('replaces {{user_persona}}', () => {
+    const vars = makeVars({ userPersona: 'A brave warrior.' });
+    expect(substituteVariables('Persona: {{user_persona}}', vars)).toBe('Persona: A brave warrior.');
+  });
+
+  it('replaces {{user_description}}', () => {
+    const vars = makeVars({ userDescription: 'Tall and strong.' });
+    expect(substituteVariables('Desc: {{user_description}}', vars)).toBe('Desc: Tall and strong.');
+  });
+
+  it('replaces {{user_example_dialogue}}', () => {
+    const vars = makeVars({ userExampleDialogue: 'Bob: "Hello!"' });
+    expect(substituteVariables('Ex: {{user_example_dialogue}}', vars)).toBe('Ex: Bob: "Hello!"');
+  });
+
+  it('replaces {user} single-brace with user name', () => {
+    expect(substituteVariables('Hello {user}!', makeVars())).toBe('Hello Bob!');
+  });
+
+  it('replaces {char} single-brace with char name', () => {
+    expect(substituteVariables('{char} is here.', makeVars())).toBe('Alice is here.');
+  });
+
+  it('does not replace unknown single-brace patterns', () => {
+    expect(substituteVariables('Use {variable} here.', makeVars())).toBe('Use {variable} here.');
   });
 });

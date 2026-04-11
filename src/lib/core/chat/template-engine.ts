@@ -18,6 +18,9 @@ export interface TemplateVariables {
   sceneTime: string;
   sceneMood: string;
   variables: Record<string, unknown>;
+  userPersona: string;
+  userDescription: string;
+  userExampleDialogue: string;
 }
 
 /** Named replacements ordered from longest key to shortest (avoids partial matches). */
@@ -31,6 +34,9 @@ function buildReplacements(
     { pattern: /\{\{scene\.time\}\}/g, value: vars.sceneTime },
     { pattern: /\{\{scene\.mood\}\}/g, value: vars.sceneMood },
     { pattern: /\{\{example_messages\}\}/g, value: vars.exampleMessages },
+    { pattern: /\{\{user_example_dialogue\}\}/g, value: vars.userExampleDialogue },
+    { pattern: /\{\{user_description\}\}/g, value: vars.userDescription },
+    { pattern: /\{\{user_persona\}\}/g, value: vars.userPersona },
 
     // Simple variables
     { pattern: /\{\{description\}\}/g, value: vars.description },
@@ -61,6 +67,18 @@ export function substituteVariables(
 
   // 3. Any remaining unknown {{...}} tokens become empty string
   result = result.replace(/\{\{[^}]+\}\}/g, '');
+
+  // 4. Single-brace support for known variables only
+  const singleBraceKnown = ['user', 'char', 'scene', 'slot'];
+  for (const key of singleBraceKnown) {
+    const varMap: Record<string, string> = {
+      user: vars.user,
+      char: vars.char,
+      scene: vars.sceneLocation,
+      slot: vars.slot,
+    };
+    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), varMap[key]);
+  }
 
   return result;
 }
