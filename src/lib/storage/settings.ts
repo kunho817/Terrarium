@@ -7,6 +7,7 @@ import { readJson, writeJson, existsPath } from './database';
 import { PATHS } from './paths';
 import type { PromptPresetSettings } from '$lib/types/prompt-preset';
 import type { ImageGenerationConfig } from '$lib/types/image-config';
+import type { ArtStylePreset } from '$lib/types/art-style';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 export interface AppSettings {
@@ -16,6 +17,7 @@ export interface AppSettings {
   promptPresets?: PromptPresetSettings;
   developerMode?: boolean;
   imageGeneration?: ImageGenerationConfig;
+  customArtStylePresets?: ArtStylePreset[];
   [key: string]: unknown;
 }
 

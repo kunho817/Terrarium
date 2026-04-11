@@ -3,6 +3,7 @@ export interface ArtStylePreset {
   name: string;
   positivePrompt: string;
   negativePrompt: string;
+  isBuiltIn?: boolean;
 }
 
 export const DEFAULT_ART_PRESETS: ArtStylePreset[] = [
@@ -11,17 +12,13 @@ export const DEFAULT_ART_PRESETS: ArtStylePreset[] = [
     name: 'Anime',
     positivePrompt: 'masterpiece, best quality, anime style, detailed',
     negativePrompt: 'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, cropped, worst quality, low quality, normal quality, jpeg artifacts',
+    isBuiltIn: true,
   },
   {
     id: 'realistic',
     name: 'Realistic',
     positivePrompt: 'photorealistic, detailed, high quality, 8k, sharp focus',
     negativePrompt: 'anime, cartoon, illustration, painting, drawing, art, sketch, lowres, bad anatomy, text',
-  },
-  {
-    id: 'custom',
-    name: 'Custom',
-    positivePrompt: '',
-    negativePrompt: '',
+    isBuiltIn: true,
   },
 ];
