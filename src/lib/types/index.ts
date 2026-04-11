@@ -8,6 +8,7 @@ export type {
   MessageRole,
   MessageType,
   GenerationInfo,
+  GeneratedImage,
   Message,
 } from './message';
 

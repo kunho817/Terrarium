@@ -15,6 +15,7 @@ import type {
 import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
 import type { PromptPreset } from '$lib/types/prompt-preset';
+import type { UserPersona } from '$lib/types/persona';
 import { applyRegexScripts } from './regex';
 import { matchLorebook } from './lorebook';
 import { assemblePromptMessages } from './pipeline';
@@ -34,6 +35,8 @@ export interface SendMessageOptions {
   messages: Message[];
   characterId?: string;
   preset?: PromptPreset;
+  persona?: UserPersona;
+  imageAutoGenerate?: boolean;
 }
 
 export interface SendResult {
@@ -149,6 +152,7 @@ export class ChatEngine {
         scene: ctx.scene,
         messages: ctx.messages,
         lorebookMatches: ctx.lorebookMatches,
+        persona: options.persona,
       });
       assembled = result.messages;
       prefillText = result.prefill;
@@ -170,6 +174,20 @@ export class ChatEngine {
         type: 'dialogue',
         timestamp: 0,
       });
+    }
+
+    // Append [illust] instruction when auto image gen is enabled
+    if (options.imageAutoGenerate) {
+      const illustInstruction = '\n\nYou may insert [illust] tags at appropriate moments in your response to request scene illustrations. Place them on their own line. Use them sparingly — only for visually significant moments like scene changes, dramatic reveals, or important character actions. Do not use them for every response.';
+      for (let i = assembled.length - 1; i >= 0; i--) {
+        if (assembled[i].role === 'system') {
+          assembled[i] = {
+            ...assembled[i],
+            content: assembled[i].content + illustInstruction,
+          };
+          break;
+        }
+      }
     }
 
     // 9. Set up streaming with completion promise

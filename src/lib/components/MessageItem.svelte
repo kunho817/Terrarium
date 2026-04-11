@@ -35,6 +35,20 @@
     </div>
   {/if}
 
+  {#if message.images && message.images.length > 0}
+    {#each message.images as img}
+      <div class="mt-2">
+        <button onclick={() => showImage = true} class="block max-w-xs cursor-pointer bg-transparent border-none p-0">
+          <img
+            src={`https://asset.localhost/${img.path}`}
+            alt="Generated illustration"
+            class="rounded-lg max-w-full hover:opacity-90 transition-opacity"
+          />
+        </button>
+      </div>
+    {/each}
+  {/if}
+
   {#if $settingsStore.developerMode && message.role === 'assistant' && message.generationInfo}
     <div class="mt-1.5">
       <GenerationInfoBadge info={message.generationInfo} onclick={() => showPanel = true} />

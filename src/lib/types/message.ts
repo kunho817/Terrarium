@@ -13,6 +13,16 @@ export interface GenerationInfo {
   outputTokens?: number;
 }
 
+export interface GeneratedImage {
+  id: string;
+  path: string;
+  prompt: string;
+  tagIndex: number;
+  charId: string;
+  sessionId: string;
+  timestamp: number;
+}
+
 export interface Message {
   role: MessageRole;
   characterId?: string;
@@ -25,4 +35,5 @@ export interface Message {
     filename: string;
     prompt: string;
   };
+  images?: GeneratedImage[];
 }

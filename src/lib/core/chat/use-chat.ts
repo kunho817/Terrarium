@@ -10,8 +10,11 @@ import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
 import { getEngine, getRegistry } from '$lib/core/bootstrap';
 import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
+import { loadPersona } from '$lib/storage/personas';
 import type { MessageType, Message } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
+import type { UserPersona } from '$lib/types/persona';
+import type { ArtStylePreset } from '$lib/types/art-style';
 
 /**
  * Initialize a chat session for a character.
@@ -43,6 +46,27 @@ function stripThinking(text: string): string {
   return result.trim();
 }
 
+const ILLUST_TAG = /\[illust\]/gi;
+
+function parseIllustTags(text: string): { cleanText: string; tagCount: number } {
+  const matches = text.match(ILLUST_TAG);
+  return {
+    cleanText: text.replace(ILLUST_TAG, '').trim(),
+    tagCount: matches ? matches.length : 0,
+  };
+}
+
+async function resolvePersona(card: { defaultPersonaId?: string }): Promise<UserPersona | undefined> {
+  const settings = get(settingsStore);
+  const personaId = card.defaultPersonaId || settings.defaultPersonaId;
+  if (!personaId) return undefined;
+  try {
+    return await loadPersona(personaId);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function sendMessage(input: string, type: MessageType): Promise<void> {
   const state = get(chatStore);
   const scene = get(sceneStore);
@@ -50,6 +74,8 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
   const charState = get(charactersStore);
 
   if (!charState.current) return;
+
+  const persona = await resolvePersona(charState.current);
 
   const engine = getEngine();
 
@@ -71,6 +97,9 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     activePreset = presetSettings.presets.find(p => p.id === presetSettings.activePresetId);
   }
 
+  const imageConfig = settings.imageGeneration;
+  const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
+
   const result = await engine.send({
     input,
     type,
@@ -79,6 +108,8 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     config,
     messages: state.messages,
     preset: activePreset,
+    persona,
+    imageAutoGenerate,
   });
 
   // Add user message to store
@@ -108,28 +139,50 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
   // Save to storage
   await chatStore.save();
 
-  // Auto-generate illustration if enabled
-  const imageConfig = settings.imageGeneration;
-  if (imageConfig?.autoGenerate && imageConfig.provider !== 'none') {
+  // Parse [illust] tags from AI response
+  const { cleanText, tagCount } = parseIllustTags(assistantMessage.content);
+  assistantMessage.content = cleanText;
+
+  // Auto-generate illustrations for [illust] tags
+  if (tagCount > 0 && imageConfig?.autoGenerate && imageConfig.provider !== 'none') {
     try {
-      const artStyle = resolveArtStyle(imageConfig.artStylePresetId);
+      const artStyle = resolveArtStyle(
+        imageConfig.artStylePresetId,
+        settings.imageGeneration?.customArtStylePresets as ArtStylePreset[] | undefined,
+      );
       const generator = new ImageGenerator(getRegistry());
-      const imgResult = await generator.generateForChat({
-        messages: [...state.messages, result.userMessage, assistantMessage],
-        artStyle,
-        imageConfig,
-        config,
-        charId: charState.current.id,
-        sessionId: state.sessionId || 'default',
-      });
-      if (imgResult) {
-        assistantMessage.image = imgResult;
-        chatStore.updateLastMessage(assistantMessage);
-        await chatStore.save();
+      assistantMessage.images = [];
+
+      for (let i = 0; i < tagCount; i++) {
+        const imgResult = await generator.generateForChat({
+          messages: [...state.messages, result.userMessage, { ...assistantMessage, content: cleanText }],
+          artStyle,
+          imageConfig,
+          config,
+          charId: charState.current.id,
+          sessionId: state.sessionId || 'default',
+        });
+        if (imgResult) {
+          assistantMessage.images.push({
+            id: crypto.randomUUID(),
+            path: imgResult.filename,
+            prompt: imgResult.prompt,
+            tagIndex: i,
+            charId: charState.current.id,
+            sessionId: state.sessionId || 'default',
+            timestamp: Date.now(),
+          });
+        }
       }
     } catch {
       // Image generation failed — non-critical, don't break chat
     }
+  }
+
+  // Update message with cleaned content and/or images
+  if (tagCount > 0 || assistantMessage.images?.length) {
+    chatStore.updateLastMessage(assistantMessage);
+    await chatStore.save();
   }
 }
 
