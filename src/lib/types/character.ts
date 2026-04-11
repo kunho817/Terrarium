@@ -27,6 +27,7 @@ export interface CharacterCard {
   systemPrompt: string;
   postHistoryInstructions: string;
   depthPrompt?: DepthPrompt;
+  defaultPersonaId?: string;
 
   // Creator metadata
   creator: string;

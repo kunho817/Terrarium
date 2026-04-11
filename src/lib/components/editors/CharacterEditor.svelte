@@ -1,8 +1,10 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { CharacterCard } from '$lib/types/character';
   import type { LorebookEntry } from '$lib/types/lorebook';
   import type { Trigger } from '$lib/types/trigger';
   import type { RegexScript } from '$lib/types/script';
+  import { listPersonas } from '$lib/storage/personas';
   import LorebookEditor from './LorebookEditor.svelte';
   import TriggerEditor from './TriggerEditor.svelte';
   import RegexEditor from './RegexEditor.svelte';
@@ -78,6 +80,13 @@
       updateField('depthPrompt', { prompt: depthPromptContent, depth: depthPromptDepth });
     }
   }
+
+  // Persona list
+  let personaList = $state<{ id: string; name: string }[]>([]);
+
+  onMount(async () => {
+    personaList = await listPersonas();
+  });
 </script>
 
 <div class="flex flex-col gap-4">
@@ -269,6 +278,26 @@
             />
             <p class="text-xs text-subtext0">Messages from the bottom of the chat history.</p>
           </div>
+        </div>
+
+        <!-- Default User Persona -->
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-subtext0" for="default-persona">Default User Persona</label>
+          <select
+            id="default-persona"
+            value={card.defaultPersonaId ?? ''}
+            onchange={(e) => {
+              card.defaultPersonaId = (e.target as HTMLSelectElement).value || undefined;
+              onchange(card);
+            }}
+            class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1 focus:outline-none focus:border-mauve"
+          >
+            <option value="">Use Global Default</option>
+            {#each personaList as persona}
+              <option value={persona.id}>{persona.name}</option>
+            {/each}
+          </select>
+          <p class="text-xs text-subtext0">Override the global default persona for this character.</p>
         </div>
       </div>
 
