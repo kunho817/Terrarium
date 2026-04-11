@@ -12,6 +12,7 @@ import type {
   UserConfig,
   ChatContext,
 } from '$lib/types';
+import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 import { applyRegexScripts } from './regex';
@@ -185,9 +186,10 @@ export class ChatEngine {
     async function* tokenStream(): AsyncGenerator<string> {
       const provider = self.registry.getProvider(capturedConfig.providerId);
       let fullResponse = '';
+      const metadata: ChatMetadata = {};
 
       try {
-        for await (const token of provider.chat(assembled, capturedConfig)) {
+        for await (const token of provider.chat(assembled, capturedConfig, metadata)) {
           if (self.aborted) break;
           fullResponse += token;
           yield token;
@@ -257,6 +259,8 @@ export class ChatEngine {
         timestamp: Date.now(),
         generationInfo: {
           model: capturedConfig.model,
+          inputTokens: metadata.inputTokens,
+          outputTokens: metadata.outputTokens,
         },
       };
 

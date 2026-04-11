@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createOpenAICompatibleProvider } from '$lib/plugins/providers/openai-compatible';
 import type { Message, UserConfig, CharacterCard } from '$lib/types';
+import type { ChatMetadata } from '$lib/types/plugin';
 
-// Mock SSE parser
+// Mock SSE parser — default: no usage
 vi.mock('$lib/plugins/providers/sse', () => ({
   parseSSE: vi.fn().mockImplementation(async function* () {
     yield '{"choices":[{"delta":{"content":"Hello"}}]}';
@@ -134,6 +135,7 @@ describe('OpenAI-compatible provider', () => {
       const body = JSON.parse(init.body);
       expect(body.model).toBe('gpt-4');
       expect(body.stream).toBe(true);
+      expect(body.stream_options).toEqual({ include_usage: true });
       expect(body.messages).toHaveLength(2);
       expect(body.messages[0]).toEqual({ role: 'user', content: 'Hi' });
     });
@@ -190,6 +192,65 @@ describe('OpenAI-compatible provider', () => {
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.messages[0].role).toBe('assistant');
+    });
+
+    it('captures token usage into metadata when present in stream', async () => {
+      const { parseSSE } = await import('$lib/plugins/providers/sse');
+      vi.mocked(parseSSE).mockImplementationOnce(async function* () {
+        yield '{"choices":[{"delta":{"content":"Hi"}}]}';
+        yield '{"usage":{"prompt_tokens":42,"completion_tokens":7}}';
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      const metadata: ChatMetadata = {};
+      const tokens: string[] = [];
+      for await (const token of provider.chat(mockMessages, mockConfig, metadata)) {
+        tokens.push(token);
+      }
+
+      expect(tokens).toEqual(['Hi']);
+      expect(metadata.inputTokens).toBe(42);
+      expect(metadata.outputTokens).toBe(7);
+    });
+
+    it('does not write metadata when metadata parameter is omitted', async () => {
+      const { parseSSE } = await import('$lib/plugins/providers/sse');
+      vi.mocked(parseSSE).mockImplementationOnce(async function* () {
+        yield '{"choices":[{"delta":{"content":"Hi"}}]}';
+        yield '{"usage":{"prompt_tokens":10,"completion_tokens":5}}';
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      // No metadata passed — should not throw
+      const tokens: string[] = [];
+      for await (const token of provider.chat(mockMessages, mockConfig)) {
+        tokens.push(token);
+      }
+      expect(tokens).toEqual(['Hi']);
+    });
+
+    it('leaves metadata unchanged when stream has no usage', async () => {
+      // Default mock has no usage data
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      const metadata: ChatMetadata = {};
+      for await (const _ of provider.chat(mockMessages, mockConfig, metadata)) {
+        // consume
+      }
+
+      expect(metadata.inputTokens).toBeUndefined();
+      expect(metadata.outputTokens).toBeUndefined();
     });
   });
 

@@ -6,12 +6,15 @@ import { writable, get } from 'svelte/store';
 import type { AppSettings } from '$lib/storage/settings';
 import * as settingsStorage from '$lib/storage/settings';
 import { createDefaultPresetSettings } from '$lib/core/presets/defaults';
+import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 function createSettingsStore() {
   const { subscribe, set, update } = writable<AppSettings>({
     defaultProvider: '',
     theme: 'default',
     providers: {},
+    developerMode: false,
+    imageGeneration: { ...DEFAULT_IMAGE_CONFIG } as import('$lib/types/image-config').ImageGenerationConfig,
   });
 
   return {

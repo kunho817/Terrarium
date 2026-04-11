@@ -4,7 +4,7 @@
  * OpenAI chat completion format (NanoGPT, OpenAI, Ollama, LM Studio, etc.).
  */
 
-import type { ProviderPlugin } from '$lib/types/plugin';
+import type { ProviderPlugin, ChatMetadata } from '$lib/types/plugin';
 import type { Message, UserConfig, CharacterCard, ConfigField, ModelInfo } from '$lib/types';
 import { parseSSE } from './sse';
 
@@ -42,6 +42,21 @@ function extractToken(data: string): string {
     return parsed.choices?.[0]?.delta?.content ?? '';
   } catch {
     return '';
+  }
+}
+
+function extractUsage(
+  data: string
+): { prompt_tokens: number; completion_tokens: number } | null {
+  try {
+    const parsed = JSON.parse(data);
+    const usage = parsed.usage;
+    if (usage && typeof usage.prompt_tokens === 'number' && typeof usage.completion_tokens === 'number') {
+      return usage;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -87,7 +102,8 @@ export function createOpenAICompatibleProvider(
 
     async *chat(
       messages: Message[],
-      config: UserConfig
+      config: UserConfig,
+      metadata?: ChatMetadata
     ): AsyncGenerator<string> {
       const baseUrl = (config.baseUrl as string) || options.defaultBaseUrl;
       const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
@@ -106,6 +122,7 @@ export function createOpenAICompatibleProvider(
           model: config.model || '',
           messages: messagesToOpenAI(messages),
           stream: true,
+          stream_options: { include_usage: true },
           temperature: config.temperature ?? 0.7,
           max_tokens: config.maxTokens ?? 2048,
         }),
@@ -124,6 +141,14 @@ export function createOpenAICompatibleProvider(
       for await (const data of parseSSE(response.body)) {
         const token = extractToken(data);
         if (token) yield token;
+
+        if (metadata) {
+          const usage = extractUsage(data);
+          if (usage) {
+            metadata.inputTokens = usage.prompt_tokens;
+            metadata.outputTokens = usage.completion_tokens;
+          }
+        }
       }
     },
 

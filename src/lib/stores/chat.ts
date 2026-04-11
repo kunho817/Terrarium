@@ -99,6 +99,15 @@ function createChatStore() {
       update((s) => ({ ...s, messages: [...s.messages, message] }));
     },
 
+    updateLastMessage(message: Message) {
+      update((s) => {
+        if (s.messages.length === 0) return s;
+        const messages = [...s.messages];
+        messages[messages.length - 1] = message;
+        return { ...s, messages };
+      });
+    },
+
     setStreamingMessage(content: string) {
       update((s) => ({ ...s, streamingMessage: content, isStreaming: true }));
     },

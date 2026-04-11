@@ -8,6 +8,7 @@ import { ChatEngine } from '$lib/core/chat/engine';
 import { registerBuiltinProviders } from '$lib/plugins/providers/builtin';
 import { registerBuiltinCardFormats } from '$lib/plugins/card-formats/builtin';
 import { registerBuiltinPromptBuilders } from '$lib/plugins/prompt-builder/builtin';
+import { registerBuiltinImageProviders } from '$lib/plugins/image-providers/builtin';
 
 let _registry: PluginRegistry | null = null;
 let _engine: ChatEngine | null = null;
@@ -18,6 +19,7 @@ export function getRegistry(): PluginRegistry {
     registerBuiltinProviders(_registry);
     registerBuiltinCardFormats(_registry);
     registerBuiltinPromptBuilders(_registry);
+    registerBuiltinImageProviders(_registry);
   }
   return _registry;
 }

@@ -6,12 +6,16 @@
 import { readJson, writeJson, existsPath } from './database';
 import { PATHS } from './paths';
 import type { PromptPresetSettings } from '$lib/types/prompt-preset';
+import type { ImageGenerationConfig } from '$lib/types/image-config';
+import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 export interface AppSettings {
   defaultProvider: string;
   theme: string;
   providers: Record<string, Record<string, unknown>>;
   promptPresets?: PromptPresetSettings;
+  developerMode?: boolean;
+  imageGeneration?: ImageGenerationConfig;
   [key: string]: unknown;
 }
 
@@ -20,6 +24,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'default',
   providers: {},
   promptPresets: undefined,
+  developerMode: false,
+  imageGeneration: { ...DEFAULT_IMAGE_CONFIG } as ImageGenerationConfig,
 };
 
 export async function loadSettings(): Promise<AppSettings> {

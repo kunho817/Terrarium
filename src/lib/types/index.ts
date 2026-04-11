@@ -70,4 +70,13 @@ export type {
   AgentPlugin,
   ImageProviderPlugin,
   PromptBuilderPlugin,
+  ChatMetadata,
 } from './plugin';
+
+// Art Style
+export type { ArtStylePreset } from './art-style';
+export { DEFAULT_ART_PRESETS } from './art-style';
+
+// Image Config
+export type { ImageGenerationConfig } from './image-config';
+export { DEFAULT_IMAGE_CONFIG } from './image-config';

@@ -12,17 +12,27 @@ import type { UserConfig, ConfigField, ModelInfo } from './config';
 // === Provider Plugin (AI Backend) ===
 // Spec reference: Section 3.1
 
+/** Mutable metadata populated by providers during streaming. */
+export interface ChatMetadata {
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
 export interface ProviderPlugin {
   id: string;
   name: string;
   icon?: string;
   requiredConfig: ConfigField[];
 
-  chat(messages: Message[], config: UserConfig): AsyncGenerator<string>;
+  chat(
+    messages: Message[],
+    config: UserConfig,
+    metadata?: ChatMetadata,
+  ): AsyncGenerator<string>;
   chatWithCard(
     messages: Message[],
     card: CharacterCard,
-    config: UserConfig
+    config: UserConfig,
   ): AsyncGenerator<string>;
   listModels?(config: UserConfig): Promise<ModelInfo[]>;
   validateConfig(config: UserConfig): Promise<boolean>;

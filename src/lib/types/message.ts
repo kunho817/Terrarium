@@ -21,4 +21,8 @@ export interface Message {
   type: MessageType;
   timestamp: number;
   generationInfo?: GenerationInfo;
+  image?: {
+    filename: string;
+    prompt: string;
+  };
 }

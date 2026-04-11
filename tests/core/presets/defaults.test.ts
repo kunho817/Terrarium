@@ -97,16 +97,36 @@ describe('createDefaultPreset', () => {
     }
   });
 
-  it('Personality item has "Personality: {{slot}}" content', () => {
+  it('Personality item has bracketed label format', () => {
     const personality = preset.items.find((item) => item.type === 'personality');
     expect(personality).toBeDefined();
-    expect(personality!.content).toBe('Personality: {{slot}}');
+    expect(personality!.content).toBe("[{{char}}'s Personality]\n{{slot}}");
   });
 
-  it('Scenario item has "Scenario: {{slot}}" content', () => {
+  it('Scenario item has bracketed label format', () => {
     const scenario = preset.items.find((item) => item.type === 'scenario');
     expect(scenario).toBeDefined();
-    expect(scenario!.content).toBe('Scenario: {{slot}}');
+    expect(scenario!.content).toBe('[Scenario]\n{{slot}}');
+  });
+
+  it('System Prompt has roleplay instructions', () => {
+    const sys = preset.items.find((item) => item.type === 'system');
+    expect(sys).toBeDefined();
+    expect(sys!.content).toContain('{{user}}');
+    expect(sys!.content).toContain('roleplay');
+  });
+
+  it('Author\'s Note has style instruction', () => {
+    const note = preset.items.find((item) => item.type === 'postHistoryInstructions');
+    expect(note).toBeDefined();
+    expect(note!.content).toContain('Style');
+  });
+
+  it('Jailbreak has content but is disabled', () => {
+    const jailbreak = preset.items.find((item) => item.type === 'jailbreak');
+    expect(jailbreak).toBeDefined();
+    expect(jailbreak!.enabled).toBe(false);
+    expect(jailbreak!.content.length).toBeGreaterThan(0);
   });
 
   it('has unique IDs for every item', () => {

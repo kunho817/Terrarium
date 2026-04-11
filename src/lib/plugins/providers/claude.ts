@@ -9,7 +9,7 @@
  * - `content_block_delta` events with `delta.text` for streaming tokens
  */
 
-import type { ProviderPlugin } from '$lib/types/plugin';
+import type { ProviderPlugin, ChatMetadata } from '$lib/types/plugin';
 import type { Message, UserConfig, CharacterCard, ConfigField } from '$lib/types';
 import { parseSSE } from './sse';
 
@@ -93,7 +93,8 @@ export function createClaudeProvider(): ProviderPlugin {
 
     async *chat(
       messages: Message[],
-      config: UserConfig
+      config: UserConfig,
+      metadata?: ChatMetadata,
     ): AsyncGenerator<string> {
       const baseUrl = (config.baseUrl as string) || DEFAULT_BASE_URL;
       const url = `${baseUrl.replace(/\/$/, '')}/messages`;
@@ -134,6 +135,20 @@ export function createClaudeProvider(): ProviderPlugin {
       }
 
       for await (const data of parseSSE(response.body)) {
+        // Extract usage metadata from message_start and message_delta events
+        if (metadata) {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'message_start' && parsed.message?.usage?.input_tokens != null) {
+              metadata.inputTokens = parsed.message.usage.input_tokens;
+            } else if (parsed.type === 'message_delta' && parsed.usage?.output_tokens != null) {
+              metadata.outputTokens = parsed.usage.output_tokens;
+            }
+          } catch {
+            // Not valid JSON — skip usage extraction for this chunk
+          }
+        }
+
         const token = extractToken(data);
         if (token) yield token;
       }

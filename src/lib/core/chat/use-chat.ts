@@ -8,8 +8,9 @@ import { chatStore } from '$lib/stores/chat';
 import { sceneStore } from '$lib/stores/scene';
 import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
-import { getEngine } from '$lib/core/bootstrap';
-import type { MessageType } from '$lib/types';
+import { getEngine, getRegistry } from '$lib/core/bootstrap';
+import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
+import type { MessageType, Message } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 
 /**
@@ -106,4 +107,75 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 
   // Save to storage
   await chatStore.save();
+
+  // Auto-generate illustration if enabled
+  const imageConfig = settings.imageGeneration;
+  if (imageConfig?.autoGenerate && imageConfig.provider !== 'none') {
+    try {
+      const artStyle = resolveArtStyle(imageConfig.artStylePresetId);
+      const generator = new ImageGenerator(getRegistry());
+      const imgResult = await generator.generateForChat({
+        messages: [...state.messages, result.userMessage, assistantMessage],
+        artStyle,
+        imageConfig,
+        config,
+        charId: charState.current.id,
+        sessionId: state.sessionId || 'default',
+      });
+      if (imgResult) {
+        assistantMessage.image = imgResult;
+        chatStore.updateLastMessage(assistantMessage);
+        await chatStore.save();
+      }
+    } catch {
+      // Image generation failed — non-critical, don't break chat
+    }
+  }
+}
+
+/**
+ * Manually generate an illustration for the current conversation.
+ * Adds a new assistant message with the generated image.
+ */
+export async function generateIllustration(): Promise<void> {
+  const state = get(chatStore);
+  const scene = get(sceneStore);
+  const settings = get(settingsStore);
+  const charState = get(charactersStore);
+  if (!charState.current) return;
+
+  const imageConfig = settings.imageGeneration;
+  if (!imageConfig || imageConfig.provider === 'none') return;
+
+  const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
+  const config = {
+    providerId: settings.defaultProvider,
+    model: (providerConfig?.model as string) || undefined,
+    apiKey: (providerConfig?.apiKey as string) || undefined,
+    baseUrl: (providerConfig?.baseUrl as string) || undefined,
+  };
+
+  const artStyle = resolveArtStyle(imageConfig.artStylePresetId);
+  const generator = new ImageGenerator(getRegistry());
+
+  const imgResult = await generator.generateForChat({
+    messages: state.messages,
+    artStyle,
+    imageConfig,
+    config,
+    charId: charState.current.id,
+    sessionId: state.sessionId || 'default',
+  });
+
+  if (imgResult) {
+    const imageMessage: Message = {
+      role: 'assistant',
+      content: '',
+      type: 'dialogue',
+      timestamp: Date.now(),
+      image: imgResult,
+    };
+    chatStore.addMessage(imageMessage);
+    await chatStore.save();
+  }
 }

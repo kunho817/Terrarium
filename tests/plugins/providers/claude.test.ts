@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createClaudeProvider } from '$lib/plugins/providers/claude';
 import type { Message, UserConfig, CharacterCard } from '$lib/types';
+import type { ChatMetadata } from '$lib/types/plugin';
 
 // Mock SSE parser
 vi.mock('$lib/plugins/providers/sse', () => ({
@@ -174,6 +175,89 @@ describe('Claude provider', () => {
       }
 
       expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8080/v1/messages');
+    });
+
+    it('populates metadata.inputTokens from message_start event', async () => {
+      const { parseSSE } = await import('$lib/plugins/providers/sse');
+      vi.mocked(parseSSE).mockImplementation(async function* () {
+        yield '{"type":"message_start","message":{"usage":{"input_tokens":42}}}';
+        yield '{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}';
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      const metadata: ChatMetadata = {};
+      for await (const _ of provider.chat(mockMessages, mockConfig, metadata)) {
+        // consume
+      }
+
+      expect(metadata.inputTokens).toBe(42);
+    });
+
+    it('populates metadata.outputTokens from message_delta event', async () => {
+      const { parseSSE } = await import('$lib/plugins/providers/sse');
+      vi.mocked(parseSSE).mockImplementation(async function* () {
+        yield '{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}';
+        yield '{"type":"message_delta","usage":{"output_tokens":7}}';
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      const metadata: ChatMetadata = {};
+      for await (const _ of provider.chat(mockMessages, mockConfig, metadata)) {
+        // consume
+      }
+
+      expect(metadata.outputTokens).toBe(7);
+    });
+
+    it('populates both inputTokens and outputTokens', async () => {
+      const { parseSSE } = await import('$lib/plugins/providers/sse');
+      vi.mocked(parseSSE).mockImplementation(async function* () {
+        yield '{"type":"message_start","message":{"usage":{"input_tokens":100}}}';
+        yield '{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi"}}';
+        yield '{"type":"message_delta","usage":{"output_tokens":15}}';
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      const metadata: ChatMetadata = {};
+      for await (const _ of provider.chat(mockMessages, mockConfig, metadata)) {
+        // consume
+      }
+
+      expect(metadata.inputTokens).toBe(100);
+      expect(metadata.outputTokens).toBe(15);
+    });
+
+    it('does not crash when metadata is not provided', async () => {
+      const { parseSSE } = await import('$lib/plugins/providers/sse');
+      vi.mocked(parseSSE).mockImplementation(async function* () {
+        yield '{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello"}}';
+        yield '{"type":"content_block_delta","delta":{"type":"text_delta","text":" from Claude"}}';
+      });
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      const tokens: string[] = [];
+      // Call without metadata — should not throw
+      for await (const token of provider.chat(mockMessages, mockConfig)) {
+        tokens.push(token);
+      }
+
+      expect(tokens).toEqual(['Hello', ' from Claude']);
     });
   });
 

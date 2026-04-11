@@ -6,7 +6,7 @@
   import { charactersStore } from '$lib/stores/characters';
   import { sceneStore } from '$lib/stores/scene';
   import { settingsStore } from '$lib/stores/settings';
-  import { sendMessage, initChat } from '$lib/core/chat/use-chat';
+  import { sendMessage, initChat, generateIllustration } from '$lib/core/chat/use-chat';
   import * as chatStorage from '$lib/storage/chats';
   import type { ChatSession } from '$lib/types';
   import TopBar from '$lib/components/TopBar.svelte';
@@ -51,6 +51,18 @@
       await sendMessage(text, type);
     } catch (e: any) {
       error = e?.message || 'Failed to send message';
+    } finally {
+      sending = false;
+    }
+  }
+
+  async function handleGenerateImage() {
+    sending = true;
+    error = '';
+    try {
+      await generateIllustration();
+    } catch (e: any) {
+      error = e?.message || 'Failed to generate image';
     } finally {
       sending = false;
     }
@@ -177,7 +189,12 @@
       messages={$chatStore.messages}
       streamingMessage={$chatStore.streamingMessage}
     />
-    <InputArea onSend={handleSend} disabled={sending || $chatStore.isStreaming} />
+    <InputArea
+      onSend={handleSend}
+      onGenerateImage={handleGenerateImage}
+      imageProviderAvailable={$settingsStore.imageGeneration?.provider !== 'none' && $settingsStore.imageGeneration?.provider !== undefined}
+      disabled={sending || $chatStore.isStreaming}
+    />
   </div>
 {:else}
   <div class="flex-1 flex items-center justify-center text-subtext0">
