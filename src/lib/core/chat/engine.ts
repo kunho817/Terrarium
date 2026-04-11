@@ -13,9 +13,11 @@ import type {
   ChatContext,
 } from '$lib/types';
 import type { PluginRegistry } from '$lib/plugins/registry';
+import type { PromptPreset } from '$lib/types/prompt-preset';
 import { applyRegexScripts } from './regex';
 import { matchLorebook } from './lorebook';
 import { assemblePromptMessages } from './pipeline';
+import { assembleWithPreset } from './prompt-assembler';
 import { matchTriggers } from '$lib/core/triggers';
 import { applyMutations } from '$lib/core/scripting/mutations';
 import { executeScript } from '$lib/core/scripting/bridge';
@@ -30,6 +32,7 @@ export interface SendMessageOptions {
   config: UserConfig;
   messages: Message[];
   characterId?: string;
+  preset?: PromptPreset;
 }
 
 export interface SendResult {
@@ -135,17 +138,38 @@ export class ChatEngine {
       ctx = await agent.onBeforeSend(ctx);
     }
 
-    // 7. Build system prompt via PromptBuilderPlugin
-    const promptBuilder = this.registry.getPromptBuilder('default');
-    const systemPrompt = promptBuilder.buildSystemPrompt(ctx.card, ctx.scene);
+    // 7-8. Assemble prompt messages (preset-driven or legacy)
+    let assembled: Message[];
+    let prefillText: string | null = null;
 
-    // 8. Assemble prompt messages
-    const assembled = assemblePromptMessages(
-      systemPrompt,
-      ctx.messages,
-      ctx.lorebookMatches,
-      ctx.card,
-    );
+    if (options.preset) {
+      const result = assembleWithPreset(options.preset, {
+        card: ctx.card,
+        scene: ctx.scene,
+        messages: ctx.messages,
+        lorebookMatches: ctx.lorebookMatches,
+      });
+      assembled = result.messages;
+      prefillText = result.prefill;
+    } else {
+      const promptBuilder = this.registry.getPromptBuilder('default');
+      const systemPrompt = promptBuilder.buildSystemPrompt(ctx.card, ctx.scene);
+      assembled = assemblePromptMessages(
+        systemPrompt,
+        ctx.messages,
+        ctx.lorebookMatches,
+        ctx.card,
+      );
+    }
+
+    if (prefillText) {
+      assembled.push({
+        role: 'assistant',
+        content: prefillText,
+        type: 'dialogue',
+        timestamp: 0,
+      });
+    }
 
     // 9. Set up streaming with completion promise
     let resolveComplete!: (msg: Message) => void;

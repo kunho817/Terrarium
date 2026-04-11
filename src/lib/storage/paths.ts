@@ -9,11 +9,18 @@ export const PATHS = {
   characterDir: (id: string) => `characters/${id}`,
   characterCard: (id: string) => `characters/${id}/card.json`,
 
-  // Chats
+  // Chats (session-aware)
   chats: 'chats',
-  chatDir: (id: string) => `chats/${id}`,
-  chatMessages: (id: string) => `chats/${id}/messages.json`,
-  chatScene: (id: string) => `chats/${id}/scene.json`,
+  chatDir: (id: string) => `chats/${id}`, // legacy, kept for migration
+  chatMessages: (id: string) => `chats/${id}/messages.json`, // legacy
+  chatScene: (id: string) => `chats/${id}/scene.json`, // legacy
+  characterChatDir: (characterId: string) => `chats/${characterId}`,
+  sessionsIndex: (characterId: string) => `chats/${characterId}/sessions.json`,
+  sessionDir: (characterId: string, sessionId: string) => `chats/${characterId}/${sessionId}`,
+  sessionMessages: (characterId: string, sessionId: string) =>
+    `chats/${characterId}/${sessionId}/messages.json`,
+  sessionScene: (characterId: string, sessionId: string) =>
+    `chats/${characterId}/${sessionId}/scene.json`,
 
   // Settings
   settings: 'settings.json',

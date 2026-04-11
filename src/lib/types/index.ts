@@ -47,6 +47,18 @@ export type {
 // Scene
 export type { SceneState } from './scene';
 
+// Session
+export type { ChatSession } from './session';
+
+// Prompt Preset
+export type {
+  PromptItemType,
+  PromptItemRole,
+  PromptItem,
+  PromptPreset,
+  PromptPresetSettings,
+} from './prompt-preset';
+
 // Character
 export type { DepthPrompt, CharacterCard } from './character';
 

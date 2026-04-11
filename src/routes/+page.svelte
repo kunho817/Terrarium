@@ -1,9 +1,61 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { charactersStore } from '$lib/stores/characters';
+  import * as chatStorage from '$lib/storage/chats';
+  import type { ChatSession } from '$lib/types';
 
-  onMount(() => {
-    charactersStore.loadList();
+  interface RecentSession extends ChatSession {
+    characterName: string;
+  }
+
+  let recentSessions: RecentSession[] = $state([]);
+
+  function relativeTime(timestamp: number): string {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return new Date(timestamp).toLocaleDateString();
+  }
+
+  async function loadRecentSessions(): Promise<void> {
+    const characterIds = await chatStorage.listChats();
+    if (characterIds.length === 0) return;
+
+    // Build a name lookup from the characters store
+    const nameMap = new Map<string, string>();
+    for (const c of $charactersStore.list) {
+      nameMap.set(c.id, c.name);
+    }
+
+    const all: RecentSession[] = [];
+    for (const cid of characterIds) {
+      const sessions = await chatStorage.listSessions(cid);
+      if (sessions.length === 0) continue;
+
+      // Pick the most recent session for this character
+      const latest = sessions.reduce((a, b) =>
+        a.lastMessageAt > b.lastMessageAt ? a : b,
+      );
+
+      all.push({
+        ...latest,
+        characterName: nameMap.get(cid) ?? cid,
+      });
+    }
+
+    // Sort by lastMessageAt descending
+    all.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+    recentSessions = all;
+  }
+
+  onMount(async () => {
+    await charactersStore.loadList();
+    await loadRecentSessions();
   });
 </script>
 
@@ -35,16 +87,49 @@
         </a>
       </div>
     {:else}
-      <div class="grid gap-3">
-        {#each $charactersStore.list as character}
-          <a
-            href="/chat/{character.id}"
-            class="block p-3 rounded-lg bg-surface0 hover:bg-surface1
-                   transition-colors border border-surface1"
-          >
-            <span class="text-text font-medium">{character.name}</span>
-          </a>
-        {/each}
+      <!-- Recent Chats -->
+      {#if recentSessions.length > 0}
+        <div class="mb-4">
+          <h2 class="text-sm font-medium text-subtext0 mb-2 px-1">Recent Chats</h2>
+          <div class="grid gap-2">
+            {#each recentSessions as session}
+              <a
+                href="/chat/{session.characterId}?session={session.id}"
+                class="block p-3 rounded-lg bg-surface0 hover:bg-surface1
+                       transition-colors border border-surface1"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-text font-medium text-sm">{session.characterName}</span>
+                  <span class="text-subtext1 text-xs shrink-0">{relativeTime(session.lastMessageAt)}</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-subtext0 text-xs">{session.name}</span>
+                </div>
+                {#if session.preview}
+                  <p class="text-subtext1 text-xs mt-1 truncate">{session.preview}</p>
+                {/if}
+              </a>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Character Grid -->
+      <div class="mb-4">
+        {#if recentSessions.length > 0}
+          <h2 class="text-sm font-medium text-subtext0 mb-2 px-1">Characters</h2>
+        {/if}
+        <div class="grid gap-3">
+          {#each $charactersStore.list as character}
+            <a
+              href="/chat/{character.id}"
+              class="block p-3 rounded-lg bg-surface0 hover:bg-surface1
+                     transition-colors border border-surface1"
+            >
+              <span class="text-text font-medium">{character.name}</span>
+            </a>
+          {/each}
+        </div>
       </div>
     {/if}
   </div>

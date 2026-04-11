@@ -11,12 +11,16 @@ vi.mock('$lib/storage/database', () => ({
 
 import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from '$lib/storage/database';
 import {
-  listChats,
+  listSessions,
+  createSession,
+  updateSession,
+  deleteSession,
   loadMessages,
   saveMessages,
-  deleteChat,
   loadScene,
   saveScene,
+  listChats,
+  deleteChat,
 } from '$lib/storage/chats';
 import type { Message, SceneState } from '$lib/types';
 
@@ -33,16 +37,39 @@ const mockScene: SceneState = {
   variables: { health: 100 },
 };
 
-describe('chat storage', () => {
+// Helper: mock sessions.json not existing (triggers migration check path)
+function mockNoSessionsIndex() {
+  vi.mocked(existsPath).mockImplementation(async (path: string) => {
+    if (path.includes('sessions.json')) return false;
+    return false;
+  });
+  vi.mocked(readJson).mockRejectedValue(new Error('file not found'));
+}
+
+// Helper: mock sessions.json existing with given sessions
+function mockSessionsIndex(sessions: unknown[]) {
+  vi.mocked(existsPath).mockImplementation(async (path: string) => {
+    if (path.includes('sessions.json')) return true;
+    return false;
+  });
+  vi.mocked(readJson).mockImplementation(async (path: string) => {
+    if (path.includes('sessions.json')) return sessions;
+    if (path.includes('messages.json')) return mockMessages;
+    if (path.includes('scene.json')) return mockScene;
+    return [];
+  });
+}
+
+describe('chat session storage', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('listChats', () => {
-    it('returns chat ids', async () => {
-      vi.mocked(listDirs).mockResolvedValue(['chat-1', 'chat-2']);
+    it('returns character ids with chat data', async () => {
+      vi.mocked(listDirs).mockResolvedValue(['char-1', 'char-2']);
       const result = await listChats();
-      expect(result).toEqual(['chat-1', 'chat-2']);
+      expect(result).toEqual(['char-1', 'char-2']);
     });
 
     it('returns empty array when no chats exist', async () => {
@@ -52,32 +79,134 @@ describe('chat storage', () => {
     });
   });
 
+  describe('listSessions', () => {
+    it('returns sessions from index', async () => {
+      const sessions = [
+        { id: 's1', characterId: 'char-1', name: 'Chat 1', createdAt: 1000, lastMessageAt: 2000, preview: 'Hello' },
+      ];
+      mockSessionsIndex(sessions);
+
+      const result = await listSessions('char-1');
+      expect(result).toEqual(sessions);
+    });
+
+    it('returns empty array when no sessions', async () => {
+      mockNoSessionsIndex();
+      const result = await listSessions('char-1');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('createSession', () => {
+    it('creates a new session and adds to index', async () => {
+      mockSessionsIndex([]);
+      vi.mocked(ensureDir).mockResolvedValue(undefined);
+      vi.mocked(writeJson).mockResolvedValue(undefined);
+
+      const session = await createSession('char-1', 'Test Chat');
+
+      expect(session.characterId).toBe('char-1');
+      expect(session.name).toBe('Test Chat');
+      expect(session.id).toBeTruthy();
+      expect(ensureDir).toHaveBeenCalled();
+      expect(writeJson).toHaveBeenCalled();
+    });
+
+    it('uses default name when not provided', async () => {
+      mockSessionsIndex([]);
+      vi.mocked(ensureDir).mockResolvedValue(undefined);
+      vi.mocked(writeJson).mockResolvedValue(undefined);
+
+      const session = await createSession('char-1');
+      expect(session.name).toBe('Chat 1');
+    });
+  });
+
+  describe('updateSession', () => {
+    it('updates session in index', async () => {
+      const sessions = [
+        { id: 's1', characterId: 'char-1', name: 'Old', createdAt: 1000, lastMessageAt: 2000, preview: '' },
+      ];
+      mockSessionsIndex(sessions);
+      vi.mocked(writeJson).mockResolvedValue(undefined);
+
+      await updateSession('char-1', 's1', { name: 'Updated' });
+
+      // writeJson is called with updated sessions array
+      const writeCall = vi.mocked(writeJson).mock.calls.find(
+        (c) => c[0].includes('sessions.json'),
+      );
+      expect(writeCall).toBeDefined();
+      const written = writeCall![1] as Array<{ name: string }>;
+      expect(written[0].name).toBe('Updated');
+    });
+  });
+
+  describe('deleteSession', () => {
+    it('removes session files and updates index', async () => {
+      const sessions = [
+        { id: 's1', characterId: 'char-1', name: 'Chat 1', createdAt: 1000, lastMessageAt: 2000, preview: '' },
+        { id: 's2', characterId: 'char-1', name: 'Chat 2', createdAt: 3000, lastMessageAt: 4000, preview: '' },
+      ];
+      mockSessionsIndex(sessions);
+      vi.mocked(removePath).mockResolvedValue(undefined);
+      vi.mocked(writeJson).mockResolvedValue(undefined);
+
+      await deleteSession('char-1', 's1');
+
+      expect(removePath).toHaveBeenCalled();
+      const writeCall = vi.mocked(writeJson).mock.calls.find(
+        (c) => c[0].includes('sessions.json'),
+      );
+      expect(writeCall).toBeDefined();
+      const written = writeCall![1] as unknown[];
+      expect(written).toHaveLength(1);
+    });
+  });
+
   describe('loadMessages', () => {
-    it('loads messages for a chat', async () => {
+    it('loads messages for a session', async () => {
       vi.mocked(readJson).mockResolvedValue(mockMessages);
-      const result = await loadMessages('chat-1');
-      expect(readJson).toHaveBeenCalledWith('chats/chat-1/messages.json');
+
+      const result = await loadMessages('char-1', 's1');
+
+      expect(readJson).toHaveBeenCalledWith('chats/char-1/s1/messages.json');
       expect(result).toEqual(mockMessages);
+    });
+
+    it('returns empty array on error', async () => {
+      vi.mocked(readJson).mockRejectedValue(new Error('not found'));
+
+      const result = await loadMessages('char-1', 's1');
+      expect(result).toEqual([]);
     });
   });
 
   describe('saveMessages', () => {
-    it('creates directory and saves messages', async () => {
+    it('saves messages and updates session metadata', async () => {
+      const sessions = [
+        { id: 's1', characterId: 'char-1', name: 'Chat 1', createdAt: 1000, lastMessageAt: 1000, preview: '' },
+      ];
+      mockSessionsIndex(sessions);
       vi.mocked(ensureDir).mockResolvedValue(undefined);
       vi.mocked(writeJson).mockResolvedValue(undefined);
 
-      await saveMessages('chat-1', mockMessages);
+      await saveMessages('char-1', 's1', mockMessages);
 
-      expect(ensureDir).toHaveBeenCalledWith('chats/chat-1');
-      expect(writeJson).toHaveBeenCalledWith('chats/chat-1/messages.json', mockMessages);
-    });
-  });
+      // Should save messages file
+      const msgCall = vi.mocked(writeJson).mock.calls.find(
+        (c) => c[0].includes('messages.json') && !c[0].includes('sessions'),
+      );
+      expect(msgCall).toBeDefined();
+      expect(msgCall![1]).toEqual(mockMessages);
 
-  describe('deleteChat', () => {
-    it('removes the chat directory', async () => {
-      vi.mocked(removePath).mockResolvedValue(undefined);
-      await deleteChat('chat-1');
-      expect(removePath).toHaveBeenCalledWith('chats/chat-1');
+      // Should update session metadata
+      const sessionCall = vi.mocked(writeJson).mock.calls.find(
+        (c) => c[0].includes('sessions.json'),
+      );
+      expect(sessionCall).toBeDefined();
+      const written = sessionCall![1] as Array<{ preview: string }>;
+      expect(written[0].preview).toBe('Hi there!');
     });
   });
 
@@ -86,14 +215,13 @@ describe('chat storage', () => {
       vi.mocked(existsPath).mockResolvedValue(true);
       vi.mocked(readJson).mockResolvedValue(mockScene);
 
-      const result = await loadScene('chat-1');
-
+      const result = await loadScene('char-1', 's1');
       expect(result).toEqual(mockScene);
     });
 
     it('returns null when scene does not exist', async () => {
       vi.mocked(existsPath).mockResolvedValue(false);
-      const result = await loadScene('chat-1');
+      const result = await loadScene('char-1', 's1');
       expect(result).toBeNull();
     });
   });
@@ -103,9 +231,17 @@ describe('chat storage', () => {
       vi.mocked(ensureDir).mockResolvedValue(undefined);
       vi.mocked(writeJson).mockResolvedValue(undefined);
 
-      await saveScene('chat-1', mockScene);
+      await saveScene('char-1', 's1', mockScene);
 
-      expect(writeJson).toHaveBeenCalledWith('chats/chat-1/scene.json', mockScene);
+      expect(writeJson).toHaveBeenCalledWith('chats/char-1/s1/scene.json', mockScene);
+    });
+  });
+
+  describe('deleteChat', () => {
+    it('removes the character chat directory', async () => {
+      vi.mocked(removePath).mockResolvedValue(undefined);
+      await deleteChat('char-1');
+      expect(removePath).toHaveBeenCalledWith('chats/char-1');
     });
   });
 });

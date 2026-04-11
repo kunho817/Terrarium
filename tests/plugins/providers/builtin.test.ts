@@ -3,15 +3,15 @@ import { registerBuiltinProviders } from '$lib/plugins/providers/builtin';
 import { PluginRegistry } from '$lib/plugins/registry';
 
 describe('registerBuiltinProviders', () => {
-  it('registers all 4 built-in providers', () => {
+  it('registers all 5 built-in providers', () => {
     const registry = new PluginRegistry();
     registerBuiltinProviders(registry);
 
     const providers = registry.listProviders();
-    expect(providers).toHaveLength(4);
+    expect(providers).toHaveLength(5);
 
     const ids = providers.map((p) => p.id).sort();
-    expect(ids).toEqual(['claude', 'local-llm', 'nanogpt', 'openai']);
+    expect(ids).toEqual(['claude', 'fireworks', 'local-llm', 'nanogpt', 'openai']);
   });
 
   it('registers nanogpt provider with correct defaults', () => {

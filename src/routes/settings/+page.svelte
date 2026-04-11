@@ -30,7 +30,7 @@
             href="/settings/providers"
             class="text-mauve hover:text-lavender text-sm"
           >
-            Configure Providers →
+            Configure Providers &rarr;
           </a>
         </div>
         <p class="text-xs text-subtext0">
@@ -65,7 +65,7 @@
             href="/settings/theme-editor"
             class="text-mauve hover:text-lavender text-sm"
           >
-            Theme Editor →
+            Theme Editor &rarr;
           </a>
         </div>
         <select
@@ -79,6 +79,22 @@
         >
           <option value="default">Default (Catppuccin Mocha)</option>
         </select>
+      </section>
+
+      <!-- Prompt Builder -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-medium text-text">Prompt Builder</h2>
+          <a
+            href="/settings/prompt-builder"
+            class="text-mauve hover:text-lavender text-sm"
+          >
+            Configure Prompts &rarr;
+          </a>
+        </div>
+        <p class="text-xs text-subtext0">
+          Customize prompt assembly order, templates, and presets.
+        </p>
       </section>
     </div>
   </div>

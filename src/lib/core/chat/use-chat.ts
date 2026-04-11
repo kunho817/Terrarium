@@ -10,6 +10,26 @@ import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
 import { getEngine } from '$lib/core/bootstrap';
 import type { MessageType } from '$lib/types';
+import type { PromptPreset } from '$lib/types/prompt-preset';
+
+/**
+ * Initialize a chat session for a character.
+ *
+ * If sessionId is provided, loads that specific session.
+ * Otherwise falls back to loadChat which auto-migrates and picks the most recent session.
+ */
+export async function initChat(characterId: string, sessionId?: string): Promise<void> {
+  if (sessionId) {
+    await chatStore.loadSession(characterId, sessionId);
+    await sceneStore.loadScene(characterId, sessionId);
+  } else {
+    await chatStore.loadChat(characterId);
+    const chatState = get(chatStore);
+    if (chatState.sessionId) {
+      await sceneStore.loadScene(characterId, chatState.sessionId);
+    }
+  }
+}
 
 /**
  * Strips thinking/reasoning tags from AI output.
@@ -43,6 +63,13 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     maxTokens: (providerConfig?.maxTokens as number) || undefined,
   };
 
+  // Resolve active prompt preset
+  const presetSettings = settings.promptPresets;
+  let activePreset: PromptPreset | undefined;
+  if (presetSettings) {
+    activePreset = presetSettings.presets.find(p => p.id === presetSettings.activePresetId);
+  }
+
   const result = await engine.send({
     input,
     type,
@@ -50,6 +77,7 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     scene,
     config,
     messages: state.messages,
+    preset: activePreset,
   });
 
   // Add user message to store

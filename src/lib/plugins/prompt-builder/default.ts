@@ -6,19 +6,23 @@
 
 import type { PromptBuilderPlugin } from '$lib/types/plugin';
 import type { CharacterCard, Message, SceneState } from '$lib/types';
+import { substituteVariables, type TemplateVariables } from '$lib/core/chat/template-engine';
 
 function substituteTemplates(text: string, card: CharacterCard, scene: SceneState): string {
-  return text
-    .replace(/\{\{char\.name\}\}/g, card.name)
-    .replace(/\{\{char\}\}/g, card.name)
-    .replace(/\{\{user\}\}/g, 'User')
-    .replace(/\{\{scene\.location\}\}/g, scene.location || '')
-    .replace(/\{\{scene\.time\}\}/g, scene.time || '')
-    .replace(/\{\{scene\.mood\}\}/g, scene.mood || '')
-    .replace(/\{\{var\.([a-zA-Z0-9_.]+)\}\}/g, (_, key: string) => {
-      const value = scene.variables[key];
-      return value !== undefined ? String(value) : '';
-    });
+  const vars: TemplateVariables = {
+    char: card.name,
+    user: 'User',
+    description: card.description,
+    personality: card.personality,
+    scenario: card.scenario,
+    exampleMessages: card.exampleMessages,
+    slot: '',
+    sceneLocation: scene.location || '',
+    sceneTime: scene.time || '',
+    sceneMood: scene.mood || '',
+    variables: scene.variables || {},
+  };
+  return substituteVariables(text, vars);
 }
 
 export const defaultPromptBuilder: PromptBuilderPlugin = {

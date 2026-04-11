@@ -5,11 +5,13 @@
 
 import { readJson, writeJson, existsPath } from './database';
 import { PATHS } from './paths';
+import type { PromptPresetSettings } from '$lib/types/prompt-preset';
 
 export interface AppSettings {
   defaultProvider: string;
   theme: string;
   providers: Record<string, Record<string, unknown>>;
+  promptPresets?: PromptPresetSettings;
   [key: string]: unknown;
 }
 
@@ -17,6 +19,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   defaultProvider: '',
   theme: 'default',
   providers: {},
+  promptPresets: undefined,
 };
 
 export async function loadSettings(): Promise<AppSettings> {

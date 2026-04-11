@@ -5,6 +5,7 @@
 import { writable, get } from 'svelte/store';
 import type { AppSettings } from '$lib/storage/settings';
 import * as settingsStorage from '$lib/storage/settings';
+import { createDefaultPresetSettings } from '$lib/core/presets/defaults';
 
 function createSettingsStore() {
   const { subscribe, set, update } = writable<AppSettings>({
@@ -18,6 +19,10 @@ function createSettingsStore() {
 
     async load() {
       const settings = await settingsStorage.loadSettings();
+      // Migrate: add default prompt preset if not present
+      if (!settings.promptPresets) {
+        settings.promptPresets = createDefaultPresetSettings();
+      }
       set(settings);
     },
 

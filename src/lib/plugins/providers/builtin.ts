@@ -31,6 +31,15 @@ export function registerBuiltinProviders(registry: PluginRegistry): void {
 
   registry.registerProvider(
     createOpenAICompatibleProvider({
+      id: 'fireworks',
+      name: 'Fireworks AI',
+      defaultBaseUrl: 'https://api.fireworks.ai/inference/v1',
+      requiresApiKey: true,
+    })
+  );
+
+  registry.registerProvider(
+    createOpenAICompatibleProvider({
       id: 'local-llm',
       name: 'Local LLM',
       defaultBaseUrl: 'http://localhost:11434/v1',

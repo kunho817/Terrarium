@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { charactersStore } from '$lib/stores/characters';
+  import { chatStore } from '$lib/stores/chat';
   import { sceneStore } from '$lib/stores/scene';
   import VariableViewer from '$lib/components/editors/VariableViewer.svelte';
 
@@ -17,7 +18,14 @@
   onMount(async () => {
     if (!characterId) return;
     await charactersStore.selectCharacter(characterId);
-    await sceneStore.loadScene(characterId);
+
+    // Use sessionId from URL or from chat store
+    const sessionId = $page.url.searchParams.get('session') ?? $chatStore.sessionId;
+    if (sessionId) {
+      await sceneStore.loadScene(characterId, sessionId);
+    } else {
+      await sceneStore.loadSceneLegacy(characterId);
+    }
     // Initialize local state from store after load
     const scene = $sceneStore;
     location = scene.location;

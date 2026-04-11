@@ -29,10 +29,6 @@
 
   let activeTab = $state<TabId>('basic');
 
-  // Local depth prompt state for easier binding
-  let depthPromptContent = $state(card.depthPrompt?.prompt ?? '');
-  let depthPromptDepth = $state(card.depthPrompt?.depth ?? 4);
-
   // Local tags string for comma-separated input
   let tagsString = $state(card.tags.join(', '));
 
@@ -45,15 +41,6 @@
 
   function updateField<K extends keyof CharacterCard>(key: K, value: CharacterCard[K]) {
     update({ [key]: value } as Partial<CharacterCard>);
-  }
-
-  function updateDepthPrompt() {
-    if (depthPromptContent.trim()) {
-      update({ depthPrompt: { prompt: depthPromptContent, depth: depthPromptDepth } });
-    } else {
-      const { depthPrompt: _, ...rest } = { ...card, depthPrompt: undefined };
-      onchange(rest as CharacterCard);
-    }
   }
 
   function updateTags() {
@@ -78,6 +65,18 @@
     next[index] = value;
     alternateGreetings = next;
     updateField('alternateGreetings', next);
+  }
+
+  // Depth prompt helpers
+  let depthPromptContent = $state(card.depthPrompt?.prompt ?? '');
+  let depthPromptDepth = $state(card.depthPrompt?.depth ?? 4);
+
+  function updateDepthPrompt() {
+    if (depthPromptContent.trim() === '') {
+      updateField('depthPrompt', undefined);
+    } else {
+      updateField('depthPrompt', { prompt: depthPromptContent, depth: depthPromptDepth });
+    }
   }
 </script>
 
@@ -222,53 +221,53 @@
             id="char-sysprompt"
             value={card.systemPrompt}
             oninput={(e) => updateField('systemPrompt', (e.target as HTMLTextAreaElement).value)}
-            placeholder="Custom system prompt instructions..."
+            placeholder="Override the default system prompt for this character..."
             rows="4"
             class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                    focus:outline-none focus:border-mauve resize-y placeholder:text-subtext0"
           ></textarea>
+          <p class="text-xs text-subtext0">Leave empty to use the default system prompt.</p>
         </div>
 
-        <!-- Author's Note -->
+        <!-- Author's Note (Post History Instructions) -->
         <div class="space-y-1">
-          <label for="char-phi" class="text-sm font-medium text-text">Author's Note</label>
+          <label for="char-posthist" class="text-sm font-medium text-text">Author's Note</label>
           <textarea
-            id="char-phi"
+            id="char-posthist"
             value={card.postHistoryInstructions}
             oninput={(e) => updateField('postHistoryInstructions', (e.target as HTMLTextAreaElement).value)}
-            placeholder="Instructions injected after chat history..."
-            rows="2"
+            placeholder="Instructions injected after the chat history..."
+            rows="3"
             class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
                    focus:outline-none focus:border-mauve resize-y placeholder:text-subtext0"
           ></textarea>
+          <p class="text-xs text-subtext0">Also known as "Post History Instructions". Injected after the last message.</p>
         </div>
 
         <!-- Depth Prompt -->
         <div class="space-y-2">
           <label class="text-sm font-medium text-text">Depth Prompt</label>
-          <div class="flex items-start gap-3">
-            <div class="flex-1">
-              <textarea
-                value={depthPromptContent}
-                oninput={(e) => { depthPromptContent = (e.target as HTMLTextAreaElement).value; updateDepthPrompt(); }}
-                placeholder="Prompt inserted at a specific depth in the message history..."
-                rows="3"
-                class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                       focus:outline-none focus:border-mauve resize-y placeholder:text-subtext0"
-              ></textarea>
-            </div>
-            <div class="shrink-0">
-              <label for="char-depth" class="text-xs text-subtext0 block mb-1">Depth</label>
-              <input
-                id="char-depth"
-                type="number"
-                value={depthPromptDepth}
-                oninput={(e) => { depthPromptDepth = parseInt((e.target as HTMLInputElement).value) || 0; updateDepthPrompt(); }}
-                min="0"
-                class="w-20 bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                       focus:outline-none focus:border-mauve"
-              />
-            </div>
+          <textarea
+            value={depthPromptContent}
+            oninput={(e) => { depthPromptContent = (e.target as HTMLTextAreaElement).value; updateDepthPrompt(); }}
+            placeholder="Prompt injected at a specific depth in the chat history..."
+            rows="3"
+            class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+                   focus:outline-none focus:border-mauve resize-y placeholder:text-subtext0"
+          ></textarea>
+          <div class="flex items-center gap-2">
+            <label for="char-depth-num" class="text-xs text-subtext0 whitespace-nowrap">Depth:</label>
+            <input
+              id="char-depth-num"
+              type="number"
+              min="0"
+              max="999"
+              value={depthPromptDepth}
+              oninput={(e) => { depthPromptDepth = Number((e.target as HTMLInputElement).value) || 0; updateDepthPrompt(); }}
+              class="w-20 bg-surface0 text-text text-sm rounded-md px-3 py-1 border border-surface1
+                     focus:outline-none focus:border-mauve"
+            />
+            <p class="text-xs text-subtext0">Messages from the bottom of the chat history.</p>
           </div>
         </div>
       </div>

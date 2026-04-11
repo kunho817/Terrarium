@@ -115,15 +115,24 @@
               name={character.name}
               onclick={() => handleSelect(character.id)}
             />
-            <button
-              onclick={() => handleDelete(character.id, character.name)}
-              class="absolute top-2 right-2 opacity-0 group-hover:opacity-100
-                     p-1 rounded bg-surface2 text-red hover:bg-overlay0
-                     transition-opacity text-xs"
-              title="Delete"
-            >
-              ✕
-            </button>
+            <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <a
+                href="/characters/{character.id}/edit"
+                class="p-1 rounded bg-surface2 text-subtext0 hover:bg-overlay0 hover:text-text
+                       transition-colors text-xs"
+                title="Edit"
+              >
+                &#9998;
+              </a>
+              <button
+                onclick={() => handleDelete(character.id, character.name)}
+                class="p-1 rounded bg-surface2 text-red hover:bg-overlay0
+                       transition-colors text-xs"
+                title="Delete"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         {/each}
       </div>
