@@ -8,6 +8,7 @@
 
 import type { PromptItem, PromptPreset } from '$lib/types/prompt-preset';
 import type { Message, CharacterCard, SceneState, LorebookEntry } from '$lib/types';
+import type { UserPersona } from '$lib/types/persona';
 import { parseExampleMessages, groupLoreByPosition } from './pipeline';
 import { substituteVariables, type TemplateVariables } from './template-engine';
 
@@ -16,12 +17,13 @@ export interface AssemblyContext {
   scene: SceneState;
   messages: Message[];
   lorebookMatches: LorebookEntry[];
+  persona?: UserPersona;
 }
 
-function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string): TemplateVariables {
+function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string, persona?: UserPersona): TemplateVariables {
   return {
     char: card.name,
-    user: 'User',
+    user: persona?.name || 'User',
     description: card.description,
     personality: card.personality,
     scenario: card.scenario,
@@ -31,6 +33,9 @@ function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string)
     sceneTime: scene.time || '',
     sceneMood: scene.mood || '',
     variables: scene.variables || {},
+    userPersona: persona?.shortDescription || '',
+    userDescription: persona?.detailedSettings || '',
+    userExampleDialogue: persona?.exampleDialogue || '',
   };
 }
 
@@ -43,7 +48,7 @@ function sysMsg(content: string): Message {
  * In the preset system, description/personality/scenario have their own items,
  * so the fallback only includes the identity line and scene info.
  */
-function buildFallbackSystemPrompt(card: CharacterCard, scene: SceneState): string {
+function buildFallbackSystemPrompt(card: CharacterCard, scene: SceneState, persona?: UserPersona): string {
   const parts: string[] = [];
   parts.push(`You are ${card.name}.`);
 
@@ -55,7 +60,7 @@ function buildFallbackSystemPrompt(card: CharacterCard, scene: SceneState): stri
     parts.push(sceneParts.join('. ') + '.');
   }
 
-  return substituteVariables(parts.join('\n\n'), buildTemplateVars(card, scene, ''));
+  return substituteVariables(parts.join('\n\n'), buildTemplateVars(card, scene, '', persona));
 }
 
 /**
@@ -75,34 +80,44 @@ export function resolveItem(
   switch (item.type) {
     case 'system': {
       const text = card.systemPrompt
-        ? substituteVariables(card.systemPrompt, buildTemplateVars(card, scene, ''))
-        : buildFallbackSystemPrompt(card, scene);
+        ? substituteVariables(card.systemPrompt, buildTemplateVars(card, scene, '', ctx.persona))
+        : buildFallbackSystemPrompt(card, scene, ctx.persona);
       return sysMsg(text);
     }
 
     case 'description': {
       if (!card.description) return null;
       const raw = resolveSlotContent(item.content, card.description);
-      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.description)));
+      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.description, ctx.persona)));
     }
 
     case 'persona': {
-      // Reserved for future use
-      return null;
+      const p = ctx.persona;
+      if (!p || (!p.shortDescription && !p.detailedSettings && !p.exampleDialogue)) return null;
+      const parts: string[] = [];
+      parts.push(`[${p.name}'s Persona]`);
+      if (p.shortDescription) parts.push(p.shortDescription);
+      if (p.detailedSettings) parts.push(p.detailedSettings);
+      if (p.exampleDialogue) {
+        parts.push(`<example_dialogue>`);
+        parts.push(p.exampleDialogue);
+        parts.push(`</example_dialogue>`);
+      }
+      return sysMsg(parts.join('\n'));
     }
 
     case 'personality': {
       if (!card.personality) return null;
       const defaultFormat = 'Personality: {{slot}}';
       const raw = resolveSlotContent(item.content || defaultFormat, card.personality);
-      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.personality)));
+      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.personality, ctx.persona)));
     }
 
     case 'scenario': {
       if (!card.scenario) return null;
       const defaultFormat = 'Scenario: {{slot}}';
       const raw = resolveSlotContent(item.content || defaultFormat, card.scenario);
-      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.scenario)));
+      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.scenario, ctx.persona)));
     }
 
     case 'exampleMessages': {
@@ -130,7 +145,7 @@ export function resolveItem(
       if (!group) return null;
       if (item.content) {
         const wrapped = item.content.replace(/\{\{slot\}\}/g, group);
-        return sysMsg(substituteVariables(wrapped, buildTemplateVars(card, scene, group)));
+        return sysMsg(substituteVariables(wrapped, buildTemplateVars(card, scene, group, ctx.persona)));
       }
       return sysMsg(group);
     }
@@ -139,20 +154,20 @@ export function resolveItem(
     case 'postHistoryInstructions': {
       if (!card.postHistoryInstructions) return null;
       return sysMsg(
-        substituteVariables(card.postHistoryInstructions, buildTemplateVars(card, scene, '')),
+        substituteVariables(card.postHistoryInstructions, buildTemplateVars(card, scene, '', ctx.persona)),
       );
     }
 
     case 'depthPrompt': {
       if (!card.depthPrompt?.prompt) return null;
       return sysMsg(
-        substituteVariables(card.depthPrompt.prompt, buildTemplateVars(card, scene, '')),
+        substituteVariables(card.depthPrompt.prompt, buildTemplateVars(card, scene, '', ctx.persona)),
       );
     }
 
     case 'jailbreak': {
       if (!item.content) return null;
-      return sysMsg(substituteVariables(item.content, buildTemplateVars(card, scene, '')));
+      return sysMsg(substituteVariables(item.content, buildTemplateVars(card, scene, '', ctx.persona)));
     }
 
     case 'prefill': {
@@ -162,7 +177,7 @@ export function resolveItem(
 
     case 'plain': {
       if (!item.content) return null;
-      return sysMsg(substituteVariables(item.content, buildTemplateVars(card, scene, '')));
+      return sysMsg(substituteVariables(item.content, buildTemplateVars(card, scene, '', ctx.persona)));
     }
 
     default:
@@ -200,7 +215,7 @@ export function assembleWithPreset(
     if (item.type === 'prefill' && item.enabled && item.content) {
       prefill = substituteVariables(
         item.content,
-        buildTemplateVars(ctx.card, ctx.scene, ''),
+        buildTemplateVars(ctx.card, ctx.scene, '', ctx.persona),
       );
       continue;
     }
