@@ -11,8 +11,11 @@ vi.mock('$lib/plugins/providers/sse', () => ({
   }),
 }));
 
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+vi.mock('@tauri-apps/plugin-http', () => ({
+  fetch: vi.fn(),
+}));
+
+const mockFetch = await import('@tauri-apps/plugin-http').then(m => m.fetch as unknown as ReturnType<typeof vi.fn>);
 
 const mockConfig: UserConfig = {
   providerId: 'openai',

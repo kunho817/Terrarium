@@ -9,6 +9,28 @@ function uid(): string {
   return crypto.randomUUID();
 }
 
+/** Current system prompt content — exported for use in settings migration. */
+export const DEFAULT_SYSTEM_PROMPT = `1. This is roleplay. You play the roles of actor and novelist. Actively research and utilize diverse cultural content — history, myth, literature, visual media, games, and more.
+
+2. You are never {{user}}. Only the user controls {{user}}. Write only from the characters' perspective.
+
+3. Create compelling, imaginative stories. Choose genres flexibly or mix them based on the situation. Build fresh twists on classic tropes.
+
+4. Write from the third-person omniscient author's point of view. Focus on the five senses, thoughts, emotions, actions, and reactions of characters. Make it immersive and realistic.
+
+5. Always wrap character dialogue in quotation marks ("Like this."). Keep narrative description separate from dialogue. Never use quotation marks for narration, thoughts, or actions — only for spoken words.
+
+6. Write long, detailed responses (4+ paragraphs, 400+ words). Include a rich mix of vivid narration, character actions, and meaningful dialogue. Develop scenes slowly with sensory detail — do not summarize or rush through events. Each response should feel like a full scene, not a brief exchange.
+
+7. Leave room for {{user}} interaction. Don't rush through scenes — unfold them slowly.`;
+
+/** Current Author's Note content — exported for use in settings migration. */
+export const DEFAULT_AUTHORS_NOTE = '[Style: roleplay, dialogue, prose; Wrap all spoken dialogue in "quotation marks"; Use italics for actions/emotions; Write detailed, multi-paragraph responses]';
+
+/** Old system prompt marker — used to detect outdated presets during migration. */
+const OLD_SYSTEM_PROMPT_MARKER = 'Write a 3+ paragraph response with detailed dialogue';
+const OLD_AUTHORS_NOTE_MARKER = 'Use markdown formatting';
+
 export function createDefaultPreset(): PromptPreset {
   const presetId = uid();
 
@@ -19,17 +41,7 @@ export function createDefaultPreset(): PromptPreset {
       name: 'System Prompt',
       enabled: true,
       role: 'system',
-      content: `1. This is roleplay. You play the roles of actor and novelist. Actively research and utilize diverse cultural content — history, myth, literature, visual media, games, and more.
-
-2. You are never {{user}}. Only the user controls {{user}}. Write only from the characters' perspective.
-
-3. Create compelling, imaginative stories. Choose genres flexibly or mix them based on the situation. Build fresh twists on classic tropes.
-
-4. Write from the third-person omniscient author's point of view. Focus on the five senses, thoughts, emotions, actions, and reactions of characters. Make it immersive and realistic.
-
-5. Write a 3+ paragraph response with detailed dialogue.
-
-6. Leave room for {{user}} interaction. Don't rush through scenes — unfold them slowly.`,
+      content: DEFAULT_SYSTEM_PROMPT,
     },
     {
       id: uid(),
@@ -121,7 +133,7 @@ export function createDefaultPreset(): PromptPreset {
       name: "Author's Note",
       enabled: true,
       role: 'system',
-      content: '[Style: roleplay, dialogue, prose; Use italics for actions/emotions; Use markdown formatting]',
+      content: DEFAULT_AUTHORS_NOTE,
     },
     {
       id: uid(),
@@ -164,4 +176,25 @@ export function createDefaultPresetSettings(): PromptPresetSettings {
     presets: [preset],
     activePresetId: preset.id,
   };
+}
+
+/**
+ * Migrate preset items: update outdated system prompt and Author's Note.
+ * Returns true if any changes were made.
+ */
+export function migratePresetItems(items: PromptItem[]): boolean {
+  let changed = false;
+
+  for (const item of items) {
+    if (item.type === 'system' && item.name === 'System Prompt' && item.content.includes(OLD_SYSTEM_PROMPT_MARKER)) {
+      item.content = DEFAULT_SYSTEM_PROMPT;
+      changed = true;
+    }
+    if (item.type === 'postHistoryInstructions' && item.name === "Author's Note" && item.content.includes(OLD_AUTHORS_NOTE_MARKER)) {
+      item.content = DEFAULT_AUTHORS_NOTE;
+      changed = true;
+    }
+  }
+
+  return changed;
 }

@@ -1,5 +1,6 @@
 import type { ImageProviderPlugin } from '../../types/plugin';
 import type { UserConfig, ConfigField } from '../../types/config';
+import { fetch } from '@tauri-apps/plugin-http';
 
 export function createNovelAIProvider(): ImageProviderPlugin {
   const requiredConfig: ConfigField[] = [
@@ -51,6 +52,11 @@ export function createNovelAIProvider(): ImageProviderPlugin {
     return Promise.resolve(!!config.apiKey);
   }
 
+  /** Check if model is V4 or V4.5 */
+  function isV4Plus(model: string): boolean {
+    return model.startsWith('nai-diffusion-4');
+  }
+
   async function generateImage(
     prompt: string,
     config: UserConfig,
@@ -59,11 +65,62 @@ export function createNovelAIProvider(): ImageProviderPlugin {
     const model = (config.model as string) || 'nai-diffusion-4-5-full';
     const width = (config.width as number) ?? 832;
     const height = (config.height as number) ?? 1216;
-    const steps = (config.steps as number) ?? 28;
-    const scale = (config.scale as number) ?? 5;
+    const steps = (config.steps as number) ?? 23;
+    const scale = (config.scale as number) ?? 6;
     const sampler = (config.sampler as string) || 'k_euler_ancestral';
     const negativePrompt = (config.negativePrompt as string) || '';
+    const noiseSchedule = (config.noiseSchedule as string) || 'karras';
     const seed = Math.floor(Math.random() * 2 ** 32);
+
+    const parameters: Record<string, unknown> = {
+      params_version: 3,
+      add_original_image: true,
+      cfg_rescale: 0,
+      controlnet_strength: 1,
+      dynamic_thresholding: false,
+      n_samples: 1,
+      width,
+      height,
+      sampler,
+      steps,
+      scale,
+      negative_prompt: negativePrompt,
+      noise_schedule: noiseSchedule,
+      legacy_v3_extend: false,
+      seed,
+      prefer_brownian: true,
+      qualityToggle: true,
+      autoSmea: false,
+      legacy_uc: false,
+      legacy: false,
+      deliberate_euler_ancestral_bug: false,
+      normalize_reference_strength_multiple: true,
+      decrisper: false,
+      sm: false,
+      sm_dyn: false,
+      ucPreset: 4,
+      uc: negativePrompt,
+      inpaintImg2ImgStrength: 1,
+      skip_cfg_above_sigma: null,
+    };
+
+    // V4+ models require v4_prompt and v4_negative_prompt
+    if (isV4Plus(model)) {
+      parameters.v4_prompt = {
+        caption: {
+          base_caption: prompt,
+          char_captions: [],
+        },
+        use_coords: false,
+        use_order: true,
+      };
+      parameters.v4_negative_prompt = {
+        caption: {
+          base_caption: negativePrompt,
+          char_captions: [],
+        },
+      };
+    }
 
     const response = await fetch('https://image.novelai.net/ai/generate-image', {
       method: 'POST',
@@ -75,23 +132,7 @@ export function createNovelAIProvider(): ImageProviderPlugin {
         action: 'generate',
         input: prompt,
         model,
-        parameters: {
-          params_version: 3,
-          add_original_image: true,
-          cfg_rescale: 0,
-          controlnet_strength: 1,
-          dynamic_thresholding: false,
-          n_samples: 1,
-          width,
-          height,
-          sampler,
-          steps,
-          scale,
-          negative_prompt: negativePrompt,
-          noise_schedule: (config.noiseSchedule as string) || 'karras',
-          legacy_v3_extend: false,
-          seed,
-        },
+        parameters,
       }),
     });
 

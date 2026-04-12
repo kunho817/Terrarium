@@ -5,7 +5,7 @@
 import { writable, get } from 'svelte/store';
 import type { AppSettings } from '$lib/storage/settings';
 import * as settingsStorage from '$lib/storage/settings';
-import { createDefaultPresetSettings } from '$lib/core/presets/defaults';
+import { createDefaultPresetSettings, migratePresetItems } from '$lib/core/presets/defaults';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 function createSettingsStore() {
@@ -29,6 +29,12 @@ function createSettingsStore() {
       // Migrate: add noiseSchedule to novelai config if missing
       if (settings.imageGeneration?.novelai && !(settings.imageGeneration.novelai as any).noiseSchedule) {
         settings.imageGeneration.novelai.noiseSchedule = 'karras';
+      }
+      // Migrate: update outdated system prompt and Author's Note
+      if (settings.promptPresets) {
+        for (const preset of settings.promptPresets.presets) {
+          migratePresetItems(preset.items);
+        }
       }
       set(settings);
     },

@@ -12,6 +12,7 @@
 import type { ProviderPlugin, ChatMetadata } from '$lib/types/plugin';
 import type { Message, UserConfig, CharacterCard, ConfigField } from '$lib/types';
 import { parseSSE } from './sse';
+import { fetch } from '@tauri-apps/plugin-http';
 
 const DEFAULT_BASE_URL = 'https://api.anthropic.com/v1';
 const ANTHROPIC_VERSION = '2023-06-01';

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createNovelAIProvider } from '../../../src/lib/plugins/image-providers/novelai';
 
+vi.mock('@tauri-apps/plugin-http', () => ({
+  fetch: vi.fn(),
+}));
+
 describe('createNovelAIProvider', () => {
   const provider = createNovelAIProvider();
 
@@ -46,8 +50,9 @@ describe('createNovelAIProvider', () => {
       status: 200,
       arrayBuffer: vi.fn().mockResolvedValue(mockArrayBuffer),
     };
-    const mockFetch = vi.fn().mockResolvedValue(mockResponse);
-    vi.stubGlobal('fetch', mockFetch);
+    const { fetch: mockedFetch } = await import('@tauri-apps/plugin-http');
+    const mockFetch = mockedFetch as unknown as ReturnType<typeof vi.fn>;
+    mockFetch.mockResolvedValue(mockResponse);
 
     const config = {
       apiKey: 'test-key',
@@ -89,8 +94,9 @@ describe('createNovelAIProvider', () => {
       ok: false,
       status: 401,
     };
-    const mockFetch = vi.fn().mockResolvedValue(mockResponse);
-    vi.stubGlobal('fetch', mockFetch);
+    const { fetch: mockedFetch } = await import('@tauri-apps/plugin-http');
+    const mockFetch = mockedFetch as unknown as ReturnType<typeof vi.fn>;
+    mockFetch.mockResolvedValue(mockResponse);
 
     await expect(
       provider.generateImage('test', {

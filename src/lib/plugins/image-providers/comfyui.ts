@@ -6,6 +6,7 @@
 
 import type { ImageProviderPlugin } from '$lib/types/plugin';
 import type { UserConfig, ConfigField } from '$lib/types/config';
+import { fetch } from '@tauri-apps/plugin-http';
 
 /**
  * Walk every node in a ComfyUI workflow object, applying a replacer

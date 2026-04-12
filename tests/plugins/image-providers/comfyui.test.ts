@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createComfyUIProvider } from '$lib/plugins/image-providers/comfyui';
 import type { UserConfig } from '$lib/types';
 
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+vi.mock('@tauri-apps/plugin-http', () => ({
+  fetch: vi.fn(),
+}));
+
+const mockFetch = await import('@tauri-apps/plugin-http').then(m => m.fetch as unknown as ReturnType<typeof vi.fn>);
 
 const sampleWorkflow = {
   '3': {
