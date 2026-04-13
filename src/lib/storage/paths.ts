@@ -33,4 +33,9 @@ export const PATHS = {
   personas: 'personas',
   personaDir: (id: string) => `personas/${id}`,
   personaFile: (id: string) => `personas/${id}/persona.json`,
+
+  // Worlds
+  worlds: 'worlds',
+  worldDir: (id: string) => `worlds/${id}`,
+  worldFile: (id: string) => `worlds/${id}/world.json`,
 } as const;
