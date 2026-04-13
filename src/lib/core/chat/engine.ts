@@ -11,7 +11,9 @@ import type {
   SceneState,
   UserConfig,
   ChatContext,
+  LorebookEntry,
 } from '$lib/types';
+import type { WorldCard } from '$lib/types/world';
 import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
 import type { PromptPreset } from '$lib/types/prompt-preset';
@@ -26,6 +28,24 @@ import { executeScript } from '$lib/core/scripting/bridge';
 import type { ScriptMutation } from '$lib/core/scripting/api';
 import { EventEmitter } from '$lib/core/events';
 
+function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
+  return worldCard.characters.map(char => ({
+    id: `__world_char_${char.id}`,
+    name: char.name,
+    keywords: [char.name.toLowerCase()],
+    caseSensitive: false,
+    content: [char.name, char.description, char.personality].filter(Boolean).join('\n'),
+    position: 'before_char' as const,
+    priority: 0,
+    enabled: true,
+    scanDepth: worldCard.loreSettings.scanDepth,
+    scope: 'global' as const,
+    mode: 'normal' as const,
+    constant: true,
+    category: 'character' as const,
+  }));
+}
+
 export interface SendMessageOptions {
   input: string;
   type: MessageType;
@@ -36,6 +56,7 @@ export interface SendMessageOptions {
   characterId?: string;
   preset?: PromptPreset;
   persona?: UserPersona;
+  worldCard?: WorldCard;
   imageAutoGenerate?: boolean;
 }
 
@@ -122,9 +143,12 @@ export class ChatEngine {
     const allMessages = [...options.messages, userMessage];
 
     // 4. Match lorebook
+    const mergedLorebook = options.worldCard
+      ? [...options.card.lorebook, ...buildWorldCharacterLore(options.worldCard)]
+      : options.card.lorebook;
     const loreMatches = matchLorebook(
       allMessages,
-      options.card.lorebook,
+      mergedLorebook,
       options.card.loreSettings,
     );
 
@@ -153,6 +177,7 @@ export class ChatEngine {
         messages: ctx.messages,
         lorebookMatches: ctx.lorebookMatches,
         persona: options.persona,
+        worldCard: options.worldCard,
       });
       assembled = result.messages;
       prefillText = result.prefill;
@@ -176,20 +201,6 @@ export class ChatEngine {
       });
     }
 
-    // Append [illust] instruction when auto image gen is enabled
-    if (options.imageAutoGenerate) {
-      const illustInstruction = '\n\nYou may insert [illust] tags at appropriate moments in your response to request scene illustrations. Place them on their own line. Use them sparingly — only for visually significant moments like scene changes, dramatic reveals, or important character actions. Do not use them for every response.';
-      for (let i = assembled.length - 1; i >= 0; i--) {
-        if (assembled[i].role === 'system') {
-          assembled[i] = {
-            ...assembled[i],
-            content: assembled[i].content + illustInstruction,
-          };
-          break;
-        }
-      }
-    }
-
     // 9. Set up streaming with completion promise
     let resolveComplete!: (msg: Message) => void;
     const onComplete = new Promise<Message>((resolve) => {
@@ -205,6 +216,7 @@ export class ChatEngine {
       const provider = self.registry.getProvider(capturedConfig.providerId);
       let fullResponse = '';
       const metadata: ChatMetadata = {};
+      let providerError: unknown = null;
 
       try {
         for await (const token of provider.chat(assembled, capturedConfig, metadata)) {
@@ -212,8 +224,8 @@ export class ChatEngine {
           fullResponse += token;
           yield token;
         }
-      } catch {
-        // Provider error — use accumulated tokens
+      } catch (err) {
+        providerError = err;
       }
 
       // 10. Apply modify_output regex
@@ -283,6 +295,11 @@ export class ChatEngine {
       };
 
       resolveComplete(assistantMessage);
+
+      // Propagate provider error after resolving onComplete
+      if (providerError) {
+        throw providerError;
+      }
     }
 
     return {
