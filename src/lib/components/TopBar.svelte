@@ -1,14 +1,18 @@
 <script lang="ts">
-  let { characterName = '', modelName = '', characterId = '' } = $props<{
+  let { characterName = '', modelName = '', characterId = '', isWorld = false } = $props<{
     characterName?: string;
     modelName?: string;
     characterId?: string;
+    isWorld?: boolean;
   }>();
 </script>
 
 <div class="flex items-center justify-between px-4 py-2 border-b border-surface0 bg-mantle">
   <div class="flex items-center gap-3">
     <span class="text-sm font-semibold text-text">{characterName || 'Select a character'}</span>
+    {#if isWorld}
+      <span class="text-[10px] px-1.5 py-0.5 rounded bg-lavender/20 text-lavender font-medium ml-2">World</span>
+    {/if}
   </div>
   <div class="flex items-center gap-2">
     {#if modelName}

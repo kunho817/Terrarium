@@ -11,17 +11,11 @@ import { charactersStore } from '$lib/stores/characters';
 import { getEngine, getRegistry } from '$lib/core/bootstrap';
 import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
 import { loadPersona } from '$lib/storage/personas';
+import { listSessions } from '$lib/storage/chats';
 import type { MessageType, Message } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 import type { UserPersona } from '$lib/types/persona';
-import type { ArtStylePreset } from '$lib/types/art-style';
 
-/**
- * Initialize a chat session for a character.
- *
- * If sessionId is provided, loads that specific session.
- * Otherwise falls back to loadChat which auto-migrates and picks the most recent session.
- */
 export async function initChat(characterId: string, sessionId?: string): Promise<void> {
   if (sessionId) {
     await chatStore.loadSession(characterId, sessionId);
@@ -33,32 +27,53 @@ export async function initChat(characterId: string, sessionId?: string): Promise
       await sceneStore.loadScene(characterId, chatState.sessionId);
     }
   }
+
+  await injectFirstMessage();
 }
 
-/**
- * Strips thinking/reasoning tags from AI output.
- */
+export async function injectFirstMessage(): Promise<void> {
+  const state = get(chatStore);
+  if (state.messages.length === 0) {
+    let firstMsg: string | undefined;
+
+    const charState = get(charactersStore);
+    if (charState.current?.firstMessage) {
+      firstMsg = charState.current.firstMessage;
+    }
+
+    if (!firstMsg) {
+      try {
+        const { worldsStore } = await import('$lib/stores/worlds');
+        const worldState = get(worldsStore);
+        if (worldState.current?.firstMessage) {
+          firstMsg = worldState.current.firstMessage;
+        }
+      } catch {}
+    }
+
+    if (firstMsg) {
+      const greeting: Message = {
+        role: 'assistant',
+        content: firstMsg,
+        type: 'dialogue',
+        timestamp: Date.now(),
+        isFirstMessage: true,
+      };
+      chatStore.addMessage(greeting);
+      await chatStore.save();
+    }
+  }
+}
+
 function stripThinking(text: string): string {
-  // Remove complete thinking blocks
   let result = text.replace(/<(?:think|thinking)(?:\s[^>]*)?>[\s\S]*?<\/(?:think|thinking)\s*>/gi, '');
-  // Remove incomplete thinking block (opening tag without closing)
   result = result.replace(/<(?:think|thinking)(?:\s[^>]*)?>[\s\S]*$/gi, '');
   return result.trim();
 }
 
-const ILLUST_TAG = /\[illust\]/gi;
-
-function parseIllustTags(text: string): { cleanText: string; tagCount: number } {
-  const matches = text.match(ILLUST_TAG);
-  return {
-    cleanText: text.replace(ILLUST_TAG, '').trim(),
-    tagCount: matches ? matches.length : 0,
-  };
-}
-
-async function resolvePersona(card: { defaultPersonaId?: string }): Promise<UserPersona | undefined> {
+async function resolvePersona(card: { defaultPersonaId?: string }, sessionPersonaId?: string): Promise<UserPersona | undefined> {
   const settings = get(settingsStore);
-  const personaId = card.defaultPersonaId || settings.defaultPersonaId;
+  const personaId = sessionPersonaId || card.defaultPersonaId || settings.defaultPersonaId;
   if (!personaId) return undefined;
   try {
     return await loadPersona(personaId);
@@ -67,20 +82,30 @@ async function resolvePersona(card: { defaultPersonaId?: string }): Promise<User
   }
 }
 
+async function getSessionPersonaId(): Promise<string | undefined> {
+  const state = get(chatStore);
+  if (!state.chatId || !state.sessionId) return undefined;
+  try {
+    const sessions = await listSessions(state.chatId);
+    const session = sessions.find(s => s.id === state.sessionId);
+    return session?.personaId;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function sendMessage(input: string, type: MessageType): Promise<void> {
   const state = get(chatStore);
-  const scene = get(sceneStore);
   const settings = get(settingsStore);
   const charState = get(charactersStore);
 
-  if (!charState.current) return;
+  if (!charState.current || !charState.currentId) return;
 
-  const persona = await resolvePersona(charState.current);
-
+  const sessionPersonaId = await getSessionPersonaId();
+  const persona = await resolvePersona(charState.current, sessionPersonaId);
   const engine = getEngine();
 
   const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
-
   const config = {
     providerId: settings.defaultProvider,
     model: (providerConfig?.model as string) || undefined,
@@ -90,7 +115,6 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     maxTokens: (providerConfig?.maxTokens as number) || undefined,
   };
 
-  // Resolve active prompt preset
   const presetSettings = settings.promptPresets;
   let activePreset: PromptPreset | undefined;
   if (presetSettings) {
@@ -104,7 +128,7 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     input,
     type,
     card: charState.current,
-    scene,
+    scene: get(sceneStore),
     config,
     messages: state.messages,
     preset: activePreset,
@@ -112,90 +136,95 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
     imageAutoGenerate,
   });
 
-  // Add user message to store
   chatStore.addMessage(result.userMessage);
 
-  // Stream tokens into the streaming message (strip thinking tags from display)
+  await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
+}
+
+async function streamAndFinalize(
+  stream: AsyncGenerator<string, void, unknown>,
+  onComplete: Promise<Message>,
+  config: Record<string, unknown>,
+  imageConfig: import('$lib/types/image-config').ImageGenerationConfig | undefined,
+  imageAutoGenerate: boolean,
+  customPresets: import('$lib/types/art-style').ArtStylePreset[] | undefined,
+): Promise<void> {
+  const startTime = Date.now();
+
   chatStore.setStreamingMessage('');
   let rawText = '';
 
   try {
-    for await (const token of result.stream) {
+    for await (const token of stream) {
       rawText += token;
       chatStore.setStreamingMessage(stripThinking(rawText));
     }
-  } catch {
-    // Stream interrupted
+  } catch (e) {
+    chatStore.clearStreamingMessage();
+    throw e;
   }
 
-  // Get final message and strip thinking tags
-  const rawMessage = await result.onComplete;
-  const assistantMessage = { ...rawMessage, content: stripThinking(rawMessage.content) };
+  const rawMessage = await onComplete;
+  const durationMs = Date.now() - startTime;
+  const assistantMessage: Message = {
+    ...rawMessage,
+    content: stripThinking(rawMessage.content),
+    generationInfo: { ...rawMessage.generationInfo, durationMs },
+  };
 
-  // Clear streaming and add final message
   chatStore.clearStreamingMessage();
   chatStore.addMessage(assistantMessage);
-
-  // Save to storage
   await chatStore.save();
 
-  // Parse [illust] tags from AI response
-  const { cleanText, tagCount } = parseIllustTags(assistantMessage.content);
-  assistantMessage.content = cleanText;
-
-  // Auto-generate illustrations for [illust] tags
-  if (tagCount > 0 && imageConfig?.autoGenerate && imageConfig.provider !== 'none') {
-    try {
-      const artStyle = resolveArtStyle(
-        imageConfig.artStylePresetId,
-        settings.imageGeneration?.customArtStylePresets as ArtStylePreset[] | undefined,
-      );
-      const generator = new ImageGenerator(getRegistry());
-      assistantMessage.images = [];
-
-      for (let i = 0; i < tagCount; i++) {
-        const imgResult = await generator.generateForChat({
-          messages: [...state.messages, result.userMessage, { ...assistantMessage, content: cleanText }],
-          artStyle,
-          imageConfig,
-          config,
-          charId: charState.current.id,
-          sessionId: state.sessionId || 'default',
-        });
-        if (imgResult) {
-          assistantMessage.images.push({
-            id: crypto.randomUUID(),
-            path: imgResult.filename,
-            prompt: imgResult.prompt,
-            tagIndex: i,
-            charId: charState.current.id,
-            sessionId: state.sessionId || 'default',
-            timestamp: Date.now(),
-          });
-        }
-      }
-    } catch {
-      // Image generation failed — non-critical, don't break chat
-    }
-  }
-
-  // Update message with cleaned content and/or images
-  if (tagCount > 0 || assistantMessage.images?.length) {
-    chatStore.updateLastMessage(assistantMessage);
-    await chatStore.save();
+  if (imageAutoGenerate && assistantMessage.content.length > 0 && imageConfig) {
+    generateAndInsertIllustrations(assistantMessage, config, imageConfig, customPresets);
   }
 }
 
-/**
- * Manually generate an illustration for the current conversation.
- * Adds a new assistant message with the generated image.
- */
+async function generateAndInsertIllustrations(
+  assistantMessage: Message,
+  config: Record<string, unknown>,
+  imageConfig: NonNullable<import('$lib/types/image-config').ImageGenerationConfig>,
+  customPresets: import('$lib/types/art-style').ArtStylePreset[] | undefined,
+): Promise<void> {
+  try {
+    const artStyle = resolveArtStyle(imageConfig.artStylePresetId, customPresets);
+    const generator = new ImageGenerator(getRegistry());
+
+    const plans = await generator.planIllustrations(assistantMessage.content, config as any);
+    if (plans.length === 0) return;
+
+    const results = new Map<number, { dataUrl: string; prompt: string }>();
+
+    for (const plan of plans) {
+      try {
+        const imgResult = await generator.generateIllustration(plan.prompt, imageConfig, artStyle);
+        if (imgResult) {
+          results.set(plan.afterParagraph, imgResult);
+        }
+      } catch (e) {
+        console.error(`[Illust] Image generation failed for paragraph ${plan.afterParagraph}:`, e);
+      }
+    }
+
+    if (results.size === 0) return;
+
+    const segments = generator.buildSegments(assistantMessage.content, plans, results);
+    assistantMessage.segments = segments;
+    assistantMessage.revision = (assistantMessage.revision ?? 0) + 1;
+
+    chatStore.updateLastMessage(assistantMessage);
+    await chatStore.save();
+  } catch (e) {
+    console.error('[Illust] Illustration planning failed:', e);
+  }
+}
+
 export async function generateIllustration(): Promise<void> {
   const state = get(chatStore);
-  const scene = get(sceneStore);
   const settings = get(settingsStore);
   const charState = get(charactersStore);
-  if (!charState.current) return;
+  if (!charState.current || !charState.currentId) return;
 
   const imageConfig = settings.imageGeneration;
   if (!imageConfig || imageConfig.provider === 'none') return;
@@ -211,14 +240,11 @@ export async function generateIllustration(): Promise<void> {
   const artStyle = resolveArtStyle(imageConfig.artStylePresetId);
   const generator = new ImageGenerator(getRegistry());
 
-  const imgResult = await generator.generateForChat({
-    messages: state.messages,
-    artStyle,
+  const imgResult = await generator.generateIllustration(
+    '1girl, beautiful scenery, detailed',
     imageConfig,
-    config,
-    charId: charState.current.id,
-    sessionId: state.sessionId || 'default',
-  });
+    artStyle,
+  );
 
   if (imgResult) {
     const imageMessage: Message = {
@@ -226,9 +252,70 @@ export async function generateIllustration(): Promise<void> {
       content: '',
       type: 'dialogue',
       timestamp: Date.now(),
-      image: imgResult,
+      segments: [{ type: 'image', dataUrl: imgResult.dataUrl, prompt: imgResult.prompt, id: crypto.randomUUID() }],
     };
     chatStore.addMessage(imageMessage);
     await chatStore.save();
   }
+}
+
+export async function editMessage(index: number, newContent: string): Promise<void> {
+  const state = get(chatStore);
+  if (index < 0 || index >= state.messages.length) return;
+  const message = { ...state.messages[index], content: newContent, revision: (state.messages[index].revision ?? 0) + 1 };
+  chatStore.updateMessage(index, message);
+  await chatStore.save();
+}
+
+export async function rerollFromMessage(userMessageIndex: number): Promise<void> {
+  const state = get(chatStore);
+  const settings = get(settingsStore);
+  const charState = get(charactersStore);
+
+  if (userMessageIndex < 0 || userMessageIndex >= state.messages.length) return;
+  if (!charState.current || !charState.currentId) return;
+
+  const userMessage = state.messages[userMessageIndex];
+  if (userMessage.role !== 'user') return;
+
+  chatStore.truncateAfter(userMessageIndex);
+  await chatStore.save();
+
+  const currentState = get(chatStore);
+  const sessionPersonaId = await getSessionPersonaId();
+  const persona = await resolvePersona(charState.current, sessionPersonaId);
+  const engine = getEngine();
+
+  const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
+  const config = {
+    providerId: settings.defaultProvider,
+    model: (providerConfig?.model as string) || undefined,
+    apiKey: (providerConfig?.apiKey as string) || undefined,
+    baseUrl: (providerConfig?.baseUrl as string) || undefined,
+    temperature: (providerConfig?.temperature as number) || undefined,
+    maxTokens: (providerConfig?.maxTokens as number) || undefined,
+  };
+
+  const presetSettings = settings.promptPresets;
+  let activePreset: PromptPreset | undefined;
+  if (presetSettings) {
+    activePreset = presetSettings.presets.find(p => p.id === presetSettings.activePresetId);
+  }
+
+  const imageConfig = settings.imageGeneration;
+  const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
+
+  const result = await engine.send({
+    input: userMessage.content,
+    type: userMessage.type,
+    card: charState.current,
+    scene: get(sceneStore),
+    config,
+    messages: currentState.messages,
+    preset: activePreset,
+    persona,
+    imageAutoGenerate,
+  });
+
+  await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
 }

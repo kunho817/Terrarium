@@ -4,39 +4,52 @@
   import { goto } from '$app/navigation';
   import { chatStore } from '$lib/stores/chat';
   import { charactersStore } from '$lib/stores/characters';
+  import { worldsStore } from '$lib/stores/worlds';
   import { sceneStore } from '$lib/stores/scene';
   import { settingsStore } from '$lib/stores/settings';
-  import { sendMessage, initChat, generateIllustration } from '$lib/core/chat/use-chat';
+  import { sendMessage, initChat, generateIllustration, injectFirstMessage } from '$lib/core/chat/use-chat';
   import * as chatStorage from '$lib/storage/chats';
-  import type { ChatSession } from '$lib/types';
+  import { listPersonas } from '$lib/storage/personas';
+  import type { ChatSession, WorldCard } from '$lib/types';
   import TopBar from '$lib/components/TopBar.svelte';
   import SceneInfoBar from '$lib/components/SceneInfoBar.svelte';
   import MessageList from '$lib/components/MessageList.svelte';
   import InputArea from '$lib/components/InputArea.svelte';
+  import SessionPanel from '$lib/components/SessionPanel.svelte';
 
   let sending = $state(false);
   let error = $state('');
+  let cardType: 'character' | 'world' = $state('character');
   let sessions = $state<ChatSession[]>([]);
-  let showSessionMenu = $state(false);
+  let personas = $state<{ id: string; name: string }[]>([]);
+  let showSessionPanel = $state(false);
 
   let currentSessionId = $derived($chatStore.sessionId);
   let currentSession = $derived(sessions.find((s) => s.id === currentSessionId));
 
   onMount(async () => {
     const characterId = $page.params.id!;
+    const type = $page.url.searchParams.get('cardType');
+    cardType = type === 'world' ? 'world' : 'character';
+
     try {
-      await charactersStore.selectCharacter(characterId);
+      if (cardType === 'world') {
+        await worldsStore.selectWorld(characterId);
+      } else {
+        await charactersStore.selectCharacter(characterId);
+      }
       sessions = await chatStorage.listSessions(characterId);
+      personas = await listPersonas();
 
       const querySession = $page.url.searchParams.get('session');
       if (querySession && sessions.some((s) => s.id === querySession)) {
         await initChat(characterId, querySession);
       } else {
         await initChat(characterId);
-        // Sync URL with resolved session
         const resolved = $chatStore.sessionId;
         if (resolved && resolved !== querySession) {
-          goto(`/chat/${characterId}?session=${resolved}`, { replaceState: true });
+          const typeParam = cardType === 'world' ? 'cardType=world&' : '';
+          goto(`/chat/${characterId}?${typeParam}session=${resolved}`, { replaceState: true });
         }
       }
     } catch {
@@ -71,48 +84,65 @@
   async function switchSession(newSessionId: string) {
     if (newSessionId === currentSessionId) return;
     const characterId = $page.params.id!;
-    showSessionMenu = false;
+    showSessionPanel = false;
 
-    // Save current state
     await chatStore.save();
     await sceneStore.save();
 
-    // Load new session
     await chatStore.loadSession(characterId, newSessionId);
     await sceneStore.loadScene(characterId, newSessionId);
+    await injectFirstMessage();
 
-    // Update URL
-    goto(`/chat/${characterId}?session=${newSessionId}`, { replaceState: true });
+    const typeParam = cardType === 'world' ? 'cardType=world&' : '';
+    goto(`/chat/${characterId}?${typeParam}session=${newSessionId}`, { replaceState: true });
   }
 
   async function createNewSession() {
     const characterId = $page.params.id!;
-    showSessionMenu = false;
+    showSessionPanel = false;
 
-    // Save current state
     await chatStore.save();
     await sceneStore.save();
 
-    // Create and switch to new session
     const session = await chatStorage.createSession(characterId);
     await chatStore.loadSession(characterId, session.id);
     await sceneStore.loadScene(characterId, session.id);
+    await injectFirstMessage();
     sessions = await chatStorage.listSessions(characterId);
 
-    // Update URL
-    goto(`/chat/${characterId}?session=${session.id}`, { replaceState: true });
+    const typeParam = cardType === 'world' ? 'cardType=world&' : '';
+    goto(`/chat/${characterId}?${typeParam}session=${session.id}`, { replaceState: true });
   }
 
-  function toggleSessionMenu() {
-    showSessionMenu = !showSessionMenu;
+  async function renameSession(sessionId: string, name: string) {
+    const characterId = $page.params.id!;
+    await chatStorage.updateSession(characterId, sessionId, { name });
+    sessions = await chatStorage.listSessions(characterId);
   }
 
-  function closeSessionMenu() {
-    showSessionMenu = false;
+  async function deleteSession(sessionId: string) {
+    if (sessions.length <= 1) return;
+    const characterId = $page.params.id!;
+
+    await chatStorage.deleteSession(characterId, sessionId);
+    sessions = await chatStorage.listSessions(characterId);
+
+    if (sessionId === currentSessionId) {
+      const remaining = sessions[0];
+      await chatStore.loadSession(characterId, remaining.id);
+      await sceneStore.loadScene(characterId, remaining.id);
+      await injectFirstMessage();
+      const typeParam = cardType === 'world' ? 'cardType=world&' : '';
+      goto(`/chat/${characterId}?${typeParam}session=${remaining.id}`, { replaceState: true });
+    }
+  }
+
+  async function setSessionPersona(sessionId: string, personaId: string | undefined) {
+    const characterId = $page.params.id!;
+    await chatStorage.updateSession(characterId, sessionId, { personaId });
+    sessions = await chatStorage.listSessions(characterId);
   }
 </script>
-
-<svelte:window onclick={closeSessionMenu} />
 
 {#if error}
   <div class="flex-1 flex items-center justify-center">
@@ -121,55 +151,25 @@
       <a href="/" class="text-mauve hover:text-lavender text-sm">Go back</a>
     </div>
   </div>
-{:else if $charactersStore.current}
+{:else if (cardType === 'character' && $charactersStore.current) || (cardType === 'world' && $worldsStore.current)}
   <div class="flex-1 flex flex-col overflow-hidden">
     <TopBar
-      characterName={$charactersStore.current.name}
+      characterName={cardType === 'world' ? ($worldsStore.current?.name ?? 'World') : ($charactersStore.current?.name ?? '')}
       modelName={($settingsStore.providers[$settingsStore.defaultProvider] as any)?.model || ''}
       characterId={$page.params.id}
+      isWorld={cardType === 'world'}
     />
-    <!-- Session bar -->
-    <div class="flex items-center justify-between px-4 py-1 border-b border-surface0 bg-crust relative">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="text-xs text-subtext0 shrink-0">Session:</span>
-        <button
-          onclick={(e) => { e.stopPropagation(); toggleSessionMenu(); }}
-          class="text-xs text-text hover:text-lavender truncate max-w-[200px] cursor-pointer bg-transparent border-none p-0"
-        >
-          {currentSession?.name ?? 'Chat'}
-        </button>
-      </div>
 
-      <!-- Dropdown -->
-      {#if showSessionMenu}
-        <div
-          onclick={(e) => e.stopPropagation()}
-          class="absolute top-full left-0 mt-0 ml-4 w-56 bg-surface0 border border-surface1 rounded shadow-lg z-50 max-h-64 overflow-y-auto"
-          role="menu"
-        >
-          {#each sessions as session}
-            <button
-              onclick={(e) => { e.stopPropagation(); switchSession(session.id); }}
-              class="w-full text-left px-3 py-1.5 text-xs hover:bg-surface1 transition-colors {session.id === currentSessionId ? 'text-lavender bg-surface2' : 'text-text'}"
-              role="menuitem"
-            >
-              <div class="truncate font-medium">{session.name}</div>
-              {#if session.preview}
-                <div class="text-subtext0 truncate text-[10px] mt-0.5">{session.preview}</div>
-              {/if}
-            </button>
-          {/each}
-          <div class="border-t border-surface1">
-            <button
-              onclick={(e) => { e.stopPropagation(); createNewSession(); }}
-              class="w-full text-left px-3 py-1.5 text-xs text-green hover:bg-surface1 transition-colors"
-              role="menuitem"
-            >
-              + New Session
-            </button>
-          </div>
-        </div>
-      {/if}
+    <!-- Session bar -->
+    <div class="flex items-center justify-between px-4 py-1.5 border-b border-surface0 bg-crust">
+      <button
+        onclick={() => showSessionPanel = true}
+        class="flex items-center gap-2 text-sm text-text hover:text-lavender cursor-pointer bg-surface0 hover:bg-surface1 border border-surface1 hover:border-surface2 rounded-md px-3 py-1.5 transition-colors"
+      >
+        <span class="text-subtext0">Session:</span>
+        <span class="truncate max-w-[200px]">{currentSession?.name ?? 'Chat'}</span>
+        <span class="text-subtext0 text-xs">▼</span>
+      </button>
 
       <button
         onclick={createNewSession}
@@ -185,10 +185,7 @@
       time={$sceneStore.time}
       mood={$sceneStore.mood}
     />
-    <MessageList
-      messages={$chatStore.messages}
-      streamingMessage={$chatStore.streamingMessage}
-    />
+    <MessageList streamingMessage={$chatStore.streamingMessage} />
     <InputArea
       onSend={handleSend}
       onGenerateImage={handleGenerateImage}
@@ -196,6 +193,20 @@
       disabled={sending || $chatStore.isStreaming}
     />
   </div>
+
+  {#if showSessionPanel}
+    <SessionPanel
+      {sessions}
+      activeSessionId={currentSessionId}
+      {personas}
+      onselect={switchSession}
+      onrename={renameSession}
+      ondelete={deleteSession}
+      oncreate={createNewSession}
+      onclose={() => showSessionPanel = false}
+      onsetpersona={setSessionPersona}
+    />
+  {/if}
 {:else}
   <div class="flex-1 flex items-center justify-center text-subtext0">
     Loading...
