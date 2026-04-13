@@ -40,6 +40,7 @@ export interface LorebookEntry {
 
   parentId?: string;
   folderName?: string;
+  category?: 'character' | 'region' | 'setting' | 'misc';
 
   useEmbedding?: boolean;
   embeddingThreshold?: number;

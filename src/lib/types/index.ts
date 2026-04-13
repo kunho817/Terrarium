@@ -8,7 +8,8 @@ export type {
   MessageRole,
   MessageType,
   GenerationInfo,
-  GeneratedImage,
+  ContentSegment,
+  IllustrationPlan,
   Message,
 } from './message';
 
@@ -62,6 +63,10 @@ export type {
 
 // Character
 export type { DepthPrompt, CharacterCard } from './character';
+
+// World
+export type { WorldCard, WorldCharacter } from './world';
+export { createDefaultWorldCard } from './world';
 
 // Persona
 export type { UserPersona } from './persona';

@@ -9,5 +9,7 @@ export interface ChatSession {
   name: string;
   createdAt: number;
   lastMessageAt: number;
-  preview: string; // first ~80 chars of last message
+  preview: string;
+  personaId?: string;
+  cardType?: 'character' | 'world';
 }
