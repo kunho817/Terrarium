@@ -5,7 +5,7 @@
 import { writable, get } from 'svelte/store';
 import type { AppSettings } from '$lib/storage/settings';
 import * as settingsStorage from '$lib/storage/settings';
-import { createDefaultPresetSettings, migratePresetItems } from '$lib/core/presets/defaults';
+import { createDefaultPresetSettings, migratePresetItems, createDefaultPreset } from '$lib/core/presets/defaults';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 function createSettingsStore() {
@@ -41,12 +41,22 @@ function createSettingsStore() {
       if (settings.imageGeneration?.novelai && !(settings.imageGeneration.novelai as any).noiseSchedule) {
         settings.imageGeneration.novelai.noiseSchedule = 'karras';
       }
-      // Migrate: update outdated system prompt and Author's Note
+      // Migrate: update outdated system prompt and Author's Note, add missing items
       if (settings.promptPresets) {
         let migrated = false;
         for (const preset of settings.promptPresets.presets) {
           if (migratePresetItems(preset.items)) {
             migrated = true;
+          }
+          // Add missing default items (e.g., jailbreak) to old presets
+          const defaultPreset = createDefaultPreset();
+          const defaultItemsByType = new Map(defaultPreset.items.map(i => [i.type, i]));
+          const existingTypes = new Set(preset.items.map(i => i.type));
+          for (const [type, defaultItem] of defaultItemsByType) {
+            if (!existingTypes.has(type)) {
+              preset.items.push({ ...defaultItem, id: crypto.randomUUID() });
+              migrated = true;
+            }
           }
         }
         if (migrated) {
