@@ -81,6 +81,43 @@
         </select>
       </section>
 
+      <!-- Output Language -->
+      <section class="space-y-3">
+        <h2 class="text-sm font-medium text-text">Output Language</h2>
+        <select
+          value={$settingsStore.outputLanguage || ''}
+          onchange={(e) => {
+            settingsStore.update({ outputLanguage: (e.target as HTMLSelectElement).value });
+            handleSave();
+          }}
+          class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+                 focus:outline-none focus:border-mauve"
+        >
+          <option value="">No language override</option>
+          <option value="English">English</option>
+          <option value="Korean">Korean</option>
+          <option value="Japanese">Japanese</option>
+          <option value="Chinese (Simplified)">Chinese (Simplified)</option>
+          <option value="Chinese (Traditional)">Chinese (Traditional)</option>
+          <option value="Spanish">Spanish</option>
+          <option value="French">French</option>
+          <option value="German">German</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Russian">Russian</option>
+          <option value="Italian">Italian</option>
+          <option value="Thai">Thai</option>
+          <option value="Vietnamese">Vietnamese</option>
+          <option value="Indonesian">Indonesian</option>
+          <option value="Arabic">Arabic</option>
+          <option value="Turkish">Turkish</option>
+          <option value="Dutch">Dutch</option>
+          <option value="Polish">Polish</option>
+        </select>
+        <p class="text-xs text-subtext0">
+          Forces the AI to write responses in the selected language.
+        </p>
+      </section>
+
       <!-- Developer Mode -->
       <section class="space-y-3">
         <div class="flex items-center justify-between">
