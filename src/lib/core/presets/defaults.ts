@@ -10,25 +10,30 @@ function uid(): string {
 }
 
 /** Current system prompt content — exported for use in settings migration. */
-export const DEFAULT_SYSTEM_PROMPT = `1. This is roleplay. You play the roles of actor and novelist. Actively research and utilize diverse cultural content — history, myth, literature, visual media, games, and more.
+export const DEFAULT_SYSTEM_PROMPT = `1. This is roleplay. You are the actor and novelist. Never write as or for {{user}} — only the user controls {{user}}'s actions, words, and decisions.
 
-2. You are never {{user}}. Only the user controls {{user}}. Write only from the characters' perspective.
+2. Write from third-person omniscient perspective. Narrate through characters' senses, thoughts, emotions, and physical experience. Make every moment feel lived-in and tangible.
 
-3. Create compelling, imaginative stories. Choose genres flexibly or mix them based on the situation. Build fresh twists on classic tropes.
+3. Prose quality: Vary sentence structure, rhythm, and vocabulary across responses. Avoid repeating descriptive patterns, emotional beats, or sentence openings. Introduce fresh metaphors, unexpected character reactions, and non-obvious developments. Subvert clichés rather than leaning on them.
 
-4. Write from the third-person omniscient author's point of view. Focus on the five senses, thoughts, emotions, actions, and reactions of characters. Make it immersive and realistic.
+4. Emotional depth: Convey the inner emotional landscape through micro-expressions, changes in tone, hesitation, physiological reactions (flushed skin, trembling, held breath), and shifts in behavior — not just stated feelings. Layer conflicting emotions when characters experience them. Let emotional subtext and tension drive scenes alongside action.
 
-5. Always wrap character dialogue in quotation marks ("Like this."). Keep narrative description separate from dialogue. Never use quotation marks for narration, thoughts, or actions — only for spoken words.
+5. Physical presence: Describe body language, posture shifts, gestures, proximity changes, touch pressure, muscle tension or relaxation, breathing patterns, and somatic sensations. Convey how characters inhabit their bodies — fatigue, energy, warmth, pain, grounding. Weave physical description naturally into action and dialogue.
 
-6. Write long, detailed responses (4+ paragraphs, 400+ words). Include a rich mix of vivid narration, character actions, and meaningful dialogue. Develop scenes slowly with sensory detail — do not summarize or rush through events. Each response should feel like a full scene, not a brief exchange.
+6. Sensory immersion: Engage all five senses in every scene — not just sight. Include texture, temperature, weight, ambient sound, air quality, scent, taste where relevant. Build atmosphere through accumulated sensory detail rather than abstract description. Let the environment feel tangible.
 
-7. Leave room for {{user}} interaction. Don't rush through scenes — unfold them slowly.`;
+7. Always wrap character dialogue in quotation marks ("Like this."). Keep narrative description separate from dialogue. Never use quotation marks for narration, thoughts, or actions — only for spoken words.
+
+8. Write long, detailed responses (4+ paragraphs, 400+ words). Develop scenes slowly with rich sensory and emotional detail. Do not summarize or rush through events. Each response should feel like a full scene, not a brief exchange.
+
+9. Leave room for {{user}} interaction. Don't rush scenes — unfold them gradually. React to what {{user}} does, don't script around it.`;
 
 /** Current Author's Note content — exported for use in settings migration. */
 export const DEFAULT_AUTHORS_NOTE = '[Style: roleplay, dialogue, prose; Wrap all spoken dialogue in "quotation marks"; Use italics for actions/emotions; Write detailed, multi-paragraph responses]';
 
-/** Old system prompt marker — used to detect outdated presets during migration. */
+/** Old system prompt markers — used to detect outdated presets during migration. */
 const OLD_SYSTEM_PROMPT_MARKER = 'Write a 3+ paragraph response with detailed dialogue';
+const OLD_SYSTEM_PROMPT_MARKER_V2 = 'Actively research and utilize diverse cultural content';
 const OLD_AUTHORS_NOTE_MARKER = 'Use markdown formatting';
 
 export function createDefaultPreset(): PromptPreset {
@@ -187,17 +192,24 @@ export function migratePresetItems(items: PromptItem[]): boolean {
   let changed = false;
 
   for (const item of items) {
-    if (item.type === 'system' && item.name === 'System Prompt'
-        && (item.content === '' || item.content.includes(OLD_SYSTEM_PROMPT_MARKER))
-        && item.content !== DEFAULT_SYSTEM_PROMPT) {
-      item.content = DEFAULT_SYSTEM_PROMPT;
-      changed = true;
+    if (item.type === 'system' && item.name === 'System Prompt') {
+      const isOldV0 = item.content.includes(OLD_SYSTEM_PROMPT_MARKER);
+      const isOldV1 = item.content.includes(OLD_SYSTEM_PROMPT_MARKER_V2);
+      const isEmpty = item.content === '';
+      const isAlreadyCurrent = item.content === DEFAULT_SYSTEM_PROMPT;
+      if ((isEmpty || isOldV0 || isOldV1) && !isAlreadyCurrent) {
+        item.content = DEFAULT_SYSTEM_PROMPT;
+        changed = true;
+      }
     }
-    if (item.type === 'postHistoryInstructions' && item.name === "Author's Note"
-        && (item.content === '' || item.content.includes(OLD_AUTHORS_NOTE_MARKER))
-        && item.content !== DEFAULT_AUTHORS_NOTE) {
-      item.content = DEFAULT_AUTHORS_NOTE;
-      changed = true;
+    if (item.type === 'postHistoryInstructions' && item.name === "Author's Note") {
+      const isOld = item.content.includes(OLD_AUTHORS_NOTE_MARKER);
+      const isEmpty = item.content === '';
+      const isAlreadyCurrent = item.content === DEFAULT_AUTHORS_NOTE;
+      if ((isEmpty || isOld) && !isAlreadyCurrent) {
+        item.content = DEFAULT_AUTHORS_NOTE;
+        changed = true;
+      }
     }
   }
 
