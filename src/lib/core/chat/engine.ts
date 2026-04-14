@@ -28,6 +28,8 @@ import { executeScript } from '$lib/core/scripting/bridge';
 import type { ScriptMutation } from '$lib/core/scripting/api';
 import { EventEmitter } from '$lib/core/events';
 import { AgentRunner } from '../agents/agent-runner';
+import { get } from 'svelte/store';
+import { settingsStore } from '$lib/stores/settings';
 
 function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
   return worldCard.characters.map(char => ({
@@ -195,6 +197,7 @@ export class ChatEngine {
         persona: options.persona,
         worldCard: options.worldCard,
         additionalPrompt: ctx.additionalPrompt,
+        outputLanguage: get(settingsStore).outputLanguage || '',
       });
       assembled = result.messages;
       prefillText = result.prefill;

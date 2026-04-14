@@ -21,6 +21,7 @@ export interface AssemblyContext {
   persona?: UserPersona;
   worldCard?: WorldCard;
   additionalPrompt?: string;
+  outputLanguage?: string;
 }
 
 function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string, persona?: UserPersona, worldCard?: WorldCard): TemplateVariables {
@@ -237,6 +238,12 @@ export function assembleWithPreset(
     } else {
       messages.push(resolved);
     }
+  }
+
+  if (ctx.outputLanguage) {
+    messages.push(sysMsg(
+      `Write all narrative prose and dialogue in ${ctx.outputLanguage}. Maintain natural phrasing and cultural authenticity appropriate to the language.`,
+    ));
   }
 
   if (ctx.additionalPrompt) {

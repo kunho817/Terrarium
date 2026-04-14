@@ -750,4 +750,56 @@ describe('assembleWithPreset', () => {
     const contents = messages.map((m) => m.content);
     expect(contents).toContain('--- Lore ---\nHidden forest\n--- End ---');
   });
+
+  describe('outputLanguage injection', () => {
+    it('injects language instruction when outputLanguage is set', () => {
+      const preset = createDefaultPreset();
+      const { messages } = assembleWithPreset(preset, {
+        card: minimalCard,
+        scene: baseScene,
+        messages: [],
+        lorebookMatches: [],
+        outputLanguage: 'Korean',
+      });
+
+      const contents = messages.map((m) => m.content);
+      const langMsg = contents.find((c) => c.includes('Write all narrative prose and dialogue in Korean'));
+      expect(langMsg).toBeDefined();
+      expect(langMsg).toContain('Maintain natural phrasing and cultural authenticity');
+    });
+
+    it('does not inject language instruction when outputLanguage is empty', () => {
+      const preset = createDefaultPreset();
+      const { messages } = assembleWithPreset(preset, {
+        card: minimalCard,
+        scene: baseScene,
+        messages: [],
+        lorebookMatches: [],
+        outputLanguage: '',
+      });
+
+      const contents = messages.map((m) => m.content);
+      const langMsg = contents.find((c) => c.includes('Write all narrative prose and dialogue in'));
+      expect(langMsg).toBeUndefined();
+    });
+
+    it('places language instruction after preset items and before additionalPrompt', () => {
+      const preset = createDefaultPreset();
+      const { messages } = assembleWithPreset(preset, {
+        card: minimalCard,
+        scene: baseScene,
+        messages: [],
+        lorebookMatches: [],
+        additionalPrompt: '[Memory] test memory',
+        outputLanguage: 'Japanese',
+      });
+
+      const contents = messages.map((m) => m.content);
+      const langIdx = contents.findIndex((c) => c.includes('Write all narrative prose and dialogue in Japanese'));
+      const memIdx = contents.findIndex((c) => c.includes('[Memory] test memory'));
+      expect(langIdx).toBeGreaterThanOrEqual(0);
+      expect(memIdx).toBeGreaterThanOrEqual(0);
+      expect(langIdx).toBeLessThan(memIdx);
+    });
+  });
 });
