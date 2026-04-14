@@ -4,10 +4,12 @@
   import { charactersStore } from '$lib/stores/characters';
   import { getRegistry } from '$lib/core/bootstrap';
   import CharacterCardDisplay from '$lib/components/CharacterCardDisplay.svelte';
+  import type { CharacterCard } from '$lib/types';
   import * as characterStorage from '$lib/storage/characters';
 
   let importing = $state(false);
   let error = $state('');
+  let exportMenuFor: string | null = $state(null);
 
   onMount(() => {
     charactersStore.loadList();
@@ -63,6 +65,27 @@
   function handleSelect(id: string) {
     goto(`/chat/${id}`);
   }
+
+  async function handleExport(id: string, name: string, formatId: string) {
+    exportMenuFor = null;
+    try {
+      const registry = getRegistry();
+      const format = registry.getCardFormat(formatId);
+      const card = await characterStorage.loadCharacter(id);
+      const data = format.export(card);
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      const ext = formatId === 'generic-json' ? 'tcjson' : 'json';
+      const filePath = await save({
+        defaultPath: `${name}.${ext}`,
+        filters: [{ name: `${format.name} Card`, extensions: [ext] }],
+      });
+      if (!filePath) return;
+      await writeFile(filePath, new Uint8Array(data));
+    } catch (e: any) {
+      error = e?.message || 'Export failed';
+    }
+  }
 </script>
 
 <div class="flex-1 flex flex-col overflow-hidden">
@@ -116,6 +139,38 @@
               onclick={() => handleSelect(character.id)}
             />
             <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="relative">
+                <button
+                  onclick={(e) => { e.stopPropagation(); exportMenuFor = exportMenuFor === character.id ? null : character.id; }}
+                  class="p-1 rounded bg-surface2 text-subtext0 hover:bg-overlay0 hover:text-text
+                         transition-colors text-xs cursor-pointer border-none"
+                  title="Export"
+                >
+                  ↓
+                </button>
+                {#if exportMenuFor === character.id}
+                  <div class="absolute right-0 top-full mt-1 bg-surface1 border border-surface2 rounded-md shadow-lg z-10 py-1 min-w-[160px]">
+                    <button
+                      onclick={() => handleExport(character.id, character.name, 'generic-json')}
+                      class="w-full text-left px-3 py-1.5 text-xs text-text hover:bg-surface2 cursor-pointer bg-transparent border-none"
+                    >
+                      Terrarium (.tcjson)
+                    </button>
+                    <button
+                      onclick={() => handleExport(character.id, character.name, 'risuai')}
+                      class="w-full text-left px-3 py-1.5 text-xs text-text hover:bg-surface2 cursor-pointer bg-transparent border-none"
+                    >
+                      RisuAI (.json)
+                    </button>
+                    <button
+                      onclick={() => handleExport(character.id, character.name, 'sillytavern')}
+                      class="w-full text-left px-3 py-1.5 text-xs text-text hover:bg-surface2 cursor-pointer bg-transparent border-none"
+                    >
+                      SillyTavern (.json)
+                    </button>
+                  </div>
+                {/if}
+              </div>
               <a
                 href="/characters/{character.id}/edit"
                 class="p-1 rounded bg-surface2 text-subtext0 hover:bg-overlay0 hover:text-text
