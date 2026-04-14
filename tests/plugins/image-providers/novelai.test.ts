@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { zipSync } from 'fflate';
 import { createNovelAIProvider } from '../../../src/lib/plugins/image-providers/novelai';
 
 vi.mock('@tauri-apps/plugin-http', () => ({
   fetch: vi.fn(),
 }));
+
+function makeZipWithImage(imageData: Uint8Array, filename = 'image.png'): ArrayBuffer {
+  const zipped = zipSync({ [filename]: imageData });
+  return zipped.buffer as ArrayBuffer;
+}
 
 describe('createNovelAIProvider', () => {
   const provider = createNovelAIProvider();
@@ -25,30 +31,22 @@ describe('createNovelAIProvider', () => {
     expect(apiKeyField!.type).toBe('password');
   });
 
-  it('validateConfig returns false without apiKey', async () => {
-    const result = await provider.generateImage('test', {} as any).catch(
-      () => null,
-    );
-    // validateConfig is not exposed on the plugin interface, test via behavior
-    // Instead, test validateConfig-like logic directly
-    expect(true).toBe(true); // placeholder
-  });
-
   it('validateConfig returns false when apiKey is missing', async () => {
-    // The plugin doesn't expose validateConfig, but we can test the config check
-    // by checking requiredConfig has apiKey as required
     const apiKeyField = provider.requiredConfig.find(
       (f) => f.key === 'apiKey',
     );
     expect(apiKeyField!.required).toBe(true);
   });
 
-  it('generateImage sends correct request', async () => {
-    const mockArrayBuffer = new ArrayBuffer(8);
+  it('generateImage sends correct request and unzips response', async () => {
+    const fakeImage = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const zipBuffer = makeZipWithImage(fakeImage);
+
     const mockResponse = {
       ok: true,
       status: 200,
-      arrayBuffer: vi.fn().mockResolvedValue(mockArrayBuffer),
+      arrayBuffer: vi.fn().mockResolvedValue(zipBuffer),
+      text: vi.fn(),
     };
     const { fetch: mockedFetch } = await import('@tauri-apps/plugin-http');
     const mockFetch = mockedFetch as unknown as ReturnType<typeof vi.fn>;
@@ -86,13 +84,15 @@ describe('createNovelAIProvider', () => {
     expect(body.parameters.negative_prompt).toBe('');
     expect(body.parameters.seed).toBeTypeOf('number');
 
-    expect(result).toBe(mockArrayBuffer);
+    expect(new Uint8Array(result)).toEqual(fakeImage);
   });
 
   it('generateImage throws on API error', async () => {
     const mockResponse = {
       ok: false,
       status: 401,
+      statusText: 'Unauthorized',
+      text: vi.fn().mockResolvedValue('Unauthorized'),
     };
     const { fetch: mockedFetch } = await import('@tauri-apps/plugin-http');
     const mockFetch = mockedFetch as unknown as ReturnType<typeof vi.fn>;
@@ -103,5 +103,25 @@ describe('createNovelAIProvider', () => {
         apiKey: 'bad-key',
       } as any),
     ).rejects.toThrow('NovelAI API error (401)');
+  });
+
+  it('generateImage throws when zip contains no image', async () => {
+    const zipped = zipSync({ 'readme.txt': new Uint8Array([1, 2, 3]) });
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      arrayBuffer: vi.fn().mockResolvedValue(zipped.buffer),
+      text: vi.fn(),
+    };
+    const { fetch: mockedFetch } = await import('@tauri-apps/plugin-http');
+    const mockFetch = mockedFetch as unknown as ReturnType<typeof vi.fn>;
+    mockFetch.mockResolvedValue(mockResponse);
+
+    await expect(
+      provider.generateImage('test', {
+        apiKey: 'test-key',
+        model: 'nai-diffusion-4-5-full',
+      } as any),
+    ).rejects.toThrow('No image found in NovelAI response');
   });
 });

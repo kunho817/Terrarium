@@ -1,6 +1,7 @@
 import type { ImageProviderPlugin } from '../../types/plugin';
 import type { UserConfig, ConfigField } from '../../types/config';
 import { fetch } from '@tauri-apps/plugin-http';
+import { unzipSync } from 'fflate';
 
 export function createNovelAIProvider(): ImageProviderPlugin {
   const requiredConfig: ConfigField[] = [
@@ -137,10 +138,22 @@ export function createNovelAIProvider(): ImageProviderPlugin {
     });
 
     if (!response.ok) {
-      throw new Error(`NovelAI API error (${response.status})`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`NovelAI API error (${response.status}): ${errorText || response.statusText}`);
     }
 
-    return response.arrayBuffer();
+    const zipBuffer = new Uint8Array(await response.arrayBuffer());
+    const unzipped = unzipSync(zipBuffer);
+
+    const imageFile = Object.keys(unzipped).find((name) =>
+      /\.(png|jpg|jpeg|webp)$/i.test(name),
+    );
+
+    if (!imageFile) {
+      throw new Error('No image found in NovelAI response (zip contained: ' + Object.keys(unzipped).join(', ') + ')');
+    }
+
+    return unzipped[imageFile].buffer as ArrayBuffer;
   }
 
   return {

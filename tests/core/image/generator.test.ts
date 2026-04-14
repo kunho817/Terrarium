@@ -1,13 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock Tauri FS
-vi.mock('@tauri-apps/plugin-fs', () => ({
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  mkdir: vi.fn().mockResolvedValue(undefined),
-}));
-
 import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
-import type { PluginRegistry, ProviderPlugin, ImageProviderPlugin } from '$lib/types/plugin';
+import type { ProviderPlugin, ImageProviderPlugin } from '$lib/types/plugin';
+import type { PluginRegistry } from '$lib/plugins/registry';
 import type { Message, UserConfig } from '$lib/types';
 import type { ImageGenerationConfig } from '$lib/types/image-config';
 import type { ArtStylePreset } from '$lib/types/art-style';
@@ -62,12 +57,12 @@ const defaultImageConfig: ImageGenerationConfig = {
 };
 
 describe('ImageGenerator', () => {
-  it('generates image via 2-pass flow and returns filename', async () => {
+  it('generates image via 2-pass flow and returns dataUrl', async () => {
     const mockImage = new ArrayBuffer(8);
     const registry = createMockRegistry(['1girl, sitting, detailed'], mockImage);
     const generator = new ImageGenerator(registry);
 
-    const artStyle = DEFAULT_ART_PRESETS[0]; // anime
+    const artStyle = DEFAULT_ART_PRESETS[0];
     const result = await generator.generateForChat({
       messages: [
         { role: 'user', content: 'Hello', type: 'dialogue', timestamp: 0 },
@@ -75,13 +70,10 @@ describe('ImageGenerator', () => {
       artStyle,
       imageConfig: defaultImageConfig,
       config: { providerId: 'mock-llm' } as UserConfig,
-      charId: 'char1',
-      sessionId: 'sess1',
     });
 
     expect(result).not.toBeNull();
-    expect(result!.filename).toContain('images/char1/sess1/');
-    expect(result!.filename).toMatch(/\.png$/);
+    expect(result!.dataUrl).toMatch(/^data:image\/png;base64,/);
   });
 
   it('returns null when provider is none', async () => {
@@ -93,8 +85,6 @@ describe('ImageGenerator', () => {
       artStyle: DEFAULT_ART_PRESETS[0],
       imageConfig: { ...defaultImageConfig, provider: 'none' },
       config: { providerId: 'mock-llm' } as UserConfig,
-      charId: 'char1',
-      sessionId: 'sess1',
     });
 
     expect(result).toBeNull();
@@ -109,8 +99,6 @@ describe('ImageGenerator', () => {
       artStyle: DEFAULT_ART_PRESETS[0],
       imageConfig: defaultImageConfig,
       config: { providerId: 'mock-llm' } as UserConfig,
-      charId: 'char1',
-      sessionId: 'sess1',
     });
 
     expect(result).toBeNull();
@@ -129,8 +117,6 @@ describe('ImageGenerator', () => {
       artStyle,
       imageConfig: defaultImageConfig,
       config: { providerId: 'mock-llm' } as UserConfig,
-      charId: 'char1',
-      sessionId: 'sess1',
     });
 
     expect(result!.prompt).toContain('masterpiece, best quality');
@@ -147,5 +133,86 @@ describe('resolveArtStyle', () => {
   it('falls back to first default', () => {
     const result = resolveArtStyle('nonexistent');
     expect(result).toBe(DEFAULT_ART_PRESETS[0]);
+  });
+});
+
+describe('planIllustrations', () => {
+  it('parses LLM JSON output into illustration plans', async () => {
+    const llmOutput = '[{"afterParagraph":1,"prompt":"1girl, forest"},{"afterParagraph":3,"prompt":"1girl, sunset"}]';
+    const registry = createMockRegistry([llmOutput], new ArrayBuffer(8));
+    const generator = new ImageGenerator(registry);
+
+    const plans = await generator.planIllustrations('Some text\n\nMore text\n\nEven more', { providerId: 'mock-llm' } as UserConfig);
+
+    expect(plans).toHaveLength(2);
+    expect(plans[0].afterParagraph).toBe(1);
+    expect(plans[0].prompt).toBe('1girl, forest');
+    expect(plans[1].afterParagraph).toBe(3);
+  });
+
+  it('returns empty array when LLM produces no output', async () => {
+    const registry = createMockRegistry([], new ArrayBuffer(8));
+    const generator = new ImageGenerator(registry);
+
+    const plans = await generator.planIllustrations('text', { providerId: 'mock-llm' } as UserConfig);
+    expect(plans).toEqual([]);
+  });
+
+  it('returns empty array for invalid JSON', async () => {
+    const registry = createMockRegistry(['not json at all'], new ArrayBuffer(8));
+    const generator = new ImageGenerator(registry);
+
+    const plans = await generator.planIllustrations('text', { providerId: 'mock-llm' } as UserConfig);
+    expect(plans).toEqual([]);
+  });
+
+  it('filters out entries with missing fields', async () => {
+    const llmOutput = '[{"afterParagraph":1,"prompt":"valid"},{"bad":"entry"},{"afterParagraph":2}]';
+    const registry = createMockRegistry([llmOutput], new ArrayBuffer(8));
+    const generator = new ImageGenerator(registry);
+
+    const plans = await generator.planIllustrations('text', { providerId: 'mock-llm' } as UserConfig);
+    expect(plans).toHaveLength(1);
+    expect(plans[0].prompt).toBe('valid');
+  });
+});
+
+describe('buildSegments', () => {
+  it('interleaves text and images at correct paragraph positions', () => {
+    const registry = createMockRegistry([], new ArrayBuffer(0));
+    const generator = new ImageGenerator(registry);
+
+    const text = 'Paragraph 0\n\nParagraph 1\n\nParagraph 2\n\nParagraph 3';
+    const plans = [
+      { afterParagraph: 0, prompt: 'img0' },
+      { afterParagraph: 2, prompt: 'img2' },
+    ];
+    const results = new Map([
+      [0, { dataUrl: 'data:img0', prompt: 'img0' }],
+      [2, { dataUrl: 'data:img2', prompt: 'img2' }],
+    ]);
+
+    const segments = generator.buildSegments(text, plans, results);
+
+    expect(segments).toHaveLength(6);
+    expect(segments[0]).toEqual({ type: 'text', text: 'Paragraph 0' });
+    expect(segments[1]).toEqual({ type: 'image', dataUrl: 'data:img0', prompt: 'img0', id: expect.any(String) });
+    expect(segments[2]).toEqual({ type: 'text', text: 'Paragraph 1' });
+    expect(segments[3]).toEqual({ type: 'text', text: 'Paragraph 2' });
+    expect(segments[4]).toEqual({ type: 'image', dataUrl: 'data:img2', prompt: 'img2', id: expect.any(String) });
+    expect(segments[5]).toEqual({ type: 'text', text: 'Paragraph 3' });
+  });
+
+  it('returns only text segments when no results match', () => {
+    const registry = createMockRegistry([], new ArrayBuffer(0));
+    const generator = new ImageGenerator(registry);
+
+    const text = 'Paragraph 0\n\nParagraph 1';
+    const plans = [{ afterParagraph: 0, prompt: 'img0' }];
+    const results = new Map<number, { dataUrl: string; prompt: string }>();
+
+    const segments = generator.buildSegments(text, plans, results);
+    expect(segments).toHaveLength(2);
+    expect(segments.every((s) => s.type === 'text')).toBe(true);
   });
 });
