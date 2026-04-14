@@ -1,9 +1,15 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import '../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import { settingsStore } from '$lib/stores/settings';
 
 	let { children } = $props();
 	let sidebarCollapsed = $state(false);
+
+	onMount(() => {
+		settingsStore.load();
+	});
 </script>
 
 <div class="flex h-screen overflow-hidden">

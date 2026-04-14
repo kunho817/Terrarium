@@ -15,6 +15,12 @@
     "fs:allow-appdata-meta-recursive",
     "fs:allow-appdata-read-recursive",
     "fs:allow-appdata-write-recursive",
-    "http:default"
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://image.novelai.net/**" },
+        { "url": "http://**" }
+      ]
+    }
   ]
 }

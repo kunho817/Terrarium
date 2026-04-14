@@ -180,17 +180,22 @@ export function createDefaultPresetSettings(): PromptPresetSettings {
 
 /**
  * Migrate preset items: update outdated system prompt and Author's Note.
+ * Matches content that is empty (created by early versions) or contains old markers.
  * Returns true if any changes were made.
  */
 export function migratePresetItems(items: PromptItem[]): boolean {
   let changed = false;
 
   for (const item of items) {
-    if (item.type === 'system' && item.name === 'System Prompt' && item.content.includes(OLD_SYSTEM_PROMPT_MARKER)) {
+    if (item.type === 'system' && item.name === 'System Prompt'
+        && (item.content === '' || item.content.includes(OLD_SYSTEM_PROMPT_MARKER))
+        && item.content !== DEFAULT_SYSTEM_PROMPT) {
       item.content = DEFAULT_SYSTEM_PROMPT;
       changed = true;
     }
-    if (item.type === 'postHistoryInstructions' && item.name === "Author's Note" && item.content.includes(OLD_AUTHORS_NOTE_MARKER)) {
+    if (item.type === 'postHistoryInstructions' && item.name === "Author's Note"
+        && (item.content === '' || item.content.includes(OLD_AUTHORS_NOTE_MARKER))
+        && item.content !== DEFAULT_AUTHORS_NOTE) {
       item.content = DEFAULT_AUTHORS_NOTE;
       changed = true;
     }

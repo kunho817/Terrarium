@@ -9,6 +9,7 @@
   const navItems = [
     { href: '/', label: 'Chats', icon: '💬' },
     { href: '/characters', label: 'Characters', icon: '👤' },
+    { href: '/worlds', label: 'Worlds', icon: '🌍' },
     { href: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 </script>

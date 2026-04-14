@@ -24,7 +24,7 @@
         multiple: true,
         filters: [{
           name: 'Character Cards',
-          extensions: ['json', 'png'],
+          extensions: ['json', 'tcjson', 'png'],
         }],
       });
       if (!selected) {
@@ -41,7 +41,7 @@
           const data = await readFile(filePath);
 
           const ext = filePath.split('.').pop()?.toLowerCase() || 'json';
-          const format = registry.getCardFormat(ext === 'json' ? 'json' : ext);
+          const format = registry.getCardFormat(`.${ext}`);
           const card = format.parse(data.buffer as ArrayBuffer);
           await characterStorage.createCharacter(card);
         } catch (e: any) {

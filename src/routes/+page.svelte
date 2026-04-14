@@ -118,7 +118,7 @@
             <div class="grid gap-2">
               {#each recentSessions as session}
                 <a
-                  href="/chat/{session.characterId}?session={session.id}"
+                  href="/chat/{session.characterId}?session={session.id}{session.cardType === 'world' ? '&cardType=world' : ''}"
                   class="block p-3 rounded-lg bg-surface0 hover:bg-surface1
                          transition-colors border border-surface1"
                 >

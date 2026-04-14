@@ -7,7 +7,6 @@
 import type { ProviderPlugin, ChatMetadata } from '$lib/types/plugin';
 import type { Message, UserConfig, CharacterCard, ConfigField, ModelInfo } from '$lib/types';
 import { parseSSE } from './sse';
-import { fetch } from '@tauri-apps/plugin-http';
 
 export interface OpenAICompatibleOptions {
   id: string;
