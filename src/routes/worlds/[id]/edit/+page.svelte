@@ -5,10 +5,12 @@
   import { worldsStore } from '$lib/stores/worlds';
   import { createDefaultWorldCard } from '$lib/types/world';
   import type { WorldCard, WorldCharacter } from '$lib/types/world';
+  import * as worldImport from '$lib/storage/world-import';
 
   let tab = $state<'overview' | 'system' | 'lorebook' | 'characters' | 'scripts' | 'theme'>('overview');
   let card = $state<WorldCard>(createDefaultWorldCard());
   let saving = $state(false);
+  let saved = $state(false);
   let error = $state('');
   let loaded = $state(false);
 
@@ -35,11 +37,14 @@
 
   async function handleSave() {
     saving = true;
+    saved = false;
     error = '';
     try {
       card.tags = tagsText.split(',').map(t => t.trim()).filter(Boolean);
       const { saveWorld } = await import('$lib/storage/worlds');
       await saveWorld(worldId, card);
+      saved = true;
+      setTimeout(() => { saved = false; }, 2000);
     } catch (e: any) {
       error = e?.message || 'Failed to save';
     } finally {
@@ -63,6 +68,22 @@
     card.characters = card.characters.filter(c => c.id !== id);
   }
 
+  async function handleExport() {
+    try {
+      const data = worldImport.exportWorldCard(card);
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      const filePath = await save({
+        defaultPath: `${card.name || 'world'}.tcworld`,
+        filters: [{ name: 'World Cards', extensions: ['tcworld'] }],
+      });
+      if (!filePath) return;
+      await writeFile(filePath, new Uint8Array(data));
+    } catch (e: any) {
+      error = e?.message || 'Export failed';
+    }
+  }
+
   const tabs = [
     { key: 'overview' as const, label: 'Overview' },
     { key: 'system' as const, label: 'System Prompt' },
@@ -81,6 +102,12 @@
     </div>
     <div class="flex gap-2">
       <button
+        onclick={handleExport}
+        class="px-3 py-1.5 bg-surface1 text-text rounded-md text-sm hover:bg-surface2 transition-colors cursor-pointer border-none"
+      >
+        Export
+      </button>
+      <button
         onclick={() => goto(`/chat/${worldId}?cardType=world`)}
         class="px-3 py-1.5 bg-surface1 text-text rounded-md text-sm hover:bg-surface2 transition-colors cursor-pointer border-none"
       >
@@ -89,10 +116,11 @@
       <button
         onclick={handleSave}
         disabled={saving}
-        class="px-3 py-1.5 bg-mauve text-crust rounded-md text-sm font-medium
-               hover:bg-lavender disabled:opacity-50 transition-colors cursor-pointer border-none"
+        class="px-3 py-1.5 rounded-md text-sm font-medium
+               hover:bg-lavender disabled:opacity-50 transition-colors cursor-pointer border-none
+               {saved ? 'bg-green text-crust' : 'bg-mauve text-crust'}"
       >
-        {saving ? 'Saving...' : 'Save'}
+        {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
       </button>
     </div>
   </div>
