@@ -3,9 +3,11 @@
   import { goto } from '$app/navigation';
   import { worldsStore } from '$lib/stores/worlds';
   import * as worldStorage from '$lib/storage/worlds';
+  import * as worldImport from '$lib/storage/world-import';
   import { createDefaultWorldCard } from '$lib/types';
 
   let error = $state('');
+  let importing = $state(false);
 
   onMount(() => {
     worldsStore.loadList();
@@ -23,6 +25,58 @@
     }
   }
 
+  async function handleImport() {
+    importing = true;
+    error = '';
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({
+        multiple: true,
+        filters: [{ name: 'World Cards', extensions: ['tcworld'] }],
+      });
+      if (!selected) {
+        importing = false;
+        return;
+      }
+
+      const paths = Array.isArray(selected) ? selected : [selected];
+
+      for (const filePath of paths) {
+        try {
+          const { readFile } = await import('@tauri-apps/plugin-fs');
+          const data = await readFile(filePath);
+          const card = worldImport.parseWorldCard(data.buffer as ArrayBuffer);
+          await worldStorage.createWorld(card);
+        } catch (e: any) {
+          error = `Failed to import ${filePath}: ${e?.message || 'Unknown error'}`;
+        }
+      }
+
+      await worldsStore.loadList();
+    } catch (e: any) {
+      error = e?.message || 'Import failed';
+    } finally {
+      importing = false;
+    }
+  }
+
+  async function handleExport(id: string, name: string) {
+    try {
+      const card = await worldStorage.loadWorld(id);
+      const data = worldImport.exportWorldCard(card);
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const { writeFile } = await import('@tauri-apps/plugin-fs');
+      const filePath = await save({
+        defaultPath: `${name}.tcworld`,
+        filters: [{ name: 'World Cards', extensions: ['tcworld'] }],
+      });
+      if (!filePath) return;
+      await writeFile(filePath, new Uint8Array(data));
+    } catch (e: any) {
+      error = e?.message || 'Export failed';
+    }
+  }
+
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete world "${name}"? This cannot be undone.`)) return;
     await worldsStore.deleteWorld(id);
@@ -37,6 +91,14 @@
   <div class="flex items-center justify-between p-4 border-b border-surface0">
     <h1 class="text-lg font-semibold text-text">Worlds</h1>
     <div class="flex gap-2">
+      <button
+        onclick={handleImport}
+        disabled={importing}
+        class="px-3 py-1.5 bg-surface1 text-text rounded-md text-sm font-medium
+               hover:bg-surface2 disabled:opacity-50 transition-colors cursor-pointer border-none"
+      >
+        {importing ? 'Importing...' : 'Import'}
+      </button>
       <button
         onclick={handleCreate}
         class="px-3 py-1.5 bg-mauve text-crust rounded-md text-sm font-medium
@@ -82,6 +144,14 @@
               </div>
             </button>
             <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onclick={() => handleExport(world.id, world.name)}
+                class="p-1 rounded bg-surface2 text-subtext0 hover:bg-overlay0 hover:text-text
+                       transition-colors text-xs cursor-pointer border-none"
+                title="Export"
+              >
+                ↓
+              </button>
               <a
                 href="/worlds/{world.id}/edit"
                 class="p-1 rounded bg-surface2 text-subtext0 hover:bg-overlay0 hover:text-text
