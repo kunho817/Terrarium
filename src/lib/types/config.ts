@@ -31,3 +31,24 @@ export interface ModelInfo {
   description?: string;
   contextLength?: number;
 }
+
+export interface ModelSlot {
+  provider: string;
+  apiKey: string;
+  baseUrl?: string;
+  model: string;
+  temperature: number;
+  customExtractionPrompt?: string;
+  customSummaryPrompt?: string;
+  customPlanningPrompt?: string;
+}
+
+export interface MemorySettings {
+  extractionBatchSize: number;
+  tokenBudget: number;
+  topK: number;
+  summaryThreshold: number;
+  embeddingProvider: string;
+  embeddingApiKey: string;
+  embeddingModel: string;
+}

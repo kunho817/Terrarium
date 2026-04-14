@@ -15,6 +15,16 @@ function createSettingsStore() {
     providers: {},
     developerMode: false,
     imageGeneration: { ...DEFAULT_IMAGE_CONFIG } as import('$lib/types/image-config').ImageGenerationConfig,
+    modelSlots: {},
+    memorySettings: {
+      extractionBatchSize: 5,
+      tokenBudget: 4096,
+      topK: 15,
+      summaryThreshold: 50,
+      embeddingProvider: '',
+      embeddingApiKey: '',
+      embeddingModel: '',
+    },
   });
 
   return {
@@ -32,9 +42,29 @@ function createSettingsStore() {
       }
       // Migrate: update outdated system prompt and Author's Note
       if (settings.promptPresets) {
+        let migrated = false;
         for (const preset of settings.promptPresets.presets) {
-          migratePresetItems(preset.items);
+          if (migratePresetItems(preset.items)) {
+            migrated = true;
+          }
         }
+        if (migrated) {
+          await settingsStorage.saveSettings(settings);
+        }
+      }
+      if (!settings.modelSlots) {
+        settings.modelSlots = {};
+      }
+      if (!settings.memorySettings) {
+        settings.memorySettings = {
+          extractionBatchSize: 5,
+          tokenBudget: 4096,
+          topK: 15,
+          summaryThreshold: 50,
+          embeddingProvider: '',
+          embeddingApiKey: '',
+          embeddingModel: '',
+        };
       }
       set(settings);
     },

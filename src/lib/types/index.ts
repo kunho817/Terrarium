@@ -19,6 +19,8 @@ export type {
   ConfigField,
   UserConfig,
   ModelInfo,
+  ModelSlot,
+  MemorySettings,
 } from './config';
 
 // Script
@@ -89,3 +91,21 @@ export { DEFAULT_ART_PRESETS } from './art-style';
 // Image Config
 export type { ImageGenerationConfig } from './image-config';
 export { DEFAULT_IMAGE_CONFIG } from './image-config';
+
+// Memory
+export type {
+  MemoryType,
+  WriteMode,
+  MemoryRecord,
+  SessionSummary,
+  ExtractionResult,
+} from './memory';
+export { MEMORY_WRITE_MODES, DEFAULT_EXTRACTION_PROMPT, DEFAULT_SUMMARY_PROMPT } from './memory';
+
+// Agent
+export type {
+  AgentConfig,
+  AgentContext,
+  AgentResult,
+  Agent,
+} from './agent';
