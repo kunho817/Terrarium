@@ -108,6 +108,22 @@ function createChatStore() {
       });
     },
 
+    updateMessage(index: number, message: Message) {
+      update((s) => {
+        if (index < 0 || index >= s.messages.length) return s;
+        const messages = [...s.messages];
+        messages[index] = message;
+        return { ...s, messages };
+      });
+    },
+
+    truncateAfter(index: number) {
+      update((s) => {
+        if (index < 0 || index >= s.messages.length) return s;
+        return { ...s, messages: s.messages.slice(0, index + 1) };
+      });
+    },
+
     setStreamingMessage(content: string) {
       update((s) => ({ ...s, streamingMessage: content, isStreaming: true }));
     },

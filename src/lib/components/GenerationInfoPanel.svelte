@@ -10,6 +10,14 @@
   const outputTokens = $derived(info.outputTokens ?? 0);
   const totalTokens = $derived(inputTokens + outputTokens);
 
+  const duration = $derived(
+    info.durationMs != null
+      ? info.durationMs >= 1000
+        ? `${(info.durationMs / 1000).toFixed(1)}s`
+        : `${info.durationMs}ms`
+      : null,
+  );
+
   const contextPercent = $derived(
     totalTokens > 0 ? Math.round((inputTokens / totalTokens) * 100) : 0
   );
@@ -55,6 +63,14 @@
       <span class="text-subtext0 text-xs uppercase tracking-wide">Model</span>
       <p class="text-text text-sm mt-1">{info.model ?? 'Unknown Model'}</p>
     </div>
+
+    <!-- Generation Time -->
+    {#if duration}
+      <div class="mb-4">
+        <span class="text-subtext0 text-xs uppercase tracking-wide">Generation Time</span>
+        <p class="text-text text-sm mt-1">{duration}</p>
+      </div>
+    {/if}
 
     <!-- Tokens -->
     <div class="grid grid-cols-2 gap-4 mb-5">

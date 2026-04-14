@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { charactersStore } from '$lib/stores/characters';
+  import { worldsStore } from '$lib/stores/worlds';
   import { chatStore } from '$lib/stores/chat';
   import { sceneStore } from '$lib/stores/scene';
   import VariableViewer from '$lib/components/editors/VariableViewer.svelte';
@@ -11,22 +12,66 @@
   let mood = $state('');
   let saving = $state(false);
   let saveMessage = $state('');
-  let characterExpanded = $state(true);
+  let infoExpanded = $state(true);
 
-  const characterId = $derived($page.params.id ?? '');
+  const cardId = $derived($page.params.id ?? '');
+  const cardType = $derived(
+    ($page.url.searchParams.get('cardType') === 'world' || $worldsStore.current) && !$charactersStore.current
+      ? 'world' as const
+      : 'character' as const
+  );
+
+  const cardName = $derived(
+    cardType === 'world'
+      ? ($worldsStore.current?.name ?? '')
+      : ($charactersStore.current?.name ?? '')
+  );
+
+  const cardDescription = $derived(
+    cardType === 'world'
+      ? ($worldsStore.current?.description ?? '')
+      : ($charactersStore.current?.description ?? '')
+  );
+
+  const cardScenario = $derived(
+    cardType === 'world'
+      ? ($worldsStore.current?.scenario ?? '')
+      : ($charactersStore.current?.scenario ?? '')
+  );
+
+  const cardPersonality = $derived(
+    cardType === 'world'
+      ? ''
+      : ($charactersStore.current?.personality ?? '')
+  );
+
+  const lorebook = $derived(
+    cardType === 'world'
+      ? ($worldsStore.current?.lorebook ?? [])
+      : ($charactersStore.current?.lorebook ?? [])
+  );
+
+  const hasCard = $derived(
+    cardType === 'world'
+      ? !!$worldsStore.current
+      : !!$charactersStore.current
+  );
 
   onMount(async () => {
-    if (!characterId) return;
-    await charactersStore.selectCharacter(characterId);
+    if (!cardId) return;
 
-    // Use sessionId from URL or from chat store
+    if (cardType === 'world') {
+      await worldsStore.selectWorld(cardId);
+    } else {
+      await charactersStore.selectCharacter(cardId);
+    }
+
     const sessionId = $page.url.searchParams.get('session') ?? $chatStore.sessionId;
     if (sessionId) {
-      await sceneStore.loadScene(characterId, sessionId);
+      await sceneStore.loadScene(cardId, sessionId);
     } else {
-      await sceneStore.loadSceneLegacy(characterId);
+      await sceneStore.loadSceneLegacy(cardId);
     }
-    // Initialize local state from store after load
     const scene = $sceneStore;
     location = scene.location;
     time = scene.time;
@@ -57,53 +102,56 @@
 </script>
 
 <div class="flex-1 flex flex-col overflow-y-auto bg-base">
-  <!-- Header -->
   <div class="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 border-b border-surface0 bg-mantle">
     <a
-      href="/chat/{characterId}"
+      href="/chat/{cardId}{cardType === 'world' ? '?cardType=world' : ''}"
       class="px-3 py-1.5 rounded text-sm text-subtext0 hover:text-text hover:bg-surface0 transition-colors"
     >
       &larr; Back
     </a>
     <h1 class="text-sm font-semibold text-text">Chat Info</h1>
+    {#if cardType === 'world'}
+      <span class="text-[10px] px-1.5 py-0.5 rounded bg-lavender/20 text-lavender font-medium">World</span>
+    {/if}
   </div>
 
   <div class="flex-1 p-4 max-w-2xl mx-auto w-full flex flex-col gap-4">
-    <!-- Character Info (collapsible) -->
-    {#if $charactersStore.current}
+    {#if hasCard}
       <section class="rounded-lg border border-surface0 overflow-hidden">
         <button
           type="button"
-          onclick={() => { characterExpanded = !characterExpanded; }}
+          onclick={() => { infoExpanded = !infoExpanded; }}
           class="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-surface0/50 transition-colors"
         >
           <span
             class="text-xs text-overlay0 transition-transform"
-            class:rotate-90={characterExpanded}
+            class:rotate-90={infoExpanded}
           >
             &#9654;
           </span>
-          <h2 class="text-sm font-semibold text-text flex-1">Character Info</h2>
-          <span class="text-xs text-overlay0">{$charactersStore.current.name}</span>
+          <h2 class="text-sm font-semibold text-text flex-1">{cardType === 'world' ? 'World' : 'Character'} Info</h2>
+          <span class="text-xs text-overlay0">{cardName}</span>
         </button>
 
-        {#if characterExpanded}
+        {#if infoExpanded}
           <div class="px-4 pb-4 border-t border-surface0 flex flex-col gap-3">
             <div>
               <label class="block text-xs font-medium text-subtext0 mb-1">Name</label>
-              <p class="text-sm text-text">{$charactersStore.current.name}</p>
+              <p class="text-sm text-text">{cardName}</p>
             </div>
             <div>
               <label class="block text-xs font-medium text-subtext0 mb-1">Description</label>
-              <p class="text-sm text-text whitespace-pre-wrap">{$charactersStore.current.description || 'No description'}</p>
+              <p class="text-sm text-text whitespace-pre-wrap">{cardDescription || 'No description'}</p>
             </div>
-            <div>
-              <label class="block text-xs font-medium text-subtext0 mb-1">Personality</label>
-              <p class="text-sm text-text whitespace-pre-wrap">{$charactersStore.current.personality || 'No personality set'}</p>
-            </div>
+            {#if cardType === 'character'}
+              <div>
+                <label class="block text-xs font-medium text-subtext0 mb-1">Personality</label>
+                <p class="text-sm text-text whitespace-pre-wrap">{cardPersonality || 'No personality set'}</p>
+              </div>
+            {/if}
             <div>
               <label class="block text-xs font-medium text-subtext0 mb-1">Scenario</label>
-              <p class="text-sm text-text whitespace-pre-wrap">{$charactersStore.current.scenario || 'No scenario set'}</p>
+              <p class="text-sm text-text whitespace-pre-wrap">{cardScenario || 'No scenario set'}</p>
             </div>
           </div>
         {/if}
@@ -172,9 +220,9 @@
       <!-- Lorebook -->
       <section class="rounded-lg border border-surface0 p-4">
         <h2 class="text-sm font-semibold text-text mb-2">Lorebook</h2>
-        {#if $charactersStore.current.lorebook.length > 0}
+        {#if lorebook.length > 0}
           <div class="flex flex-col gap-1">
-            {#each $charactersStore.current.lorebook as entry (entry.id)}
+            {#each lorebook as entry (entry.id)}
               <div class="flex items-center gap-2 px-3 py-2 rounded border border-surface0 bg-crust">
                 <span class="text-sm text-text flex-1 truncate">{entry.name || 'Untitled'}</span>
                 {#if !entry.enabled}

@@ -11,16 +11,20 @@ export interface GenerationInfo {
   model?: string;
   inputTokens?: number;
   outputTokens?: number;
+  durationMs?: number;
 }
 
-export interface GeneratedImage {
-  id: string;
-  path: string;
+export interface ContentSegment {
+  type: 'text' | 'image';
+  text?: string;
+  dataUrl?: string;
+  prompt?: string;
+  id?: string;
+}
+
+export interface IllustrationPlan {
+  afterParagraph: number;
   prompt: string;
-  tagIndex: number;
-  charId: string;
-  sessionId: string;
-  timestamp: number;
 }
 
 export interface Message {
@@ -31,9 +35,7 @@ export interface Message {
   type: MessageType;
   timestamp: number;
   generationInfo?: GenerationInfo;
-  image?: {
-    filename: string;
-    prompt: string;
-  };
-  images?: GeneratedImage[];
+  segments?: ContentSegment[];
+  revision?: number;
+  isFirstMessage?: boolean;
 }

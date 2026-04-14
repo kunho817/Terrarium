@@ -8,13 +8,70 @@ import { chatStore } from '$lib/stores/chat';
 import { sceneStore } from '$lib/stores/scene';
 import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
+import { worldsStore } from '$lib/stores/worlds';
 import { getEngine, getRegistry } from '$lib/core/bootstrap';
 import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
 import { loadPersona } from '$lib/storage/personas';
 import { listSessions } from '$lib/storage/chats';
-import type { MessageType, Message } from '$lib/types';
+import type { MessageType, Message, CharacterCard } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 import type { UserPersona } from '$lib/types/persona';
+import type { WorldCard } from '$lib/types/world';
+
+function worldCardToCharacterCard(world: WorldCard): CharacterCard {
+  return {
+    name: world.name,
+    description: world.description,
+    personality: '',
+    scenario: world.scenario,
+    firstMessage: world.firstMessage,
+    alternateGreetings: world.alternateGreetings,
+    exampleMessages: '',
+    systemPrompt: world.systemPrompt,
+    postHistoryInstructions: world.postHistoryInstructions,
+    depthPrompt: world.depthPrompt,
+    defaultPersonaId: world.defaultPersonaId,
+    creator: world.creator,
+    characterVersion: '',
+    tags: world.tags,
+    creatorNotes: world.creatorNotes,
+    license: world.license,
+    lorebook: world.lorebook,
+    loreSettings: world.loreSettings,
+    regexScripts: world.regexScripts,
+    triggers: world.triggers,
+    virtualScript: world.virtualScript,
+    scriptState: world.scriptState,
+    backgroundHTML: world.backgroundHTML,
+    backgroundCSS: world.backgroundCSS,
+    customTheme: world.customTheme,
+    emotionImages: [],
+    additionalAssets: [],
+    metadata: world.metadata,
+  };
+}
+
+interface ResolvedCard {
+  card: CharacterCard;
+  cardType: 'character' | 'world';
+  worldCard?: WorldCard;
+}
+
+function resolveActiveCard(): ResolvedCard | null {
+  const charState = get(charactersStore);
+  if (charState.current && charState.currentId) {
+    return { card: charState.current, cardType: 'character' };
+  }
+  const worldState = get(worldsStore);
+  if (worldState.current && worldState.currentId) {
+    return {
+      card: worldCardToCharacterCard(worldState.current),
+      cardType: 'world',
+      worldCard: worldState.current,
+    };
+  }
+  return null;
+}
 
 export async function initChat(characterId: string, sessionId?: string): Promise<void> {
   if (sessionId) {
@@ -97,12 +154,12 @@ async function getSessionPersonaId(): Promise<string | undefined> {
 export async function sendMessage(input: string, type: MessageType): Promise<void> {
   const state = get(chatStore);
   const settings = get(settingsStore);
-  const charState = get(charactersStore);
 
-  if (!charState.current || !charState.currentId) return;
+  const resolved = resolveActiveCard();
+  if (!resolved) return;
 
   const sessionPersonaId = await getSessionPersonaId();
-  const persona = await resolvePersona(charState.current, sessionPersonaId);
+  const persona = await resolvePersona(resolved.card, sessionPersonaId);
   const engine = getEngine();
 
   const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
@@ -127,12 +184,13 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
   const result = await engine.send({
     input,
     type,
-    card: charState.current,
+    card: resolved.card,
     scene: get(sceneStore),
     config,
     messages: state.messages,
     preset: activePreset,
     persona,
+    worldCard: resolved.worldCard,
     imageAutoGenerate,
   });
 
@@ -270,10 +328,11 @@ export async function editMessage(index: number, newContent: string): Promise<vo
 export async function rerollFromMessage(userMessageIndex: number): Promise<void> {
   const state = get(chatStore);
   const settings = get(settingsStore);
-  const charState = get(charactersStore);
 
   if (userMessageIndex < 0 || userMessageIndex >= state.messages.length) return;
-  if (!charState.current || !charState.currentId) return;
+
+  const resolved = resolveActiveCard();
+  if (!resolved) return;
 
   const userMessage = state.messages[userMessageIndex];
   if (userMessage.role !== 'user') return;
@@ -283,7 +342,7 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 
   const currentState = get(chatStore);
   const sessionPersonaId = await getSessionPersonaId();
-  const persona = await resolvePersona(charState.current, sessionPersonaId);
+  const persona = await resolvePersona(resolved.card, sessionPersonaId);
   const engine = getEngine();
 
   const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
@@ -308,12 +367,13 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
   const result = await engine.send({
     input: userMessage.content,
     type: userMessage.type,
-    card: charState.current,
+    card: resolved.card,
     scene: get(sceneStore),
     config,
     messages: currentState.messages,
     preset: activePreset,
     persona,
+    worldCard: resolved.worldCard,
     imageAutoGenerate,
   });
 

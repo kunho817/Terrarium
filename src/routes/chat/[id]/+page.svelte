@@ -34,8 +34,10 @@
 
     try {
       if (cardType === 'world') {
+        charactersStore.clearSelection();
         await worldsStore.selectWorld(characterId);
       } else {
+        worldsStore.clearSelection();
         await charactersStore.selectCharacter(characterId);
       }
       sessions = await chatStorage.listSessions(characterId);
