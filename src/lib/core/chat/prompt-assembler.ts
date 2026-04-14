@@ -20,6 +20,7 @@ export interface AssemblyContext {
   lorebookMatches: LorebookEntry[];
   persona?: UserPersona;
   worldCard?: WorldCard;
+  additionalPrompt?: string;
 }
 
 function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string, persona?: UserPersona, worldCard?: WorldCard): TemplateVariables {
@@ -236,6 +237,10 @@ export function assembleWithPreset(
     } else {
       messages.push(resolved);
     }
+  }
+
+  if (ctx.additionalPrompt) {
+    messages.push(sysMsg(ctx.additionalPrompt));
   }
 
   return { messages, prefill };

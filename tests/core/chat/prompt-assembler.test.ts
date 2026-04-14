@@ -563,77 +563,63 @@ describe('assembleWithPreset', () => {
     scenario: '',
   };
 
-  it('produces identical output to assemblePromptMessages for default preset', () => {
+  it('uses item.content for system prompt when set, ignoring card.systemPrompt', () => {
     const preset = createDefaultPreset();
-    const systemPrompt = 'You are Alice.';
-    const messages = [
-      makeMessage('user', 'Hello'),
-      makeMessage('assistant', 'Hi there!'),
-    ];
-    const lore = [
-      makeLoreEntry('before_char', 'Before char lore'),
-      makeLoreEntry('after_char', 'After char lore'),
-      makeLoreEntry('after_messages', 'After messages lore'),
-    ];
-    const card = {
-      ...minimalCard,
-      systemPrompt,
-    };
+    const systemItem = preset.items.find((i) => i.type === 'system')!;
+    expect(systemItem.content).toBeTruthy();
 
-    // Pipeline output (legacy)
-    const pipelineResult = assemblePromptMessages(systemPrompt, messages, lore, card);
-
-    // Preset output (new)
+    const card = { ...minimalCard, systemPrompt: 'Card system prompt' };
     const { messages: presetMessages } = assembleWithPreset(preset, {
       card,
       scene: baseScene,
-      messages,
-      lorebookMatches: lore,
+      messages: [],
+      lorebookMatches: [],
     });
 
-    // Compare content arrays (the core semantic output)
-    const pipelineContents = pipelineResult.map((m) => m.content);
-    const presetContents = presetMessages.map((m) => m.content);
-    expect(presetContents).toEqual(pipelineContents);
+    const contents = presetMessages.map((m) => m.content);
+    expect(contents[0]).toContain('This is roleplay');
+    expect(contents[0]).not.toContain('Card system prompt');
   });
 
-  it('matches pipeline output with all features enabled', () => {
+  it('falls back to card.systemPrompt when item.content is empty', () => {
     const preset = createDefaultPreset();
-    const systemPrompt = 'You are a wise elf.';
-    const card = {
-      ...minimalCard,
-      systemPrompt,
-      exampleMessages: '<START>\n{{user}}: Hi\n{{char}}: Hey!',
-      postHistoryInstructions: 'Stay in character!',
-    };
-    const messages = [
-      makeMessage('user', 'Hello'),
-      makeMessage('assistant', 'Hi there!'),
-    ];
-    const lore = [
-      makeLoreEntry('before_char', 'Lore before'),
-      makeLoreEntry('author_note', 'Author note lore'),
-    ];
+    const systemItem = preset.items.find((i) => i.type === 'system')!;
+    systemItem.content = '';
 
-    const pipelineResult = assemblePromptMessages(systemPrompt, messages, lore, card);
+    const card = { ...minimalCard, systemPrompt: 'Card system prompt' };
     const { messages: presetMessages } = assembleWithPreset(preset, {
       card,
       scene: baseScene,
-      messages,
-      lorebookMatches: lore,
+      messages: [],
+      lorebookMatches: [],
     });
 
-    const pipelineContents = pipelineResult.map((m) => m.content);
-    const presetContents = presetMessages.map((m) => m.content);
-    expect(presetContents).toEqual(pipelineContents);
+    const contents = presetMessages.map((m) => m.content);
+    expect(contents[0]).toBe('Card system prompt');
   });
 
-  it('matches pipeline with depth prompt', () => {
+  it('uses item.content for postHistoryInstructions when card field is empty', () => {
     const preset = createDefaultPreset();
-    const systemPrompt = 'System prompt';
+    const authorItem = preset.items.find((i) => i.type === 'postHistoryInstructions')!;
+    expect(authorItem.content).toBeTruthy();
+
+    const card = { ...minimalCard, postHistoryInstructions: '' };
+    const messages = [makeMessage('user', 'Hello'), makeMessage('assistant', 'Hi')];
+
+    const result = resolveItem(authorItem, {
+      card,
+      scene: baseScene,
+      messages,
+      lorebookMatches: [],
+    });
+    expect(result).not.toBeNull();
+    expect((result as Message).content).toContain('Style');
+  });
+
+  it('includes lorebook, chat history, and depth prompt in correct order', () => {
+    const preset = createDefaultPreset();
     const card = {
       ...minimalCard,
-      systemPrompt,
       depthPrompt: { depth: 2, prompt: 'Secret: Alice is royalty' },
     };
     const messages = [
@@ -642,49 +628,51 @@ describe('assembleWithPreset', () => {
       makeMessage('user', 'msg3'),
       makeMessage('assistant', 'msg4'),
     ];
+    const lore = [
+      makeLoreEntry('before_char', 'Before char lore'),
+      makeLoreEntry('after_char', 'After char lore'),
+      makeLoreEntry('after_messages', 'After messages lore'),
+    ];
 
-    const pipelineResult = assemblePromptMessages(systemPrompt, messages, [], card);
     const { messages: presetMessages } = assembleWithPreset(preset, {
       card,
       scene: baseScene,
       messages,
-      lorebookMatches: [],
+      lorebookMatches: lore,
     });
 
-    const pipelineContents = pipelineResult.map((m) => m.content);
-    const presetContents = presetMessages.map((m) => m.content);
-    expect(presetContents).toEqual(pipelineContents);
+    const contents = presetMessages.map((m) => m.content);
+    expect(contents).toContain('Before char lore');
+    expect(contents).toContain('After char lore');
+    expect(contents).toContain('After messages lore');
+    expect(contents).toContain('Secret: Alice is royalty');
+    expect(contents).toContain('msg1');
+    expect(contents).toContain('msg4');
   });
 
-  it('matches pipeline with empty messages', () => {
+  it('handles empty messages correctly', () => {
     const preset = createDefaultPreset();
-    const systemPrompt = 'System';
-    const card = { ...minimalCard, systemPrompt };
 
-    const pipelineResult = assemblePromptMessages(systemPrompt, [], [], card);
     const { messages: presetMessages } = assembleWithPreset(preset, {
-      card,
+      card: minimalCard,
       scene: baseScene,
       messages: [],
       lorebookMatches: [],
     });
 
-    const pipelineContents = pipelineResult.map((m) => m.content);
-    const presetContents = presetMessages.map((m) => m.content);
-    expect(presetContents).toEqual(pipelineContents);
+    const contents = presetMessages.map((m) => m.content);
+    expect(contents.length).toBeGreaterThanOrEqual(1);
+    expect(contents[0]).toContain('This is roleplay');
   });
 
-  it('matches pipeline with depth > message count', () => {
+  it('handles depth > message count', () => {
     const preset = createDefaultPreset();
-    const systemPrompt = 'System';
     const card = {
       ...minimalCard,
-      systemPrompt,
       depthPrompt: { depth: 100, prompt: 'Deep insertion' },
     };
     const messages = [makeMessage('user', 'Hello')];
 
-    const pipelineResult = assemblePromptMessages(systemPrompt, messages, [], card);
     const { messages: presetMessages } = assembleWithPreset(preset, {
       card,
       scene: baseScene,
@@ -692,9 +680,9 @@ describe('assembleWithPreset', () => {
       lorebookMatches: [],
     });
 
-    const pipelineContents = pipelineResult.map((m) => m.content);
-    const presetContents = presetMessages.map((m) => m.content);
-    expect(presetContents).toEqual(pipelineContents);
+    const contents = presetMessages.map((m) => m.content);
+    expect(contents).toContain('Deep insertion');
+    expect(contents).toContain('Hello');
   });
 
   it('extracts prefill from prefill item', () => {

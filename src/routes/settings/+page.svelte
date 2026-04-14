@@ -156,6 +156,38 @@
           Create and manage user personas for roleplay identity.
         </p>
       </section>
+
+      <!-- Memory -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-medium text-text">Memory System</h2>
+          <a
+            href="/settings/memory"
+            class="text-mauve hover:text-lavender text-sm"
+          >
+            Memory Settings &rarr;
+          </a>
+        </div>
+        <p class="text-xs text-subtext0">
+          Configure embedding provider, token budgets, and memory extraction parameters.
+        </p>
+      </section>
+
+      <!-- Model Slots -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-medium text-text">Model Slots</h2>
+          <a
+            href="/settings/models"
+            class="text-mauve hover:text-lavender text-sm"
+          >
+            Configure Models &rarr;
+          </a>
+        </div>
+        <p class="text-xs text-subtext0">
+          Dedicated model slots for memory extraction and illustration planning.
+        </p>
+      </section>
     </div>
   </div>
 {/if}

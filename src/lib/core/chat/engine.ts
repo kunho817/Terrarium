@@ -27,6 +27,7 @@ import { applyMutations } from '$lib/core/scripting/mutations';
 import { executeScript } from '$lib/core/scripting/bridge';
 import type { ScriptMutation } from '$lib/core/scripting/api';
 import { EventEmitter } from '$lib/core/events';
+import { AgentRunner } from '../agents/agent-runner';
 
 function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
   return worldCard.characters.map(char => ({
@@ -70,6 +71,7 @@ export interface SendResult {
 export class ChatEngine {
   private aborted = false;
   readonly events = new EventEmitter();
+  private agentRunner = new AgentRunner();
 
   constructor(private registry: PluginRegistry) {}
 
@@ -166,6 +168,20 @@ export class ChatEngine {
       ctx = await agent.onBeforeSend(ctx);
     }
 
+    // 6b. Run agent runner (memory, future agents)
+    const agentResult = await this.agentRunner.onBeforeSend({
+      sessionId: options.characterId || '',
+      cardId: options.characterId || '',
+      cardType: options.worldCard ? 'world' : 'character',
+      messages: allMessages,
+      scene: triggerScene,
+      turnNumber: allMessages.filter(m => m.role === 'user').length,
+      config: options.config,
+    });
+    if (agentResult.injectPrompt) {
+      ctx.additionalPrompt = (ctx.additionalPrompt || '') + '\n\n' + agentResult.injectPrompt;
+    }
+
     // 7-8. Assemble prompt messages (preset-driven or legacy)
     let assembled: Message[];
     let prefillText: string | null = null;
@@ -178,6 +194,7 @@ export class ChatEngine {
         lorebookMatches: ctx.lorebookMatches,
         persona: options.persona,
         worldCard: options.worldCard,
+        additionalPrompt: ctx.additionalPrompt,
       });
       assembled = result.messages;
       prefillText = result.prefill;
@@ -238,6 +255,21 @@ export class ChatEngine {
       // 11. Run agent onAfterReceive hooks
       for (const agent of self.registry.listAgents()) {
         processed = await agent.onAfterReceive(capturedCtx, processed);
+      }
+
+      // 11b. Run agent runner onAfterReceive
+      try {
+        await self.agentRunner.onAfterReceive({
+          sessionId: capturedCharacterId || '',
+          cardId: capturedCharacterId || '',
+          cardType: 'character',
+          messages: capturedCtx.messages,
+          scene: capturedCtx.scene,
+          turnNumber: capturedCtx.messages.filter(m => m.role === 'user').length,
+          config: capturedConfig,
+        }, processed);
+      } catch {
+        // Agent runner failed — non-blocking
       }
 
       // 11b. Fire on_ai_message triggers
