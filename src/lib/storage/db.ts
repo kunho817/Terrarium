@@ -1,0 +1,76 @@
+import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs';
+
+const DB_FILENAME = 'terrarium.db';
+const BASE = { baseDir: BaseDirectory.AppData };
+
+const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS memories (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  type TEXT NOT NULL CHECK(type IN ('event', 'trait', 'relationship', 'location', 'state')),
+  content TEXT NOT NULL,
+  importance REAL NOT NULL DEFAULT 0.5,
+  source_message_ids TEXT NOT NULL DEFAULT '[]',
+  turn_number INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_memories_session ON memories(session_id);
+CREATE INDEX IF NOT EXISTS idx_memories_session_type ON memories(session_id, type);
+
+CREATE TABLE IF NOT EXISTS summaries (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  start_turn INTEGER NOT NULL,
+  end_turn INTEGER NOT NULL,
+  summary TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_summaries_session ON summaries(session_id);
+
+CREATE TABLE IF NOT EXISTS embeddings (
+  memory_id TEXT PRIMARY KEY,
+  embedding BLOB NOT NULL,
+  FOREIGN KEY (memory_id) REFERENCES memories(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_embeddings_memory ON embeddings(memory_id);
+`;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let db: any = null;
+
+async function loadSqlJs() {
+  const initSqlJs = (await import('sql.js')).default;
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => `/${file}`,
+  });
+  return SQL;
+}
+
+export async function getDb() {
+  if (db) return db;
+
+  const SQL = await loadSqlJs();
+
+  try {
+    const data = await readFile(DB_FILENAME, BASE);
+    db = new SQL.Database(new Uint8Array(data));
+  } catch {
+    db = new SQL.Database();
+  }
+
+  db.run(SCHEMA_SQL);
+  return db;
+}
+
+export async function persist() {
+  const database = await getDb();
+  const data = database.export();
+  await writeFile(DB_FILENAME, data, BASE);
+}
+
+export async function closeDb() {
+  if (db) {
+    db.close();
+    db = null;
+  }
+}
