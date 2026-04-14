@@ -19,7 +19,10 @@
       "Bash(npx svelte-check:*)",
       "Bash(curl -s \"https://raw.githubusercontent.com/kwaroran/RisuAI/main/src/ts/storage/defaultPrompts.ts\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/kwaroran/RisuAI/main/src/ts/process/prompt.ts\")",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(curl -sL \"https://api.github.com/repos/Aedial/novelai-api/git/trees/main?recursive=1\")",
+      "Bash(python -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(t['path']\\) for t in data.get\\('tree',[]\\) if 'low_level' in t['path'] or 'high_level' in t['path'] or 'preset' in t['path'].lower\\(\\)]\")",
+      "Bash(curl:*)"
     ]
   }
 }
