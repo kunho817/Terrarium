@@ -4,6 +4,7 @@
   import PresetList from '$lib/components/editors/PresetList.svelte';
   import PromptItemEditor from '$lib/components/editors/PromptItemEditor.svelte';
   import type { PromptPreset, PromptItem, PromptPresetSettings } from '$lib/types/prompt-preset';
+  import { createDefaultPreset } from '$lib/core/presets/defaults';
 
   let loaded = $state(false);
   let localSettings = $state<PromptPresetSettings | null>(null);
@@ -72,6 +73,19 @@
     const presets = localSettings.presets.filter(p => p.id !== id);
     const activePresetId = localSettings.activePresetId === id ? presets[0].id : localSettings.activePresetId;
     updateSettings({ presets, activePresetId });
+  }
+
+  function handleReset() {
+    if (!activePreset || !localSettings) return;
+    const defaultPreset = createDefaultPreset();
+    // Preserve the preset ID and name, but reset items and prefill
+    const resetPreset: PromptPreset = {
+      ...activePreset,
+      items: defaultPreset.items.map(item => ({ ...item, id: crypto.randomUUID() })),
+      assistantPrefill: defaultPreset.assistantPrefill,
+    };
+    updatePreset(resetPreset);
+    handleSave();
   }
 
   // PromptItem callbacks
@@ -160,6 +174,16 @@
         <!-- Right panel: Items editor -->
         <div class="flex-1 min-w-0">
           {#if activePreset}
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-sm font-medium text-text">{activePreset.name}</h2>
+              <button
+                onclick={handleReset}
+                class="text-xs text-subtext0 hover:text-red transition-colors"
+                title="Reset this preset to factory defaults (all custom changes will be lost)"
+              >
+                Reset to Default
+              </button>
+            </div>
             <div class="space-y-3">
               {#each activePreset.items as item, i (item.id)}
                 <div class="flex items-start gap-2">
