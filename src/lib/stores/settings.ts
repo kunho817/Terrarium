@@ -25,6 +25,7 @@ function createSettingsStore() {
       embeddingApiKey: '',
       embeddingModel: '',
     },
+    outputLanguage: '',
   });
 
   return {
@@ -65,6 +66,9 @@ function createSettingsStore() {
           embeddingApiKey: '',
           embeddingModel: '',
         };
+      }
+      if (settings.outputLanguage === undefined) {
+        settings.outputLanguage = '';
       }
       set(settings);
     },

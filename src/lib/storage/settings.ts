@@ -22,6 +22,7 @@ export interface AppSettings {
   customArtStylePresets?: ArtStylePreset[];
   modelSlots?: Record<string, ModelSlot>;
   memorySettings?: MemorySettings;
+  outputLanguage?: string;
   [key: string]: unknown;
 }
 
