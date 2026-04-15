@@ -7,6 +7,7 @@
   import { charactersStore } from '$lib/stores/characters';
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import { sceneStore } from '$lib/stores/scene';
   import { settingsStore } from '$lib/stores/settings';
   import { sendMessage, initChat, generateIllustration, injectFirstMessage } from '$lib/core/chat/use-chat';
@@ -37,7 +38,7 @@
     try {
       if (cardType === 'world') {
         charactersStore.clearSelection();
-        await worldsStore.selectWorld(characterId);
+        await worldsRepo.selectWorld(characterId);
       } else {
         worldsStore.clearSelection();
         await charactersRepo.selectCharacter(characterId);

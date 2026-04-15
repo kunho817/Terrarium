@@ -4,6 +4,7 @@
   import { charactersStore } from '$lib/stores/characters';
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import { chatStore } from '$lib/stores/chat';
   import { sceneStore } from '$lib/stores/scene';
   import VariableViewer from '$lib/components/editors/VariableViewer.svelte';
@@ -62,7 +63,7 @@
     if (!cardId) return;
 
     if (cardType === 'world') {
-      await worldsStore.selectWorld(cardId);
+      await worldsRepo.selectWorld(cardId);
     } else {
       await charactersRepo.selectCharacter(cardId);
     }

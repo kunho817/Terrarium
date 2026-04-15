@@ -3,6 +3,7 @@
   import { charactersStore } from '$lib/stores/characters';
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import * as chatStorage from '$lib/storage/chats';
   import type { ChatSession } from '$lib/types';
 
@@ -31,7 +32,7 @@
 
     const charNames = new Map<string, string>();
     for (const c of $charactersStore.list) charNames.set(c.id, c.name);
-    for (const w of $worldsStore.list) charNames.set(w.id, w.name);
+    for (const w of $worldsStore.worlds) charNames.set(w.id, w.name);
 
     const all: RecentSession[] = [];
     for (const cid of chatIds) {
@@ -54,7 +55,7 @@
 
   onMount(async () => {
     await charactersRepo.load();
-    await worldsStore.loadList();
+    await worldsRepo.load();
     await loadRecentSessions();
   });
 </script>
@@ -164,7 +165,7 @@
     {:else}
       {#if $worldsStore.isLoading}
         <div class="text-center text-subtext0 py-8">Loading...</div>
-      {:else if $worldsStore.list.length === 0}
+      {:else if $worldsStore.worlds.length === 0}
         <div class="text-center text-subtext0 py-8">
           <p class="text-lg mb-2">No worlds yet</p>
           <p class="text-sm">Create a world card to get started</p>
@@ -178,7 +179,7 @@
         </div>
       {:else}
         <div class="grid gap-3">
-          {#each $worldsStore.list as world}
+          {#each $worldsStore.worlds as world}
             <a
               href="/chat/{world.id}?cardType=world"
               class="block p-3 rounded-lg bg-surface0 hover:bg-surface1
