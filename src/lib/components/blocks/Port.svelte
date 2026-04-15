@@ -5,10 +5,17 @@
     port: PortType;
     isInput: boolean;
     isConnected: boolean;
-    onDragStart?: (e: MouseEvent) => void;
+    onActivate?: (e: MouseEvent | KeyboardEvent) => void;
   }
 
-  let { port, isInput, isConnected, onDragStart }: Props = $props();
+  let { port, isInput, isConnected, onActivate }: Props = $props();
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onActivate?.(e);
+    }
+  }
 
   // Port colors by type
   const portColors = {
@@ -31,8 +38,10 @@
     border-color: {color};
     {isInput ? 'left: -6px;' : 'right: -6px;'}
   "
-  onmousedown={onDragStart}
+  onmousedown={onActivate}
+  onkeydown={handleKeyDown}
   role="button"
+  tabindex="0"
   aria-label="{isInput ? 'Input' : 'Output'} port: {port.name}"
 ></div>
 

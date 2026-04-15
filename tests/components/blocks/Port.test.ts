@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import Port from '$lib/components/blocks/Port.svelte';
 
 describe('Port', () => {
-  it('renders with correct color for text type', () => {
-    // Component test placeholder - we're not using testing-library
-    // Just verify the file structure is correct
-    expect(true).toBe(true);
+  it('exports a Svelte component', () => {
+    expect(Port).toBeDefined();
+    expect(typeof Port).toBe('function');
   });
 });
