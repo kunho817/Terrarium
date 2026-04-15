@@ -36,7 +36,10 @@ function createSettingsStore() {
   return {
     subscribe,
     set,
-    update,
+    // Custom update that accepts partial object (backward compatible)
+    update: (partial: Partial<SettingsState>) => {
+      update((s) => ({ ...s, ...partial }));
+    },
     reset: () => set(DEFAULT_STATE),
   };
 }
