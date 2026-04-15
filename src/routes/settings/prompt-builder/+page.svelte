@@ -199,7 +199,9 @@
 
   // Handle adding new block from palette
   function handleAddBlock(blockType: string) {
+    console.log('handleAddBlock called with type:', blockType);
     const definition = blockRegistry.get(blockType as import('$lib/types/blocks').BlockType);
+    console.log('definition found:', definition);
     if (!definition) return;
 
     // Calculate position - add to right side of existing blocks or center
@@ -221,6 +223,8 @@
     };
 
     blockBuilderStore.addBlock(newBlock);
+    console.log('Block added. Total blocks:', currentGraph.blocks.length);
+    console.log('Blocks:', currentGraph.blocks);
   }
 </script>
 
