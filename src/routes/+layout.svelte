@@ -2,13 +2,13 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-	import { settingsStore } from '$lib/stores/settings';
+	import { settingsRepo } from '$lib/repositories/settings-repo';
 
 	let { children } = $props();
 	let sidebarCollapsed = $state(false);
 
-	onMount(() => {
-		settingsStore.load();
+	onMount(async () => {
+		await settingsRepo.load();
 	});
 </script>
 

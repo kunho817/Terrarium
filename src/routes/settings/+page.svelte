@@ -1,17 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import { getRegistry } from '$lib/core/bootstrap';
 
   let loaded = $state(false);
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     loaded = true;
   });
 
   async function handleSave() {
-    await settingsStore.save();
+    await settingsRepo.save();
   }
 </script>
 

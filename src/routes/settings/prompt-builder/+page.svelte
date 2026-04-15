@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import PresetList from '$lib/components/editors/PresetList.svelte';
   import PromptItemEditor from '$lib/components/editors/PromptItemEditor.svelte';
   import type { PromptPreset, PromptItem, PromptPresetSettings } from '$lib/types/prompt-preset';
@@ -10,7 +11,7 @@
   let localSettings = $state<PromptPresetSettings | null>(null);
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     localSettings = $settingsStore.promptPresets ?? null;
     loaded = true;
   });
@@ -129,7 +130,7 @@
   }
 
   async function handleSave() {
-    await settingsStore.save();
+    await settingsRepo.save();
   }
 </script>
 
