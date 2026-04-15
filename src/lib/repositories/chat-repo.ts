@@ -4,34 +4,36 @@
 
 import { get } from 'svelte/store';
 import { chatStore } from '$lib/stores/chat';
+import { StorageError, ValidationError } from '$lib/errors/error-types';
+import { logger } from '$lib/utils/logger';
 import * as chatStorage from '$lib/storage/chats';
 import type { Message } from '$lib/types';
+
+const log = logger.scope('ChatRepo');
 
 export const chatRepo = {
   /**
    * Load messages for a specific character and session.
    */
   async loadSession(characterId: string, sessionId: string): Promise<void> {
+    if (!characterId || !sessionId) {
+      throw new ValidationError('ids', 'Character ID and Session ID are required');
+    }
+    
     chatStore.update((s) => ({ ...s, isLoading: true }));
+    log.debug('Loading session', { characterId, sessionId });
+    
     try {
       const messages = await chatStorage.loadMessages(characterId, sessionId);
-      chatStore.set({
-        chatId: characterId,
-        sessionId,
-        messages,
-        isLoading: false,
-        streamingMessage: null,
-        isStreaming: false,
-      });
+      chatStore.setSessionState(characterId, sessionId, messages);
+      log.info('Session loaded', { characterId, sessionId, messageCount: messages.length });
     } catch (error) {
-      chatStore.set({
-        chatId: characterId,
-        sessionId,
-        messages: [],
-        isLoading: false,
-        streamingMessage: null,
-        isStreaming: false,
-      });
+      chatStore.setSessionState(characterId, sessionId, []);
+      throw new StorageError(
+        'loadMessages',
+        'Failed to load chat messages',
+        error as Error
+      );
     }
   },
 
@@ -40,7 +42,13 @@ export const chatRepo = {
    * Loads the most recent session for the character, or creates one.
    */
   async loadChat(chatId: string): Promise<void> {
+    if (!chatId) {
+      throw new ValidationError('chatId', 'Chat ID is required');
+    }
+    
     chatStore.update((s) => ({ ...s, isLoading: true }));
+    log.debug('Loading chat', { chatId });
+    
     try {
       await chatStorage.listSessions(chatId); // triggers migration
       const sessions = await chatStorage.listSessions(chatId);
@@ -50,29 +58,23 @@ export const chatRepo = {
         // Pick most recent
         sessions.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
         sessionId = sessions[0].id;
+        log.debug('Using existing session', { sessionId });
       } else {
         const session = await chatStorage.createSession(chatId);
         sessionId = session.id;
+        log.info('Created new session', { sessionId });
       }
 
       const messages = await chatStorage.loadMessages(chatId, sessionId);
-      chatStore.set({
-        chatId,
-        sessionId,
-        messages,
-        isLoading: false,
-        streamingMessage: null,
-        isStreaming: false,
-      });
+      chatStore.setSessionState(chatId, sessionId, messages);
+      log.info('Chat loaded', { chatId, sessionId, messageCount: messages.length });
     } catch (error) {
-      chatStore.set({
-        chatId: null,
-        sessionId: null,
-        messages: [],
-        isLoading: false,
-        streamingMessage: null,
-        isStreaming: false,
-      });
+      chatStore.clear();
+      throw new StorageError(
+        'loadChat',
+        'Failed to load chat',
+        error as Error
+      );
     }
   },
 
@@ -82,7 +84,20 @@ export const chatRepo = {
   async saveMessages(): Promise<void> {
     const state = get(chatStore);
     if (state.chatId && state.sessionId) {
-      await chatStorage.saveMessages(state.chatId, state.sessionId, state.messages);
+      try {
+        await chatStorage.saveMessages(state.chatId, state.sessionId, state.messages);
+        log.debug('Messages saved', { 
+          chatId: state.chatId, 
+          sessionId: state.sessionId,
+          messageCount: state.messages.length 
+        });
+      } catch (error) {
+        throw new StorageError(
+          'saveMessages',
+          'Failed to save messages',
+          error as Error
+        );
+      }
     }
   },
 
@@ -90,8 +105,17 @@ export const chatRepo = {
    * Create a new session for a character.
    */
   async createSession(characterId: string): Promise<string> {
-    const session = await chatStorage.createSession(characterId);
-    return session.id;
+    try {
+      const session = await chatStorage.createSession(characterId);
+      log.info('Session created', { characterId, sessionId: session.id });
+      return session.id;
+    } catch (error) {
+      throw new StorageError(
+        'createSession',
+        'Failed to create chat session',
+        error as Error
+      );
+    }
   },
 
   /**
