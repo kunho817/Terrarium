@@ -42,6 +42,13 @@
       onDragStart(e);
     }
   }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect();
+    }
+  }
 </script>
 
 <div
@@ -50,6 +57,7 @@
   style="left: {block.position.x}px; top: {block.position.y}px;"
   onmousedown={handleMouseDown}
   ondblclick={onDoubleClick}
+  onkeydown={handleKeyDown}
   role="button"
   aria-label="Block: {block.type}"
   tabindex="0"
@@ -117,6 +125,10 @@
   }
   .block-node.selected {
     box-shadow: 0 0 0 2px #cba6f7, 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+  .block-node:focus-visible {
+    outline: 2px solid #cba6f7;
+    outline-offset: 2px;
   }
   .line-clamp-3 {
     display: -webkit-box;

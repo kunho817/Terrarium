@@ -17,6 +17,11 @@
     }
   }
 
+  function handleActivate(e: MouseEvent | KeyboardEvent) {
+    e.stopPropagation();
+    onActivate?.(e);
+  }
+
   // Port colors by type
   const portColors = {
     text: '#a6e3a1',      // Green
@@ -38,7 +43,7 @@
     border-color: {color};
     {isInput ? 'left: -6px;' : 'right: -6px;'}
   "
-  onmousedown={onActivate}
+  onmousedown={handleActivate}
   onkeydown={handleKeyDown}
   role="button"
   tabindex="0"
