@@ -10,7 +10,7 @@ import * as chatStorage from '$lib/storage/chats';
 
 const log = logger.scope('SceneRepo');
 
-export const export const sceneRepo = {
+export const sceneRepo = {
   /**
    * Load scene for a specific character and session.
    */
@@ -85,4 +85,4 @@ export const export const sceneRepo = {
       );
     }
   },
-};;
+};
