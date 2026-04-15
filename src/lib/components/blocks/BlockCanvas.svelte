@@ -176,13 +176,12 @@
   role="region"
   aria-label="Block canvas"
 >
-  <!-- Grid Background -->
+  <!-- Grid Background (fixed, not transformed - creates infinite grid illusion) -->
   <div 
-    class="grid-background absolute inset-0 opacity-30 pointer-events-none"
+    class="grid-background absolute -inset-[1000px] opacity-40 pointer-events-none"
     style="
       background-image: radial-gradient(circle, #cdd6f4 1.5px, transparent 1.5px);
       background-size: 20px 20px;
-      transform: {canvasTransform};
     "
   ></div>
 
@@ -218,10 +217,10 @@
 
   <!-- Empty State -->
   {#if graph.blocks.length === 0}
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div class="text-center text-subtext0">
-        <p class="text-lg mb-2">Drag blocks from palette</p>
-        <p class="text-sm">or click to add them here</p>
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+      <div class="text-center">
+        <p class="text-lg mb-2 text-text font-medium">Drag blocks from palette</p>
+        <p class="text-sm text-subtext0">or click to add them here</p>
       </div>
     </div>
   {/if}
