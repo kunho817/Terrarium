@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { charactersStore } from '$lib/stores/characters';
+  import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
   import { chatStore } from '$lib/stores/chat';
   import { sceneStore } from '$lib/stores/scene';
@@ -63,7 +64,7 @@
     if (cardType === 'world') {
       await worldsStore.selectWorld(cardId);
     } else {
-      await charactersStore.selectCharacter(cardId);
+      await charactersRepo.selectCharacter(cardId);
     }
 
     const sessionId = $page.url.searchParams.get('session') ?? $chatStore.sessionId;

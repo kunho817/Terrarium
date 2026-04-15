@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { charactersStore } from '$lib/stores/characters';
+  import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import * as chatStorage from '$lib/storage/chats';
   import type { ChatSession } from '$lib/types';
 
@@ -52,8 +54,8 @@
   }
 
   onMount(async () => {
-    await charactersStore.loadList();
-    await worldsStore.loadList();
+    await charactersRepo.loadList();
+    await worldsRepo.loadList();
     await loadRecentSessions();
   });
 </script>

@@ -23,36 +23,26 @@ function createCharactersStore() {
 
   return {
     subscribe,
+    set,
+    update,
 
-    async loadList() {
-      update((s) => ({ ...s, isLoading: true }));
-      try {
-        const list = await characterStorage.listCharacters();
-        update((s) => ({ ...s, list, isLoading: false }));
-      } catch {
-        update((s) => ({ ...s, isLoading: false }));
-      }
+    // Pure state helpers (no persistence)
+    setCharacters(list: { id: string; name: string }[]) {
+      update((s) => ({ ...s, list, isLoading: false }));
     },
 
-    async selectCharacter(id: string) {
-      update((s) => ({ ...s, isLoading: true }));
-      try {
-        const card = await characterStorage.loadCharacter(id);
-        update((s) => ({ ...s, currentId: id, current: card, isLoading: false }));
-      } catch {
-        update((s) => ({ ...s, isLoading: false }));
-      }
+    selectCharacterState(id: string | null, current: CharacterCard | null) {
+      update((s) => ({ ...s, currentId: id, current, isLoading: false }));
     },
 
-    async saveCurrent() {
-      const state = get({ subscribe });
-      if (state.currentId && state.current) {
-        await characterStorage.saveCharacter(state.currentId, state.current);
-      }
+    updateCharacterInList(id: string, name: string) {
+      update((s) => ({
+        ...s,
+        list: s.list.map((c) => (c.id === id ? { ...c, name } : c)),
+      }));
     },
 
-    async deleteCharacter(id: string) {
-      await characterStorage.deleteCharacter(id);
+    removeCharacter(id: string) {
       update((s) => ({
         ...s,
         list: s.list.filter((c) => c.id !== id),
@@ -63,6 +53,15 @@ function createCharactersStore() {
 
     clearSelection() {
       update((s) => ({ ...s, currentId: null, current: null }));
+    },
+
+    reset() {
+      set({
+        list: [],
+        currentId: null,
+        current: null,
+        isLoading: false,
+      });
     },
   };
 }

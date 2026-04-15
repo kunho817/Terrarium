@@ -1,15 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-
-vi.mock('$lib/storage/characters', () => ({
-  listCharacters: vi.fn(),
-  loadCharacter: vi.fn(),
-  saveCharacter: vi.fn(),
-  deleteCharacter: vi.fn(),
-  createCharacter: vi.fn(),
-}));
-
-import { listCharacters, loadCharacter, deleteCharacter } from '$lib/storage/characters';
 import { charactersStore } from '$lib/stores/characters';
 import type { CharacterCard } from '$lib/types';
 
@@ -40,57 +30,63 @@ const mockCard: CharacterCard = {
 describe('charactersStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    charactersStore.clearSelection();
+    charactersStore.reset();
   });
 
-  it('loads character list', async () => {
-    vi.mocked(listCharacters).mockResolvedValue([
+  it('sets characters list', () => {
+    charactersStore.setCharacters([
       { id: 'a', name: 'Alice' },
       { id: 'b', name: 'Bob' },
     ]);
-
-    await charactersStore.loadList();
 
     const state = get(charactersStore);
     expect(state.list).toEqual([
       { id: 'a', name: 'Alice' },
       { id: 'b', name: 'Bob' },
     ]);
-    expect(state.isLoading).toBe(false);
   });
 
-  it('selects a character', async () => {
-    vi.mocked(loadCharacter).mockResolvedValue(mockCard);
-
-    await charactersStore.selectCharacter('char-1');
+  it('selects a character state', () => {
+    charactersStore.selectCharacterState('char-1', mockCard);
 
     const state = get(charactersStore);
     expect(state.currentId).toBe('char-1');
     expect(state.current).toEqual(mockCard);
   });
 
-  it('deletes a character and removes from list', async () => {
-    vi.mocked(listCharacters).mockResolvedValue([
+  it('removes a character from list', () => {
+    charactersStore.setCharacters([
       { id: 'a', name: 'Alice' },
       { id: 'b', name: 'Bob' },
     ]);
-    vi.mocked(deleteCharacter).mockResolvedValue(undefined);
-
-    await charactersStore.loadList();
-    await charactersStore.deleteCharacter('a');
+    charactersStore.selectCharacterState('a', mockCard);
+    
+    charactersStore.removeCharacter('a');
 
     const state = get(charactersStore);
     expect(state.list).toEqual([{ id: 'b', name: 'Bob' }]);
+    expect(state.currentId).toBeNull();
+    expect(state.current).toBeNull();
   });
 
-  it('clears selection', async () => {
-    vi.mocked(loadCharacter).mockResolvedValue(mockCard);
-    await charactersStore.selectCharacter('char-1');
+  it('clears selection', () => {
+    charactersStore.selectCharacterState('char-1', mockCard);
 
     charactersStore.clearSelection();
 
     const state = get(charactersStore);
     expect(state.currentId).toBeNull();
     expect(state.current).toBeNull();
+  });
+
+  it('updates character in list', () => {
+    charactersStore.setCharacters([
+      { id: 'a', name: 'Alice' },
+    ]);
+
+    charactersStore.updateCharacterInList('a', 'Alice Updated');
+
+    const state = get(charactersStore);
+    expect(state.list).toEqual([{ id: 'a', name: 'Alice Updated' }]);
   });
 });

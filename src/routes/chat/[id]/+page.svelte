@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import { chatStore } from '$lib/stores/chat';
   import { charactersStore } from '$lib/stores/characters';
+  import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
   import { sceneStore } from '$lib/stores/scene';
   import { settingsStore } from '$lib/stores/settings';
@@ -38,7 +39,7 @@
         await worldsStore.selectWorld(characterId);
       } else {
         worldsStore.clearSelection();
-        await charactersStore.selectCharacter(characterId);
+        await charactersRepo.selectCharacter(characterId);
       }
       sessions = await chatStorage.listSessions(characterId);
       personas = await listPersonas();
