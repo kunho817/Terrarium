@@ -10,15 +10,18 @@
   // Block builder imports
   import BlockCanvas from '$lib/components/blocks/BlockCanvas.svelte';
   import BlockPalette from '$lib/components/blocks/BlockPalette.svelte';
-  import LivePreview from '$lib/components/blocks/LivePreview.svelte';
   import { blockBuilderStore, createEmptyGraph } from '$lib/stores/block-builder';
   import { registerAllBlocks, blockRegistry } from '$lib/blocks/registry';
   import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
   import { exportToTPrompt, downloadAsJSON } from '$lib/blocks/serialization';
-  import type { BlockInstance } from '$lib/types';
+  import type { BlockInstance } from '$lib/types/blocks';
+  import { viewportStore } from '$lib/stores/viewport';
+  import RightPanel from '$lib/components/blocks/RightPanel.svelte';
   
-  // Initialize blocks
-  registerAllBlocks();
+  // Initialize blocks - only register once
+  if (!blockRegistry.has('TextBlock')) {
+    registerAllBlocks();
+  }
 
   let loaded = $state(false);
   let localSettings = $state<PromptPresetSettings | null>(null);
@@ -156,6 +159,10 @@
   // Only create builder state when in block view (lazy initialization)
   let currentGraph = $state(createEmptyGraph());
   
+  // Block builder state (add these)
+  let rightPanelMode: 'preview' | 'editor' = $state('preview');
+  let selectedBlockId: string | null = $state(null);
+  
   // Subscribe to store updates only when in block view
   $effect(() => {
     if (activeView === 'blocks') {
@@ -192,7 +199,7 @@
 
   // Handle adding new block from palette
   function handleAddBlock(blockType: string) {
-    const definition = blockRegistry.get(blockType);
+    const definition = blockRegistry.get(blockType as import('$lib/types/blocks').BlockType);
     if (!definition) return;
 
     // Calculate position - add to right side of existing blocks or center
@@ -204,9 +211,9 @@
       ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 100
       : 100;
 
-    const newBlock = {
+    const newBlock: import('$lib/types/blocks').BlockInstance = {
       id: crypto.randomUUID(),
-      type: blockType,
+      type: blockType as import('$lib/types/blocks').BlockType,
       position: { x, y },
       config: { ...definition.defaultConfig },
     };
@@ -341,38 +348,52 @@
           </div>
         </div>
       {:else}
-        <!-- Block Builder View -->
+        {@const selectedBlock = currentGraph.blocks.find((b: BlockInstance) => b.id === selectedBlockId) ?? null}
         <div class="flex gap-4 h-[600px]">
           <BlockPalette onBlockClick={handleAddBlock} />
-          <div class="flex-1 flex gap-4">
-            <div class="flex-1 relative">
+          <div class="flex-1 flex gap-4 min-w-0">
+            <div class="flex-1 relative min-w-0">
               <BlockCanvas
                 graph={currentGraph}
-                onBlockMove={handleBlockMove}
+                viewport={$viewportStore}
+                {selectedBlockId}
+                onBlockSelect={(id) => selectedBlockId = id}
+                onBlockDoubleClick={(id) => {
+                  selectedBlockId = id;
+                  rightPanelMode = 'editor';
+                }}
+                onBlockDrag={(id, pos) => blockBuilderStore.updateBlockPosition(id, pos)}
+                onPortDragStart={(blockId, port, e) => {
+                  // TODO: Implement port drag
+                }}
+                onCanvasPan={(dx, dy) => viewportStore.panBy(dx, dy)}
+                onZoomIn={() => viewportStore.zoomBy(1.1)}
+                onZoomOut={() => viewportStore.zoomBy(0.9)}
+                onZoomReset={() => viewportStore.reset()}
+                onFitToScreen={() => {
+                  // Calculate bounds and fit
+                  const positions = currentGraph.blocks.map((b: BlockInstance) => b.position);
+                  if (positions.length > 0) {
+                    const xs = positions.map((p: {x: number; y: number}) => p.x);
+                    const ys = positions.map((p: {x: number; y: number}) => p.y);
+                    viewportStore.fitToBounds(
+                      Math.min(...xs) - 100,
+                      Math.min(...ys) - 100,
+                      Math.max(...xs) + 300,
+                      Math.max(...ys) + 200
+                    );
+                  }
+                }}
               />
             </div>
-            <div class="w-80 flex flex-col gap-3">
-              <LivePreview graph={currentGraph} />
-              
-              <div class="bg-surface1 rounded-lg p-3">
-                <h4 class="text-sm font-medium text-text mb-2">Actions</h4>
-                <div class="space-y-2">
-                  <button
-                    onclick={handleExportTPrompt}
-                    class="w-full px-3 py-2 bg-mauve text-crust rounded-md text-sm font-medium
-                           hover:bg-lavender transition-colors"
-                  >
-                    💾 Export .tprompt
-                  </button>
-                  <button
-                    onclick={() => activeView = 'presets'}
-                    class="w-full px-3 py-2 bg-surface0 text-text rounded-md text-sm
-                           hover:bg-surface2 transition-colors"
-                  >
-                    ⬇️ Back to Presets
-                  </button>
-                </div>
-              </div>
+            <div class="w-80 flex-shrink-0">
+              <RightPanel
+                mode={rightPanelMode}
+                {selectedBlock}
+                graph={currentGraph}
+                onBlockChange={(id, config) => blockBuilderStore.updateBlockConfig(id, config)}
+                onCloseEditor={() => rightPanelMode = 'preview'}
+              />
             </div>
           </div>
         </div>
