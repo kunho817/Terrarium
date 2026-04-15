@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { BlockGraph, BlockInstance } from '$lib/types';
+  import ConnectionLine from './ConnectionLine.svelte';
 
   interface Props {
     graph: BlockGraph;
@@ -68,6 +69,11 @@
       </div>
     </div>
   {/if}
+
+  <!-- Connection lines -->
+  {#each graph.connections as connection (connection.id)}
+    <ConnectionLine {connection} blocks={graph.blocks} />
+  {/each}
 
   <!-- Blocks -->
   {#each graph.blocks as block (block.id)}
