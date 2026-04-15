@@ -19,36 +19,26 @@ function createWorldsStore() {
 
   return {
     subscribe,
+    set,
+    update,
 
-    async loadList() {
-      update((s) => ({ ...s, isLoading: true }));
-      try {
-        const list = await worldStorage.listWorlds();
-        update((s) => ({ ...s, list, isLoading: false }));
-      } catch {
-        update((s) => ({ ...s, isLoading: false }));
-      }
+    // Pure state helpers (no persistence)
+    setWorlds(list: { id: string; name: string }[]) {
+      update((s) => ({ ...s, list, isLoading: false }));
     },
 
-    async selectWorld(id: string) {
-      update((s) => ({ ...s, isLoading: true }));
-      try {
-        const card = await worldStorage.loadWorld(id);
-        update((s) => ({ ...s, currentId: id, current: card, isLoading: false }));
-      } catch {
-        update((s) => ({ ...s, isLoading: false }));
-      }
+    selectWorldState(id: string | null, current: WorldCard | null) {
+      update((s) => ({ ...s, currentId: id, current, isLoading: false }));
     },
 
-    async saveCurrent() {
-      const state = get({ subscribe });
-      if (state.currentId && state.current) {
-        await worldStorage.saveWorld(state.currentId, state.current);
-      }
+    updateWorldInList(id: string, name: string) {
+      update((s) => ({
+        ...s,
+        list: s.list.map((w) => (w.id === id ? { ...w, name } : w)),
+      }));
     },
 
-    async deleteWorld(id: string) {
-      await worldStorage.deleteWorld(id);
+    removeWorld(id: string) {
       update((s) => ({
         ...s,
         list: s.list.filter((w) => w.id !== id),
@@ -59,6 +49,15 @@ function createWorldsStore() {
 
     clearSelection() {
       update((s) => ({ ...s, currentId: null, current: null }));
+    },
+
+    reset() {
+      set({
+        list: [],
+        currentId: null,
+        current: null,
+        isLoading: false,
+      });
     },
   };
 }

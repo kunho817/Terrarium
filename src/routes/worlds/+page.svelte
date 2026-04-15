@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import * as worldStorage from '$lib/storage/worlds';
   import * as worldImport from '$lib/storage/world-import';
   import { createDefaultWorldCard } from '$lib/types';
@@ -10,7 +11,7 @@
   let importing = $state(false);
 
   onMount(() => {
-    worldsStore.loadList();
+    worldsRepo.loadList();
   });
 
   async function handleCreate() {
@@ -52,7 +53,7 @@
         }
       }
 
-      await worldsStore.loadList();
+      await worldsRepo.loadList();
     } catch (e: any) {
       error = e?.message || 'Import failed';
     } finally {
@@ -79,7 +80,7 @@
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete world "${name}"? This cannot be undone.`)) return;
-    await worldsStore.deleteWorld(id);
+    await worldsRepo.deleteWorld(id);
   }
 
   function handleSelect(id: string) {

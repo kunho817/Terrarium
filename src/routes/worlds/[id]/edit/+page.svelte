@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import { createDefaultWorldCard } from '$lib/types/world';
   import type { WorldCard, WorldCharacter } from '$lib/types/world';
   import * as worldImport from '$lib/storage/world-import';
@@ -22,7 +23,7 @@
 
   onMount(async () => {
     try {
-      await worldsStore.selectWorld(worldId);
+      await worldsRepo.selectWorld(worldId);
       const state = $worldsStore;
       if (state.current) {
         card = JSON.parse(JSON.stringify(state.current));
@@ -41,8 +42,7 @@
     error = '';
     try {
       card.tags = tagsText.split(',').map(t => t.trim()).filter(Boolean);
-      const { saveWorld } = await import('$lib/storage/worlds');
-      await saveWorld(worldId, card);
+      await worldsRepo.saveWorld(worldId, card);
       saved = true;
       setTimeout(() => { saved = false; }, 2000);
     } catch (e: any) {

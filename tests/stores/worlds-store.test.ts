@@ -1,17 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-vi.mock('$lib/storage/worlds', () => ({
-  listWorlds: vi.fn(),
-  loadWorld: vi.fn(),
-  saveWorld: vi.fn(),
-  deleteWorld: vi.fn(),
-  createWorld: vi.fn(),
-}));
-
-import { worldsStore } from '$lib/stores/worlds';
-import { listWorlds, loadWorld, saveWorld, deleteWorld } from '$lib/storage/worlds';
-import type { WorldCard } from '$lib/types';
 import { get } from 'svelte/store';
+import { worldsStore } from '$lib/stores/worlds';
+import type { WorldCard } from '$lib/types';
 
 const mockWorld: WorldCard = {
   name: 'Test World',
@@ -33,55 +23,56 @@ const mockWorld: WorldCard = {
   metadata: {},
 };
 
-describe('worlds store', () => {
+describe('worldsStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    worldsStore.reset();
+  });
+
+  it('sets worlds list', () => {
+    worldsStore.setWorlds([
+      { id: 'w1', name: 'World One' },
+      { id: 'w2', name: 'World Two' },
+    ]);
+    const state = get(worldsStore);
+    expect(state.list).toEqual([
+      { id: 'w1', name: 'World One' },
+      { id: 'w2', name: 'World Two' },
+    ]);
+  });
+
+  it('selects a world state', () => {
+    worldsStore.selectWorldState('w1', mockWorld);
+    const state = get(worldsStore);
+    expect(state.currentId).toBe('w1');
+    expect(state.current).toEqual(mockWorld);
+  });
+
+  it('removes a world from list', () => {
+    worldsStore.setWorlds([
+      { id: 'w1', name: 'World One' },
+      { id: 'w2', name: 'World Two' },
+    ]);
+    worldsStore.selectWorldState('w1', mockWorld);
+    worldsStore.removeWorld('w1');
+    const state = get(worldsStore);
+    expect(state.list).toEqual([{ id: 'w2', name: 'World Two' }]);
+    expect(state.currentId).toBeNull();
+    expect(state.current).toBeNull();
+  });
+
+  it('clears selection', () => {
+    worldsStore.selectWorldState('w1', mockWorld);
     worldsStore.clearSelection();
+    const state = get(worldsStore);
+    expect(state.currentId).toBeNull();
+    expect(state.current).toBeNull();
   });
 
-  describe('loadList', () => {
-    it('loads world list into store', async () => {
-      vi.mocked(listWorlds).mockResolvedValue([
-        { id: 'w1', name: 'World One' },
-        { id: 'w2', name: 'World Two' },
-      ]);
-      await worldsStore.loadList();
-      const state = get(worldsStore);
-      expect(state.list).toEqual([
-        { id: 'w1', name: 'World One' },
-        { id: 'w2', name: 'World Two' },
-      ]);
-      expect(state.isLoading).toBe(false);
-    });
-  });
-
-  describe('selectWorld', () => {
-    it('loads and sets current world', async () => {
-      vi.mocked(loadWorld).mockResolvedValue(mockWorld);
-      await worldsStore.selectWorld('w1');
-      const state = get(worldsStore);
-      expect(state.currentId).toBe('w1');
-      expect(state.current).toEqual(mockWorld);
-    });
-  });
-
-  describe('saveCurrent', () => {
-    it('saves current world via storage', async () => {
-      vi.mocked(loadWorld).mockResolvedValue(mockWorld);
-      await worldsStore.selectWorld('w1');
-      await worldsStore.saveCurrent();
-      expect(saveWorld).toHaveBeenCalledWith('w1', mockWorld);
-    });
-  });
-
-  describe('deleteWorld', () => {
-    it('deletes world and removes from list', async () => {
-      vi.mocked(listWorlds).mockResolvedValue([{ id: 'w1', name: 'World One' }]);
-      await worldsStore.loadList();
-      await worldsStore.deleteWorld('w1');
-      expect(deleteWorld).toHaveBeenCalledWith('w1');
-      const state = get(worldsStore);
-      expect(state.list).toEqual([]);
-    });
+  it('updates world in list', () => {
+    worldsStore.setWorlds([{ id: 'w1', name: 'World One' }]);
+    worldsStore.updateWorldInList('w1', 'Updated World');
+    const state = get(worldsStore);
+    expect(state.list).toEqual([{ id: 'w1', name: 'Updated World' }]);
   });
 });
