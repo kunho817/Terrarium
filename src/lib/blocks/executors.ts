@@ -21,6 +21,10 @@ export async function executeBlock(
       return executeTextBlock(config, context);
     case 'FieldBlock':
       return executeFieldBlock(config, context);
+    case 'MemoryBlock':
+      return executeMemoryBlock(config, inputs, context);
+    case 'LorebookBlock':
+      return executeLorebookBlock(config, context);
     case 'IfBlock':
       return executeIfBlock(config, inputs, context);
     case 'ToggleBlock':
@@ -78,6 +82,68 @@ async function executeFieldBlock(
       text: content,
       sourceBlockId: 'field-block',
       sourceBlockType: 'FieldBlock',
+    }],
+  };
+}
+
+async function executeMemoryBlock(
+  config: BlockConfig,
+  inputs: Map<string, PortValue>,
+  context: ExecutionContext
+): Promise<BlockExecutionResult> {
+  const count = (config.count as number) || 3;
+  const format = (config.format as string) || 'bullet';
+  
+  // In real implementation, fetch from memory store
+  // For now, return placeholder memories
+  const memories = [
+    'User enjoys sci-fi stories',
+    'User prefers concise responses',
+    'User likes character to be proactive',
+  ].slice(0, count);
+
+  let formattedMemories: string;
+  switch (format) {
+    case 'bullet':
+      formattedMemories = memories.map(m => `- ${m}`).join('\n');
+      break;
+    case 'numbered':
+      formattedMemories = memories.map((m, i) => `${i + 1}. ${m}`).join('\n');
+      break;
+    case 'paragraph':
+    default:
+      formattedMemories = memories.join('. ') + '.';
+  }
+
+  return {
+    outputs: new Map([['memories', memories]]),
+    fragments: [{
+      text: formattedMemories,
+      sourceBlockId: 'memory-block',
+      sourceBlockType: 'MemoryBlock',
+    }],
+  };
+}
+
+async function executeLorebookBlock(
+  config: BlockConfig,
+  context: ExecutionContext
+): Promise<BlockExecutionResult> {
+  const maxEntries = (config.maxEntries as number) || 5;
+  
+  // In real implementation, fetch from lorebook
+  // For now, return placeholder entries
+  const entries = [
+    'The world is set in a cyberpunk future',
+    'Magic exists but is rare and dangerous',
+  ].slice(0, maxEntries);
+
+  return {
+    outputs: new Map([['entries', entries]]),
+    fragments: [{
+      text: entries.map(e => `[Lore] ${e}`).join('\n'),
+      sourceBlockId: 'lorebook-block',
+      sourceBlockType: 'LorebookBlock',
     }],
   };
 }

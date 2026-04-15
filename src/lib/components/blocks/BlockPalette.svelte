@@ -4,9 +4,10 @@
 
   interface Props {
     onBlockDragStart?: (blockType: string) => void;
+    onBlockClick?: (blockType: string) => void;
   }
 
-  let { onBlockDragStart }: Props = $props();
+  let { onBlockDragStart, onBlockClick }: Props = $props();
 
   const categories = [
     { id: 'foundation', label: 'Foundation', color: '#89b4fa' },
@@ -22,6 +23,10 @@
   function handleDragStart(e: DragEvent, blockType: string) {
     e.dataTransfer?.setData('text/plain', blockType);
     onBlockDragStart?.(blockType);
+  }
+
+  function handleClick(blockType: string) {
+    onBlockClick?.(blockType);
   }
 </script>
 
@@ -41,12 +46,12 @@
 
         <div class="space-y-2">
           {#each blocks as block}
-            <div
-              class="flex items-center gap-2 p-2 bg-surface0 rounded cursor-grab hover:bg-surface2 transition-colors"
+            <button
+              class="flex items-center gap-2 p-2 bg-surface0 rounded cursor-pointer hover:bg-surface2 transition-colors w-full text-left"
               draggable="true"
               ondragstart={(e) => handleDragStart(e, block.type)}
-              role="button"
-              aria-label="Drag {block.displayName} block"
+              onclick={() => handleClick(block.type)}
+              aria-label="Add {block.displayName} block"
             >
               <span class="text-lg">{block.icon}</span>
               <div class="flex-1 min-w-0">
@@ -57,7 +62,8 @@
                   {block.description}
                 </div>
               </div>
-            </div>
+              <span class="text-xs text-mauve opacity-50">+</span>
+            </button>
           {/each}
         </div>
       </div>

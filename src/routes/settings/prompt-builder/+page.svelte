@@ -12,9 +12,10 @@
   import BlockPalette from '$lib/components/blocks/BlockPalette.svelte';
   import LivePreview from '$lib/components/blocks/LivePreview.svelte';
   import { blockBuilderStore, createEmptyGraph } from '$lib/stores/block-builder';
-  import { registerAllBlocks } from '$lib/blocks/registry';
+  import { registerAllBlocks, blockRegistry } from '$lib/blocks/registry';
   import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
   import { exportToTPrompt, downloadAsJSON } from '$lib/blocks/serialization';
+  import type { BlockInstance } from '$lib/types';
   
   // Initialize blocks
   registerAllBlocks();
@@ -188,6 +189,30 @@
   function handleBlockMove(blockId: string, position: { x: number; y: number }) {
     blockBuilderStore.updateBlockPosition(blockId, position);
   }
+
+  // Handle adding new block from palette
+  function handleAddBlock(blockType: string) {
+    const definition = blockRegistry.get(blockType);
+    if (!definition) return;
+
+    // Calculate position - add to right side of existing blocks or center
+    const existingBlocks = currentGraph.blocks;
+    const x = existingBlocks.length > 0 
+      ? Math.max(...existingBlocks.map((b: BlockInstance) => b.position.x)) + 250
+      : 100;
+    const y = existingBlocks.length > 0
+      ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 100
+      : 100;
+
+    const newBlock = {
+      id: crypto.randomUUID(),
+      type: blockType,
+      position: { x, y },
+      config: { ...definition.defaultConfig },
+    };
+
+    blockBuilderStore.addBlock(newBlock);
+  }
 </script>
 
 {#if !loaded}
@@ -318,7 +343,7 @@
       {:else}
         <!-- Block Builder View -->
         <div class="flex gap-4 h-[600px]">
-          <BlockPalette />
+          <BlockPalette onBlockClick={handleAddBlock} />
           <div class="flex-1 flex gap-4">
             <div class="flex-1 relative">
               <BlockCanvas
