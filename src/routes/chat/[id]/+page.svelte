@@ -8,6 +8,7 @@
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
   import { sceneStore } from '$lib/stores/scene';
+  import { sceneRepo } from '$lib/repositories/scene-repo';
   import { settingsStore } from '$lib/stores/settings';
   import { sendMessage, initChat, generateIllustration, injectFirstMessage } from '$lib/core/chat/use-chat';
   import * as chatStorage from '$lib/storage/chats';
@@ -91,10 +92,10 @@
     showSessionPanel = false;
 
     await chatRepo.saveMessages();
-    await sceneStore.save();
+    await sceneRepo.save();
 
     await chatRepo.loadSession(characterId, newSessionId);
-    await sceneStore.loadScene(characterId, newSessionId);
+    await sceneRepo.loadScene(characterId, newSessionId);
     await injectFirstMessage();
 
     const typeParam = cardType === 'world' ? 'cardType=world&' : '';
@@ -106,11 +107,11 @@
     showSessionPanel = false;
 
     await chatRepo.saveMessages();
-    await sceneStore.save();
+    await sceneRepo.save();
 
     const session = await chatStorage.createSession(characterId);
     await chatRepo.loadSession(characterId, session.id);
-    await sceneStore.loadScene(characterId, session.id);
+    await sceneRepo.loadScene(characterId, session.id);
     await injectFirstMessage();
     sessions = await chatStorage.listSessions(characterId);
 
@@ -134,7 +135,7 @@
     if (sessionId === currentSessionId) {
       const remaining = sessions[0];
       await chatRepo.loadSession(characterId, remaining.id);
-      await sceneStore.loadScene(characterId, remaining.id);
+      await sceneRepo.loadScene(characterId, remaining.id);
       await injectFirstMessage();
       const typeParam = cardType === 'world' ? 'cardType=world&' : '';
       goto(`/chat/${characterId}?${typeParam}session=${remaining.id}`, { replaceState: true });

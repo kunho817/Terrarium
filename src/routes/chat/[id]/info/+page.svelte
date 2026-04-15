@@ -4,8 +4,10 @@
   import { charactersStore } from '$lib/stores/characters';
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import { chatStore } from '$lib/stores/chat';
   import { sceneStore } from '$lib/stores/scene';
+  import { sceneRepo } from '$lib/repositories/scene-repo';
   import VariableViewer from '$lib/components/editors/VariableViewer.svelte';
 
   let location = $state('');
@@ -62,16 +64,16 @@
     if (!cardId) return;
 
     if (cardType === 'world') {
-      await worldsStore.selectWorld(cardId);
+      await worldsRepo.selectWorld(cardId);
     } else {
       await charactersRepo.selectCharacter(cardId);
     }
 
     const sessionId = $page.url.searchParams.get('session') ?? $chatStore.sessionId;
     if (sessionId) {
-      await sceneStore.loadScene(cardId, sessionId);
+      await sceneRepo.loadScene(cardId, sessionId);
     } else {
-      await sceneStore.loadSceneLegacy(cardId);
+      await sceneRepo.loadSceneLegacy(cardId);
     }
     const scene = $sceneStore;
     location = scene.location;
@@ -84,7 +86,7 @@
     saveMessage = '';
     try {
       sceneStore.updateScene({ location, time, mood });
-      await sceneStore.save();
+      await sceneRepo.save();
       saveMessage = 'Saved';
       setTimeout(() => { saveMessage = ''; }, 2000);
     } catch {
@@ -98,7 +100,7 @@
     const current = { ...$sceneStore.variables };
     delete current[key];
     sceneStore.updateScene({ variables: current });
-    sceneStore.save();
+    sceneRepo.save();
   }
 </script>
 
