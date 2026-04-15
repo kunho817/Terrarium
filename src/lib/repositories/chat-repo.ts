@@ -5,7 +5,6 @@
 import { get } from 'svelte/store';
 import { chatStore, type ChatState } from '$lib/stores/chat';
 import * as chatStorage from '$lib/storage/chats';
-import type { Message } from '$lib/types';
 
 export const chatRepo = {
   /**
@@ -24,7 +23,7 @@ export const chatRepo = {
       });
     } catch (error) {
       console.error('Failed to load chat session:', error);
-      chatStore.clear();
+      chatStore.reset();
     }
   },
 
