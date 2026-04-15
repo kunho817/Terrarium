@@ -10,7 +10,7 @@ import { createDefaultPresetSettings, migratePresetItems, createDefaultPreset } 
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 import type { AppSettings } from '$lib/storage/settings';
 
-export const export const settingsRepo = {
+export const settingsRepo = {
   /**
    * Load settings from storage and apply migrations.
    */
@@ -102,4 +102,4 @@ export const export const settingsRepo = {
   getCurrentState(): AppSettings {
     return get(settingsStore);
   },
-};;
+};
