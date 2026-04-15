@@ -164,3 +164,6 @@ export class ExecutionEngine {
       .join('\n\n');
   }
 }
+
+// Export concrete executor
+export { executeBlock } from './executors';
