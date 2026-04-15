@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { charactersStore } from '$lib/stores/characters';
+  import { charactersRepo } from '$lib/repositories/characters-repo';
   import * as characterStorage from '$lib/storage/characters';
   import CharacterEditor from '$lib/components/editors/CharacterEditor.svelte';
   import type { CharacterCard } from '$lib/types';
@@ -17,7 +18,7 @@
   onMount(async () => {
     const id = $page.params.id!;
     try {
-      await charactersStore.selectCharacter(id);
+      await charactersRepo.selectCharacter(id);
       const state = $charactersStore;
       if (state.current) {
         // Deep clone so local edits don't mutate the store directly

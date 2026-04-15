@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { charactersStore } from '$lib/stores/characters';
+  import { charactersRepo } from '$lib/repositories/characters-repo';
   import { getRegistry } from '$lib/core/bootstrap';
   import CharacterCardDisplay from '$lib/components/CharacterCardDisplay.svelte';
   import type { CharacterCard } from '$lib/types';
@@ -12,7 +13,7 @@
   let exportMenuFor: string | null = $state(null);
 
   onMount(() => {
-    charactersStore.loadList();
+    charactersRepo.load();
   });
 
   async function handleImport() {
@@ -49,7 +50,7 @@
         }
       }
 
-      await charactersStore.loadList();
+      await charactersRepo.load();
     } catch (e: any) {
       error = e?.message || 'Import failed';
     } finally {
@@ -59,7 +60,7 @@
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete character "${name}"? This cannot be undone.`)) return;
-    await charactersStore.deleteCharacter(id);
+    await charactersRepo.deleteCharacter(id);
   }
 
   function handleSelect(id: string) {
