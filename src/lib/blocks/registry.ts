@@ -33,3 +33,6 @@ export class BlockRegistry {
 
 // Global registry instance
 export const blockRegistry = new BlockRegistry();
+
+// Re-export for convenience
+export { registerAllBlocks } from './definitions';
