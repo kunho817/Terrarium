@@ -9,7 +9,7 @@
   let content = $state((config.content as string) || '');
   let enabled = $state((config.enabled as boolean) ?? true);
 
-  // Auto-save on change (with debounce)
+  // Auto-save on change (immediate)
   function handleContentChange(e: Event) {
     content = (e.target as HTMLTextAreaElement).value;
     onChange({ content, enabled });
@@ -29,12 +29,13 @@
 
 <div class="space-y-4">
   <div>
-    <label class="block text-sm font-medium text-text mb-2">
+    <label for="content" class="block text-sm font-medium text-text mb-2">
       Content
     </label>
     <textarea
+      id="content"
       class="w-full h-32 p-3 bg-surface0 rounded-lg border border-surface2 text-text text-sm resize-none focus:border-mauve focus:outline-none"
-      placeholder="Enter text content... Use {{char}} and {{user}} for variables"
+      placeholder="Enter text content... Use {'{{'}char{'}'} and {'{{'}user{'}'} for variables"
       value={content}
       oninput={handleContentChange}
     ></textarea>
