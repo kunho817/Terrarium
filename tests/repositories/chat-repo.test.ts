@@ -1,0 +1,120 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { get } from 'svelte/store';
+
+vi.mock('$lib/storage/chats', () => ({
+  loadMessages: vi.fn(),
+  saveMessages: vi.fn(),
+  listSessions: vi.fn(),
+  createSession: vi.fn(),
+}));
+
+import { chatRepo } from '$lib/repositories/chat-repo';
+import { chatStore } from '$lib/stores/chat';
+import { loadMessages, saveMessages, listSessions, createSession } from '$lib/storage/chats';
+import type { Message } from '$lib/types';
+
+const mockMessage: Message = {
+  role: 'user',
+  content: 'Hello',
+  type: 'dialogue',
+  timestamp: Date.now(),
+};
+
+describe('chatRepo', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    chatStore.clear();
+  });
+
+  describe('loadSession', () => {
+    it('loads messages into store', async () => {
+      vi.mocked(loadMessages).mockResolvedValue([mockMessage]);
+      
+      await chatRepo.loadSession('char-1', 'session-1');
+      
+      const state = get(chatStore);
+      expect(state.chatId).toBe('char-1');
+      expect(state.sessionId).toBe('session-1');
+      expect(state.messages).toEqual([mockMessage]);
+      expect(state.isLoading).toBe(false);
+      expect(loadMessages).toHaveBeenCalledWith('char-1', 'session-1');
+    });
+
+    it('handles empty messages', async () => {
+      vi.mocked(loadMessages).mockResolvedValue([]);
+      
+      await chatRepo.loadSession('char-1', 'session-1');
+      
+      const state = get(chatStore);
+      expect(state.messages).toEqual([]);
+      expect(state.isLoading).toBe(false);
+    });
+  });
+
+  describe('loadChat', () => {
+    it('loads most recent session', async () => {
+      const mockSessions = [
+        { id: 'session-1', name: 'First', lastMessageAt: 1000 },
+        { id: 'session-2', name: 'Second', lastMessageAt: 2000 },
+      ];
+      vi.mocked(listSessions).mockResolvedValue(mockSessions);
+      vi.mocked(loadMessages).mockResolvedValue([mockMessage]);
+      
+      await chatRepo.loadChat('char-1');
+      
+      const state = get(chatStore);
+      expect(state.chatId).toBe('char-1');
+      expect(state.sessionId).toBe('session-2'); // Most recent
+      expect(loadMessages).toHaveBeenCalledWith('char-1', 'session-2');
+    });
+
+    it('creates new session if none exist', async () => {
+      vi.mocked(listSessions).mockResolvedValue([]);
+      vi.mocked(createSession).mockResolvedValue({ id: 'new-session', name: 'Chat', lastMessageAt: Date.now() });
+      vi.mocked(loadMessages).mockResolvedValue([]);
+      
+      await chatRepo.loadChat('char-1');
+      
+      const state = get(chatStore);
+      expect(state.chatId).toBe('char-1');
+      expect(state.sessionId).toBe('new-session');
+      expect(createSession).toHaveBeenCalledWith('char-1');
+    });
+  });
+
+  describe('saveMessages', () => {
+    it('saves current messages', async () => {
+      chatStore.set({
+        chatId: 'char-1',
+        sessionId: 'session-1',
+        messages: [mockMessage],
+        isLoading: false,
+        streamingMessage: null,
+        isStreaming: false,
+      });
+      
+      await chatRepo.saveMessages();
+      
+      expect(saveMessages).toHaveBeenCalledWith('char-1', 'session-1', [mockMessage]);
+    });
+
+    it('does not save if no chatId or sessionId', async () => {
+      chatStore.clear();
+      
+      await chatRepo.saveMessages();
+      
+      expect(saveMessages).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createSession', () => {
+    it('creates and returns new session id', async () => {
+      vi.mocked(createSession).mockResolvedValue({ id: 'new-session', name: 'Chat', lastMessageAt: Date.now() });
+      
+      const sessionId = await chatRepo.createSession('char-1');
+      
+      expect(sessionId).toBe('new-session');
+      expect(createSession).toHaveBeenCalledWith('char-1');
+    });
+  });
+});

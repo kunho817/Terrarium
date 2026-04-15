@@ -5,6 +5,7 @@
 
 import { get } from 'svelte/store';
 import { chatStore } from '$lib/stores/chat';
+import { chatRepo } from '$lib/repositories/chat-repo';
 import { sceneStore } from '$lib/stores/scene';
 import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
@@ -75,10 +76,10 @@ function resolveActiveCard(): ResolvedCard | null {
 
 export async function initChat(characterId: string, sessionId?: string): Promise<void> {
   if (sessionId) {
-    await chatStore.loadSession(characterId, sessionId);
+    await chatRepo.loadSession(characterId, sessionId);
     await sceneStore.loadScene(characterId, sessionId);
   } else {
-    await chatStore.loadChat(characterId);
+    await chatRepo.loadChat(characterId);
     const chatState = get(chatStore);
     if (chatState.sessionId) {
       await sceneStore.loadScene(characterId, chatState.sessionId);
@@ -117,7 +118,7 @@ export async function injectFirstMessage(): Promise<void> {
         isFirstMessage: true,
       };
       chatStore.addMessage(greeting);
-      await chatStore.save();
+      await chatRepo.saveMessages();
     }
   }
 }

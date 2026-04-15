@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { chatStore } from '$lib/stores/chat';
+  import { chatRepo } from '$lib/repositories/chat-repo';
   import { charactersStore } from '$lib/stores/characters';
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
@@ -89,10 +90,10 @@
     const characterId = $page.params.id!;
     showSessionPanel = false;
 
-    await chatStore.save();
+    await chatRepo.saveMessages();
     await sceneStore.save();
 
-    await chatStore.loadSession(characterId, newSessionId);
+    await chatRepo.loadSession(characterId, newSessionId);
     await sceneStore.loadScene(characterId, newSessionId);
     await injectFirstMessage();
 
@@ -104,11 +105,11 @@
     const characterId = $page.params.id!;
     showSessionPanel = false;
 
-    await chatStore.save();
+    await chatRepo.saveMessages();
     await sceneStore.save();
 
     const session = await chatStorage.createSession(characterId);
-    await chatStore.loadSession(characterId, session.id);
+    await chatRepo.loadSession(characterId, session.id);
     await sceneStore.loadScene(characterId, session.id);
     await injectFirstMessage();
     sessions = await chatStorage.listSessions(characterId);
@@ -132,7 +133,7 @@
 
     if (sessionId === currentSessionId) {
       const remaining = sessions[0];
-      await chatStore.loadSession(characterId, remaining.id);
+      await chatRepo.loadSession(characterId, remaining.id);
       await sceneStore.loadScene(characterId, remaining.id);
       await injectFirstMessage();
       const typeParam = cardType === 'world' ? 'cardType=world&' : '';

@@ -29,72 +29,10 @@ function createChatStore() {
 
   return {
     subscribe,
+    set,
+    update,
 
-    async loadSession(characterId: string, sessionId: string) {
-      update((s) => ({ ...s, isLoading: true }));
-      try {
-        const messages = await chatStorage.loadMessages(characterId, sessionId);
-        set({
-          chatId: characterId,
-          sessionId,
-          messages,
-          isLoading: false,
-          streamingMessage: null,
-          isStreaming: false,
-        });
-      } catch {
-        set({
-          chatId: characterId,
-          sessionId,
-          messages: [],
-          isLoading: false,
-          streamingMessage: null,
-          isStreaming: false,
-        });
-      }
-    },
-
-    /**
-     * Legacy compat: loadChat migrates to session-aware automatically.
-     * Loads the most recent session for the character, or creates one.
-     */
-    async loadChat(chatId: string) {
-      update((s) => ({ ...s, isLoading: true }));
-      try {
-        await chatStorage.listSessions(chatId); // triggers migration
-        const sessions = await chatStorage.listSessions(chatId);
-        let sessionId: string;
-
-        if (sessions.length > 0) {
-          // Pick most recent
-          sessions.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
-          sessionId = sessions[0].id;
-        } else {
-          const session = await chatStorage.createSession(chatId);
-          sessionId = session.id;
-        }
-
-        const messages = await chatStorage.loadMessages(chatId, sessionId);
-        set({
-          chatId,
-          sessionId,
-          messages,
-          isLoading: false,
-          streamingMessage: null,
-          isStreaming: false,
-        });
-      } catch {
-        set({
-          chatId: null,
-          sessionId: null,
-          messages: [],
-          isLoading: false,
-          streamingMessage: null,
-          isStreaming: false,
-        });
-      }
-    },
-
+    // Pure state helpers (no persistence)
     addMessage(message: Message) {
       update((s) => ({ ...s, messages: [...s.messages, message] }));
     },
@@ -132,11 +70,8 @@ function createChatStore() {
       update((s) => ({ ...s, streamingMessage: null, isStreaming: false }));
     },
 
-    async save() {
-      const state = get({ subscribe });
-      if (state.chatId && state.sessionId) {
-        await chatStorage.saveMessages(state.chatId, state.sessionId, state.messages);
-      }
+    setSessionState(chatId: string | null, sessionId: string | null, messages: Message[]) {
+      update((s) => ({ ...s, chatId, sessionId, messages, isLoading: false }));
     },
 
     clear() {
