@@ -204,12 +204,14 @@
 
     // Calculate position - add to right side of existing blocks or center
     const existingBlocks = currentGraph.blocks;
-    const x = existingBlocks.length > 0 
+    // Position first block at canvas center (viewport starts at 0,0 with 400,300 offset)
+    // So visible center is around (-100, -100) to (100, 100) in world coordinates
+    const x = existingBlocks.length > 0
       ? Math.max(...existingBlocks.map((b: BlockInstance) => b.position.x)) + 250
-      : 100;
+      : 0; // Center of visible area (0 + 400 = 400px from left)
     const y = existingBlocks.length > 0
       ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 100
-      : 100;
+      : 0; // Center of visible area (0 + 300 = 300px from top)
 
     const newBlock: import('$lib/types/blocks').BlockInstance = {
       id: crypto.randomUUID(),
