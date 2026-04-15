@@ -351,8 +351,8 @@
         {@const selectedBlock = currentGraph.blocks.find((b: BlockInstance) => b.id === selectedBlockId) ?? null}
         <div class="flex gap-4 h-[600px]">
           <BlockPalette onBlockClick={handleAddBlock} />
-          <div class="flex-1 flex gap-4 min-w-0">
-            <div class="flex-1 relative min-w-0">
+          <div class="flex-1 flex gap-4 min-w-0 h-full">
+            <div class="flex-1 relative min-w-0 h-full">
               <BlockCanvas
                 graph={currentGraph}
                 viewport={$viewportStore}
