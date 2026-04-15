@@ -225,6 +225,11 @@
     </div>
   {/if}
 
+  <!-- Debug: Block count -->
+  <div class="absolute top-2 right-2 z-30 bg-surface0 px-2 py-1 rounded text-xs text-text">
+    Blocks: {graph.blocks.length}
+  </div>
+
   <!-- Toolbar (fixed position, not transformed) -->
   <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
     <Toolbar
