@@ -11,6 +11,7 @@ export const chatRepo = {
    * Load a chat session
    */
   async loadSession(characterId: string, sessionId: string): Promise<void> {
+    chatStore.update(s => ({ ...s, isLoading: true }));
     try {
       const messages = await chatStorage.loadMessages(characterId, sessionId);
       chatStore.set({
