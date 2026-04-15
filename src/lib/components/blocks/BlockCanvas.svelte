@@ -47,8 +47,8 @@
   // Track if space key is held for pan mode
   let isSpacePressed = $state(false);
 
-  // Connected ports tracking
-  const connectedPortIds = $derived(() => {
+  // Connected ports tracking - computed once per graph change
+  const connectedPortIds = $derived.by(() => {
     const connected = new Set<string>();
     for (const conn of graph.connections) {
       connected.add(`${conn.from.blockId}-${conn.from.portId}`);
@@ -115,7 +115,6 @@
 
   function handleWheel(e: WheelEvent) {
     e.preventDefault();
-    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
     
     if (e.deltaY > 0) {
       onZoomOut();
@@ -212,7 +211,7 @@
         onDoubleClick={() => onBlockDoubleClick(block.id)}
         onDragStart={(e) => handleBlockDragStart(block.id, e)}
         onPortActivate={(port, isInput, e) => handlePortActivate(block.id, port, isInput, e)}
-        connectedPortIds={connectedPortIds()}
+        {connectedPortIds}
       />
     {/each}
   </div>
