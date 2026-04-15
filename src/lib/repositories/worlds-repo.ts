@@ -13,8 +13,8 @@ export const worldsRepo = {
   async load(): Promise<void> {
     try {
       worldsStore.update(s => ({ ...s, isLoading: true }));
-      const list = await worldsStorage.listWorlds();
-      worldsStore.update(s => ({ ...s, list, isLoading: false }));
+      const worlds = await worldsStorage.listWorlds();
+      worldsStore.update(s => ({ ...s, worlds, isLoading: false }));
     } catch (error) {
       worldsStore.update(s => ({ ...s, isLoading: false }));
       throw error;
@@ -44,16 +44,16 @@ export const worldsRepo = {
       if (id) {
         // Update existing world
         await worldsStorage.saveWorld(id, world);
-        // Update store - refresh list to get updated name
-        const list = await worldsStorage.listWorlds();
-        worldsStore.update(s => ({ ...s, list }));
+        // Update store - refresh worlds to get updated name
+        const worlds = await worldsStorage.listWorlds();
+        worldsStore.update(s => ({ ...s, worlds }));
         return id;
       } else {
         // Create new world
         const newId = await worldsStorage.createWorld(world);
-        // Add to store list
-        const list = await worldsStorage.listWorlds();
-        worldsStore.update(s => ({ ...s, list }));
+        // Add to store worlds
+        const worlds = await worldsStorage.listWorlds();
+        worldsStore.update(s => ({ ...s, worlds }));
         return newId;
       }
     } catch (error) {
@@ -70,7 +70,7 @@ export const worldsRepo = {
       // Update store state directly
       worldsStore.update(s => ({
         ...s,
-        list: s.list.filter((w) => w.id !== id),
+        worlds: s.worlds.filter((w) => w.id !== id),
         currentId: s.currentId === id ? null : s.currentId,
         current: s.currentId === id ? null : s.current,
       }));

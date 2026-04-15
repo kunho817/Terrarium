@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import * as worldStorage from '$lib/storage/worlds';
   import * as worldImport from '$lib/storage/world-import';
   import { createDefaultWorldCard } from '$lib/types';
@@ -10,7 +11,7 @@
   let importing = $state(false);
 
   onMount(() => {
-    worldsStore.loadList();
+    worldsRepo.load();
   });
 
   async function handleCreate() {
@@ -52,7 +53,7 @@
         }
       }
 
-      await worldsStore.loadList();
+      await worldsRepo.load();
     } catch (e: any) {
       error = e?.message || 'Import failed';
     } finally {
@@ -79,7 +80,7 @@
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete world "${name}"? This cannot be undone.`)) return;
-    await worldsStore.deleteWorld(id);
+    await worldsRepo.deleteWorld(id);
   }
 
   function handleSelect(id: string) {
@@ -118,7 +119,7 @@
   <div class="flex-1 overflow-y-auto p-4">
     {#if $worldsStore.isLoading}
       <div class="text-center text-subtext0 py-8">Loading...</div>
-    {:else if $worldsStore.list.length === 0}
+    {:else if $worldsStore.worlds.length === 0}
       <div class="text-center text-subtext0 py-8">
         <p class="text-lg mb-2">No worlds yet</p>
         <p class="text-sm mb-4">Create a world card to set up a universe for roleplay</p>
@@ -131,7 +132,7 @@
       </div>
     {:else}
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {#each $worldsStore.list as world (world.id)}
+        {#each $worldsStore.worlds as world (world.id)}
           <div class="group relative">
             <button
               onclick={() => handleSelect(world.id)}
