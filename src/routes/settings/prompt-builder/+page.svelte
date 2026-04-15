@@ -1,11 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
-import { settingsRepo } from '$lib/repositories/settings-repo';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import PresetList from '$lib/components/editors/PresetList.svelte';
   import PromptItemEditor from '$lib/components/editors/PromptItemEditor.svelte';
   import type { PromptPreset, PromptItem, PromptPresetSettings } from '$lib/types/prompt-preset';
   import { createDefaultPreset } from '$lib/core/presets/defaults';
+  
+  // Block builder imports
+  import BlockCanvas from '$lib/components/blocks/BlockCanvas.svelte';
+  import BlockPalette from '$lib/components/blocks/BlockPalette.svelte';
+  import LivePreview from '$lib/components/blocks/LivePreview.svelte';
+  import { blockBuilderStore, createEmptyGraph } from '$lib/stores/block-builder';
+  import { registerAllBlocks } from '$lib/blocks/registry';
+  import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
+  import { exportToTPrompt, downloadAsJSON } from '$lib/blocks/serialization';
+  
+  // Initialize blocks
+  registerAllBlocks();
 
   let loaded = $state(false);
   let localSettings = $state<PromptPresetSettings | null>(null);
@@ -132,6 +144,32 @@ import { settingsRepo } from '$lib/repositories/settings-repo';
   async function handleSave() {
     await settingsRepo.save();
   }
+
+  // Block builder state
+  let activeView: 'presets' | 'blocks' = $state('presets');
+  let builderState = $state($blockBuilderStore);
+
+  // Convert current preset to blocks when switching views
+  function switchToBlocks() {
+    const currentPreset = localSettings?.presets.find(p => p.id === localSettings!.activePresetId);
+    if (currentPreset) {
+      const graph = presetToBlocks(currentPreset);
+      blockBuilderStore.setGraph(graph);
+    }
+    activeView = 'blocks';
+  }
+
+  // Export current block graph as .tprompt
+  function handleExportTPrompt() {
+    const graph = builderState.currentGraph;
+    const file = exportToTPrompt(activePreset?.name || 'Untitled', graph);
+    downloadAsJSON(file, `${file.name}.tprompt`);
+  }
+
+  // Handle block movement on canvas
+  function handleBlockMove(blockId: string, position: { x: number; y: number }) {
+    blockBuilderStore.updateBlockPosition(blockId, position);
+  }
 </script>
 
 {#if !loaded}
@@ -149,90 +187,153 @@ import { settingsRepo } from '$lib/repositories/settings-repo';
           </a>
           <h1 class="text-lg font-semibold text-text mt-1">Prompt Builder</h1>
         </div>
-        <button
-          onclick={handleSave}
-          class="px-4 py-1.5 rounded-md text-sm font-medium bg-mauve text-crust
-                 hover:bg-lavender transition-colors"
-        >
-          Save
-        </button>
+        <div class="flex items-center gap-3">
+          <!-- View Switcher Tabs -->
+          <div class="flex bg-surface0 rounded-lg p-1">
+            <button
+              class="px-3 py-1 rounded-md text-sm font-medium transition-colors"
+              class:bg-mauve={activeView === 'presets'}
+              class:text-crust={activeView === 'presets'}
+              class:text-text={activeView !== 'presets'}
+              onclick={() => activeView = 'presets'}
+            >
+              Classic Presets
+            </button>
+            <button
+              class="px-3 py-1 rounded-md text-sm font-medium transition-colors"
+              class:bg-mauve={activeView === 'blocks'}
+              class:text-crust={activeView === 'blocks'}
+              class:text-text={activeView !== 'blocks'}
+              onclick={switchToBlocks}
+            >
+              Block Builder (Beta)
+            </button>
+          </div>
+          
+          <button
+            onclick={handleSave}
+            class="px-4 py-1.5 rounded-md text-sm font-medium bg-mauve text-crust
+                   hover:bg-lavender transition-colors"
+          >
+            Save
+          </button>
+        </div>
       </div>
 
-      <div class="flex gap-6 flex-col md:flex-row">
-        <!-- Left panel: Preset list -->
-        <div class="w-full md:w-64 shrink-0">
-          <PresetList
-            presets={localSettings?.presets ?? []}
-            activePresetId={localSettings?.activePresetId ?? ''}
-            onselect={handleSelect}
-            oncreate={handleCreate}
-            onduplicate={handleDuplicate}
-            onrename={handleRename}
-            ondelete={handleDelete}
-          />
+      {#if activeView === 'presets'}
+        <!-- Classic Preset View -->
+        <div class="flex gap-6 flex-col md:flex-row">
+          <!-- Left panel: Preset list -->
+          <div class="w-full md:w-64 shrink-0">
+            <PresetList
+              presets={localSettings?.presets ?? []}
+              activePresetId={localSettings?.activePresetId ?? ''}
+              onselect={handleSelect}
+              oncreate={handleCreate}
+              onduplicate={handleDuplicate}
+              onrename={handleRename}
+              ondelete={handleDelete}
+            />
+          </div>
+
+          <!-- Right panel: Items editor -->
+          <div class="flex-1 min-w-0">
+            {#if activePreset}
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-medium text-text">{activePreset.name}</h2>
+                <button
+                  onclick={handleReset}
+                  class="text-xs text-subtext0 hover:text-red transition-colors"
+                  title="Reset this preset to factory defaults (all custom changes will be lost)"
+                >
+                  Reset to Default
+                </button>
+              </div>
+              <div class="space-y-3">
+                {#each activePreset.items as item, i (item.id)}
+                  <div class="flex items-start gap-2">
+                    <!-- Move buttons -->
+                    <div class="flex flex-col gap-0.5 pt-2 shrink-0">
+                      <button
+                        onclick={() => handleMoveUp(i)}
+                        disabled={i === 0}
+                        class="px-1.5 py-0.5 text-xs rounded bg-surface0 text-subtext1
+                               hover:bg-surface1 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        &#9650;
+                      </button>
+                      <button
+                        onclick={() => handleMoveDown(i)}
+                        disabled={i >= activePreset.items.length - 1}
+                        class="px-1.5 py-0.5 text-xs rounded bg-surface0 text-subtext1
+                               hover:bg-surface1 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        &#9660;
+                      </button>
+                    </div>
+
+                    <!-- Item editor -->
+                    <div class="flex-1 min-w-0">
+                      <PromptItemEditor
+                        {item}
+                        onchange={(updated: PromptItem) => handleItemChange(i, updated)}
+                        onremove={() => handleItemRemove(i)}
+                      />
+                    </div>
+                  </div>
+                {/each}
+
+                <!-- Add item button -->
+                <button
+                  onclick={handleAddItem}
+                  class="w-full py-2 rounded-md text-sm font-medium bg-surface0 text-subtext1
+                         hover:bg-surface1 hover:text-text transition-colors border border-dashed border-surface1"
+                >
+                  + Add Item
+                </button>
+              </div>
+            {:else}
+              <p class="text-sm text-subtext0">Select or create a preset to begin.</p>
+            {/if}
+          </div>
         </div>
-
-        <!-- Right panel: Items editor -->
-        <div class="flex-1 min-w-0">
-          {#if activePreset}
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-sm font-medium text-text">{activePreset.name}</h2>
-              <button
-                onclick={handleReset}
-                class="text-xs text-subtext0 hover:text-red transition-colors"
-                title="Reset this preset to factory defaults (all custom changes will be lost)"
-              >
-                Reset to Default
-              </button>
+      {:else}
+        <!-- Block Builder View -->
+        <div class="flex gap-4 h-[600px]">
+          <BlockPalette />
+          <div class="flex-1 flex gap-4">
+            <div class="flex-1 relative">
+              <BlockCanvas
+                graph={builderState.currentGraph}
+                onBlockMove={handleBlockMove}
+              />
             </div>
-            <div class="space-y-3">
-              {#each activePreset.items as item, i (item.id)}
-                <div class="flex items-start gap-2">
-                  <!-- Move buttons -->
-                  <div class="flex flex-col gap-0.5 pt-2 shrink-0">
-                    <button
-                      onclick={() => handleMoveUp(i)}
-                      disabled={i === 0}
-                      class="px-1.5 py-0.5 text-xs rounded bg-surface0 text-subtext1
-                             hover:bg-surface1 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      &#9650;
-                    </button>
-                    <button
-                      onclick={() => handleMoveDown(i)}
-                      disabled={i >= activePreset.items.length - 1}
-                      class="px-1.5 py-0.5 text-xs rounded bg-surface0 text-subtext1
-                             hover:bg-surface1 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      &#9660;
-                    </button>
-                  </div>
-
-                  <!-- Item editor -->
-                  <div class="flex-1 min-w-0">
-                    <PromptItemEditor
-                      {item}
-                      onchange={(updated: PromptItem) => handleItemChange(i, updated)}
-                      onremove={() => handleItemRemove(i)}
-                    />
-                  </div>
+            <div class="w-80 flex flex-col gap-3">
+              <LivePreview graph={builderState.currentGraph} />
+              
+              <div class="bg-surface1 rounded-lg p-3">
+                <h4 class="text-sm font-medium text-text mb-2">Actions</h4>
+                <div class="space-y-2">
+                  <button
+                    onclick={handleExportTPrompt}
+                    class="w-full px-3 py-2 bg-mauve text-crust rounded-md text-sm font-medium
+                           hover:bg-lavender transition-colors"
+                  >
+                    💾 Export .tprompt
+                  </button>
+                  <button
+                    onclick={() => activeView = 'presets'}
+                    class="w-full px-3 py-2 bg-surface0 text-text rounded-md text-sm
+                           hover:bg-surface2 transition-colors"
+                  >
+                    ⬇️ Back to Presets
+                  </button>
                 </div>
-              {/each}
-
-              <!-- Add item button -->
-              <button
-                onclick={handleAddItem}
-                class="w-full py-2 rounded-md text-sm font-medium bg-surface0 text-subtext1
-                       hover:bg-surface1 hover:text-text transition-colors border border-dashed border-surface1"
-              >
-                + Add Item
-              </button>
+              </div>
             </div>
-          {:else}
-            <p class="text-sm text-subtext0">Select or create a preset to begin.</p>
-          {/if}
+          </div>
         </div>
-      </div>
+      {/if}
 
       <!-- Template Variables Reference -->
       <section class="border-t border-surface1 pt-4 mt-6">
