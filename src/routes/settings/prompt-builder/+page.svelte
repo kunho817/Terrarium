@@ -33,11 +33,11 @@
     localSettings?.presets.find(p => p.id === localSettings!.activePresetId) ?? null
   );
 
-  // Helper to update settings
+  // Helper to update settings (local only until save)
   function updateSettings(patch: Partial<PromptPresetSettings>) {
     if (!localSettings) return;
     localSettings = { ...localSettings, ...patch };
-    settingsStore.update({ promptPresets: localSettings });
+    // Don't update store immediately - wait for explicit save
   }
 
   function updatePreset(updated: PromptPreset) {
@@ -142,12 +142,30 @@
   }
 
   async function handleSave() {
+    if (localSettings) {
+      // Update the store with current preset settings before saving
+      settingsStore.update(s => ({ ...s, promptPresets: localSettings! }));
+    }
     await settingsRepo.save();
   }
 
   // Block builder state
   let activeView: 'presets' | 'blocks' = $state('presets');
-  let builderState = $state($blockBuilderStore);
+  
+  // Only create builder state when in block view (lazy initialization)
+  let currentGraph = $state(createEmptyGraph());
+  
+  // Subscribe to store updates only when in block view
+  $effect(() => {
+    if (activeView === 'blocks') {
+      // Subscribe to store when in blocks view
+      const unsubscribe = blockBuilderStore.subscribe(state => {
+        currentGraph = state.currentGraph;
+      });
+      
+      return unsubscribe;
+    }
+  });
 
   // Convert current preset to blocks when switching views
   function switchToBlocks() {
@@ -155,14 +173,14 @@
     if (currentPreset) {
       const graph = presetToBlocks(currentPreset);
       blockBuilderStore.setGraph(graph);
+      currentGraph = graph;
     }
     activeView = 'blocks';
   }
 
   // Export current block graph as .tprompt
   function handleExportTPrompt() {
-    const graph = builderState.currentGraph;
-    const file = exportToTPrompt(activePreset?.name || 'Untitled', graph);
+    const file = exportToTPrompt(activePreset?.name || 'Untitled', currentGraph);
     downloadAsJSON(file, `${file.name}.tprompt`);
   }
 
@@ -304,12 +322,12 @@
           <div class="flex-1 flex gap-4">
             <div class="flex-1 relative">
               <BlockCanvas
-                graph={builderState.currentGraph}
+                graph={currentGraph}
                 onBlockMove={handleBlockMove}
               />
             </div>
             <div class="w-80 flex flex-col gap-3">
-              <LivePreview graph={builderState.currentGraph} />
+              <LivePreview graph={currentGraph} />
               
               <div class="bg-surface1 rounded-lg p-3">
                 <h4 class="text-sm font-medium text-text mb-2">Actions</h4>

@@ -1,0 +1,248 @@
+<h2>Block-Based Prompt Builder - Mockup</h2>
+<p class="subtitle">Visual canvas interface for creating dynamic prompts with logic blocks</p>
+
+<div class="mockup">
+  <div class="mockup-header">Prompt Builder Canvas</div>
+  <div class="mockup-body" style="background: #1e1e2e; padding: 20px; font-family: system-ui, sans-serif;">
+    
+    <!-- Canvas Area -->
+    <div style="display: grid; grid-template-columns: 200px 1fr 250px; gap: 15px; height: 500px;">
+      
+      <!-- Left Sidebar: Block Palette -->
+      <div style="background: #313244; border-radius: 8px; padding: 12px; overflow-y: auto;">
+        <h4 style="color: #cdd6f4; margin: 0 0 12px 0; font-size: 14px;">Block Palette</h4>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="color: #a6adc8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Foundation</div>
+          <div style="background: #89b4fa; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">📄 Text Block</div>
+          <div style="background: #a6e3a1; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">🏷️ Field Block</div>
+          <div style="background: #f9e2af; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">💾 Memory Block</div>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="color: #a6adc8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Logic (CBS)</div>
+          <div style="background: #f38ba8; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">🔀 If Block</div>
+          <div style="background: #cba6f7; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">⚙️ Toggle Block</div>
+          <div style="background: #eba0ac; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">📦 Switch Block</div>
+          <div style="background: #94e2d5; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">🔗 Merge Block</div>
+        </div>
+        
+        <div>
+          <div style="color: #a6adc8; font-size: 11px; text-transform: uppercase; margin-bottom: 8px;">Advanced</div>
+          <div style="background: #74c7ec; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">🤖 Agent Block</div>
+          <div style="background: #b4befe; color: #1e1e2e; padding: 8px 12px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; cursor: pointer;">🔁 Loop Block</div>
+        </div>
+      </div>
+      
+      <!-- Center: Canvas with Blocks -->
+      <div style="background: #181825; border-radius: 8px; padding: 20px; position: relative; overflow: hidden; border: 2px dashed #45475a;">
+        <div style="position: absolute; top: 10px; right: 10px; color: #6c7086; font-size: 11px;">Canvas: Drag blocks here • Connect with lines</div>
+        
+        <!-- Block 1: Main Text -->
+        <div style="position: absolute; left: 30px; top: 40px; width: 220px;">
+          <div style="background: linear-gradient(135deg, #89b4fa 0%, #74c7ec 100%); border-radius: 8px 8px 0 0; padding: 6px 12px; color: #1e1e2e; font-size: 12px; font-weight: 600;">📄 Text Block</div>
+          <div style="background: #313244; border-radius: 0 0 8px 8px; padding: 10px 12px; color: #cdd6f4; font-size: 12px; line-height: 1.4;">
+            You are {{char}}, a helpful assistant. Always be kind and respectful.
+          </div>
+          <!-- Output port -->
+          <div style="position: absolute; right: -8px; top: 50%; width: 16px; height: 16px; background: #a6e3a1; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+        </div>
+        
+        <!-- Block 2: Toggle Check -->
+        <div style="position: absolute; left: 300px; top: 40px; width: 180px;">
+          <div style="background: linear-gradient(135deg, #cba6f7 0%, #f5c2e7 100%); border-radius: 8px 8px 0 0; padding: 6px 12px; color: #1e1e2e; font-size: 12px; font-weight: 600;">⚙️ Toggle Block</div>
+          <div style="background: #313244; border-radius: 0 0 8px 8px; padding: 10px 12px;">
+            <div style="color: #89b4fa; font-size: 11px; margin-bottom: 4px;">Toggle:</div>
+            <div style="color: #cdd6f4; font-size: 12px; font-weight: 500;">🔘 Creative Mode</div>
+          </div>
+          <!-- Output port -->
+          <div style="position: absolute; right: -8px; top: 50%; width: 16px; height: 16px; background: #cba6f7; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+        </div>
+        
+        <!-- Block 3: If Block -->
+        <div style="position: absolute; left: 520px; top: 30px; width: 200px;">
+          <div style="background: linear-gradient(135deg, #f38ba8 0%, #eba0ac 100%); border-radius: 8px 8px 0 0; padding: 6px 12px; color: #1e1e2e; font-size: 12px; font-weight: 600;">🔀 If Block</div>
+          <div style="background: #313244; padding: 10px 12px;">
+            <div style="color: #a6adc8; font-size: 11px;">Condition: Toggle "Creative Mode"</div>
+          </div>
+          <div style="display: flex;">
+            <div style="flex: 1; background: #a6e3a1; padding: 8px; text-align: center; font-size: 11px; color: #1e1e2e;">✓ TRUE</div>
+            <div style="flex: 1; background: #f38ba8; padding: 8px; text-align: center; font-size: 11px; color: #1e1e2e;">✗ FALSE</div>
+          </div>
+          <!-- Input port -->
+          <div style="position: absolute; left: -8px; top: 40px; width: 16px; height: 16px; background: #cba6f7; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+          <!-- True output port -->
+          <div style="position: absolute; right: -8px; top: 60%; width: 16px; height: 16px; background: #a6e3a1; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+        </div>
+        
+        <!-- Block 4: Creative Add-on (connects to TRUE) -->
+        <div style="position: absolute; left: 520px; top: 160px; width: 200px;">
+          <div style="background: linear-gradient(135deg, #89b4fa 0%, #b4befe 100%); border-radius: 8px 8px 0 0; padding: 6px 12px; color: #1e1e2e; font-size: 12px; font-weight: 600;">📄 Text Block</div>
+          <div style="background: #313244; border-radius: 0 0 8px 8px; padding: 10px 12px; color: #cdd6f4; font-size: 12px; line-height: 1.4;">
+            Be imaginative and use vivid descriptions!
+          </div>
+          <!-- Input port -->
+          <div style="position: absolute; left: -8px; top: 50%; width: 16px; height: 16px; background: #a6e3a1; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+          <!-- Output port -->
+          <div style="position: absolute; right: -8px; top: 50%; width: 16px; height: 16px; background: #a6e3a1; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+        </div>
+        
+        <!-- Block 5: Memory Block -->
+        <div style="position: absolute; left: 30px; top: 180px; width: 200px;">
+          <div style="background: linear-gradient(135deg, #f9e2af 0%, #fab387 100%); border-radius: 8px 8px 0 0; padding: 6px 12px; color: #1e1e2e; font-size: 12px; font-weight: 600;">💾 Memory Block</div>
+          <div style="background: #313244; border-radius: 0 0 8px 8px; padding: 10px 12px;">
+            <div style="color: #89b4fa; font-size: 11px;">Retrieve:</div>
+            <div style="color: #cdd6f4; font-size: 12px;">Top 3 relevant memories</div>
+          </div>
+          <!-- Output port -->
+          <div style="position: absolute; right: -8px; top: 50%; width: 16px; height: 16px; background: #f9e2af; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+        </div>
+        
+        <!-- Block 6: Merge Block -->
+        <div style="position: absolute; left: 300px; top: 200px; width: 140px;">
+          <div style="background: linear-gradient(135deg, #94e2d5 0%, #89dceb 100%); border-radius: 8px 8px 0 0; padding: 6px 12px; color: #1e1e2e; font-size: 12px; font-weight: 600;">🔗 Merge Block</div>
+          <div style="background: #313244; border-radius: 0 0 8px 8px; padding: 15px 12px; text-align: center;">
+            <div style="color: #94e2d5; font-size: 20px;">➕</div>
+            <div style="color: #a6adc8; font-size: 10px;">Combine inputs</div>
+          </div>
+          <!-- Input ports -->
+          <div style="position: absolute; left: 20px; top: -8px; width: 16px; height: 16px; background: #a6e3a1; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+          <div style="position: absolute; left: 60px; top: -8px; width: 16px; height: 16px; background: #f9e2af; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+          <div style="position: absolute; left: 100px; top: -8px; width: 16px; height: 16px; background: #a6e3a1; border-radius: 50%; border: 2px solid #1e1e2e;"></div>
+        </div>
+        
+        <!-- Connection Lines (SVG) -->
+        <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1;">
+          <!-- Main Text -> Merge -->
+          <path d="M 250 80 Q 275 80 290 215" stroke="#a6e3a1" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+          
+          <!-- Memory -> Merge -->
+          <path d="M 230 240 Q 260 240 290 235" stroke="#f9e2af" stroke-width="2" fill="none"/>
+          
+          <!-- Creative -> Merge -->
+          <path d="M 720 240 Q 500 240 380 215" stroke="#a6e3a1" stroke-width="2" fill="none"/>
+          
+          <!-- Toggle -> If -->
+          <path d="M 480 80 Q 500 80 510 70" stroke="#cba6f7" stroke-width="2" fill="none"/>
+          
+          <!-- If TRUE -> Creative -->
+          <path d="M 720 100 Q 750 150 720 240" stroke="#a6e3a1" stroke-width="2" fill="none"/>
+        </svg>
+        
+      </div>
+      
+      <!-- Right Sidebar: Preview & Toggles -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        
+        <!-- Live Preview -->
+        <div style="background: #313244; border-radius: 8px; padding: 12px; flex: 1;">
+          <h4 style="color: #cdd6f4; margin: 0 0 12px 0; font-size: 14px;">Live Preview</h4>
+          
+          <div style="background: #1e1e2e; border-radius: 6px; padding: 12px; font-size: 12px; line-height: 1.6; color: #cdd6f4; font-family: monospace; max-height: 200px; overflow-y: auto;">
+            <div style="color: #6c7086; font-size: 10px; margin-bottom: 8px;">Current Output:</div>
+            You are Assistant, a helpful assistant. Always be kind and respectful.<br/><br/>
+            [Memory: User enjoys sci-fi stories]<br/>
+            [Memory: User prefers short responses]<br/><br/>
+            Be imaginative and use vivid descriptions!
+          </div>
+          
+          <div style="margin-top: 12px; padding: 8px; background: #a6e3a1; background-opacity: 0.2; border-radius: 6px; border: 1px solid #a6e3a1;">
+            <div style="color: #a6e3a1; font-size: 10px; font-weight: 600;">✓ Creative Mode: ON</div>
+          </div>
+        </div>
+        
+        <!-- Toggle Panel -->
+        <div style="background: #313244; border-radius: 8px; padding: 12px;">
+          <h4 style="color: #cdd6f4; margin: 0 0 12px 0; font-size: 14px;">Active Toggles</h4>
+          
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px; background: #1e1e2e; border-radius: 6px; margin-bottom: 8px;">
+            <span style="color: #cdd6f4; font-size: 12px;">🔘 Creative Mode</span>
+            <div style="width: 36px; height: 20px; background: #a6e3a1; border-radius: 10px; position: relative;">
+              <div style="width: 16px; height: 16px; background: #fff; border-radius: 50%; position: absolute; right: 2px; top: 2px;"></div>
+            </div>
+          </div>
+          
+          <button style="width: 100%; padding: 8px; background: #45475a; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">+ Add Toggle</button>
+        </div>
+        
+        <!-- Actions -->
+        <div style="background: #313244; border-radius: 8px; padding: 12px;">
+          <button style="width: 100%; padding: 10px; background: #89b4fa; color: #1e1e2e; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-bottom: 8px;">💾 Save as .tprompt</button>
+          <button style="width: 100%; padding: 10px; background: #45475a; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; margin-bottom: 8px;">📤 Export Fragment</button>
+          <button style="width: 100%; padding: 10px; background: #585b70; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">⬇️ Back to Preset View</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toolbar -->
+    <div style="display: flex; gap: 10px; margin-top: 15px; padding: 10px; background: #313244; border-radius: 8px;">
+      <button style="padding: 8px 16px; background: #585b70; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">↩️ Undo</button>
+      <button style="padding: 8px 16px; background: #585b70; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">↪️ Redo</button>
+      <div style="flex: 1;"></div>
+      <button style="padding: 8px 16px; background: #585b70; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">🔍 Zoom: 100%</button>
+      <button style="padding: 8px 16px; background: #585b70; color: #cdd6f4; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">🖱️ Pan Mode</button>
+      <button style="padding: 8px 16px; background: #f38ba8; color: #1e1e2e; border: none; border-radius: 6px; font-size: 12px; cursor: pointer;">🗑️ Clear</button>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>How It Works</h3>
+  <p style="color: #cdd6f4;">
+    <strong>Left Panel:</strong> Block palette with draggable components. Drag any block onto the canvas.<br/>
+    <strong>Center Canvas:</strong> Visual workspace where you arrange and connect blocks. Click and drag from output ports (right side) to input ports (left side) to create connections.<br/>
+    <strong>Right Panel:</strong> Live preview shows the generated prompt in real-time. Toggle panel lets you test different toggle states.
+  </p>
+  
+  <div style="background: #313244; padding: 15px; border-radius: 8px; margin-top: 15px;">
+    <h4 style="color: #cdd6f4; margin: 0 0 10px 0;">Example: RisuAI CBS Equivalent</h4>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <div style="color: #a6adc8; font-size: 11px; margin-bottom: 5px;">RisuAI CBS Syntax:</div>
+        <code style="display: block; background: #1e1e2e; padding: 10px; border-radius: 6px; font-size: 12px; color: #cdd6f4; font-family: monospace;">
+          You are {{char}}. {{if Creative Mode}}Be imaginative!{{end if}} {{memories}}
+        </code>
+      </div>
+      <div>
+        <div style="color: #a6adc8; font-size: 11px; margin-bottom: 5px;">Block Representation:</div>
+        <div style="color: #a6e3a1; font-size: 12px;">
+          ✓ Visual nodes<br/>
+          ✓ No syntax to learn<br/>
+          ✓ Drag-and-drop logic<br/>
+          ✓ Instant preview
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="intuitive" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Feels Intuitive</h3>
+      <p>This interface looks natural and easy to understand. I'm excited to use it!</p>
+    </div>
+  </div>
+  <div class="option" data-choice="complex" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Looks Complex</h3>
+      <p>This seems overwhelming. I think we need a simpler approach or better onboarding.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="needs-tweaks" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Needs Adjustments</h3>
+      <p>I like the concept but want to change some specific aspects (mention below).</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 20px; padding: 15px; background: #181825; border-radius: 8px;">
+  <h4 style="color: #cdd6f4; margin: 0 0 10px 0;">Your Feedback</h4>
+  <p style="color: #a6adc8; font-size: 13px; margin: 0;">
+    Please select one or more options above, then tell me in the terminal: <strong>What do you think?</strong> Is this the right direction? Any concerns about complexity?
+  </p>
+</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import type { BlockGraph, ExecutionContext, PromptFragment } from '$lib/types';
   import { ExecutionEngine, executeBlock } from '$lib/blocks/execution-engine';
 
@@ -13,24 +14,45 @@
   let output: string = $state('');
   let errors: string[] = $state([]);
   let isExecuting: boolean = $state(false);
+  let lastGraphJson: string = $state('');
 
-  // Re-execute when graph or toggles change
+  // Re-execute when graph or toggles change (but not when our own state changes)
   $effect(() => {
-    executeGraph();
+    // Track the graph and toggles
+    const currentGraph = graph;
+    const currentToggles = toggles;
+    
+    // Create a stable representation of the graph
+    const graphJson = JSON.stringify(currentGraph);
+    
+    // Only execute if graph actually changed
+    if (graphJson !== lastGraphJson) {
+      untrack(() => {
+        lastGraphJson = graphJson;
+      });
+      executeGraph(currentGraph, currentToggles);
+    }
   });
 
-  async function executeGraph() {
+  async function executeGraph(currentGraph: BlockGraph, currentToggles: Map<string, boolean>) {
     if (isExecuting) return;
+    
+    // Use untrack to prevent reactive updates during execution check
+    const alreadyRunning = untrack(() => isExecuting);
+    if (alreadyRunning) return;
+    
     isExecuting = true;
 
     try {
       const engine = new ExecutionEngine({ execute: executeBlock });
       const context: ExecutionContext = {
         variables: new Map(),
-        toggles,
+        toggles: currentToggles,
       };
 
-      const result = await engine.execute(graph, context);
+      const result = await engine.execute(currentGraph, context);
+      
+      // Update state (this won't re-trigger the effect due to untrack in $effect)
       fragments = result.fragments;
       output = result.output;
       errors = result.errors.map((e) => `${e.blockType}: ${e.message}`);
@@ -59,7 +81,7 @@
     </div>
   {/if}
 
-  <div class="flex-1 bg-surface0 rounded-lg p-3 overflow-y-auto">
+  <div class="flex-1 bg-surface0 rounded-lg p-3 overflow-y-auto min-h-[100px]">
     <div class="text-xs text-subtext0 mb-2">Generated Output:</div>
     <pre class="text-sm text-text font-mono whitespace-pre-wrap">{output || '(No output)'}</pre>
   </div>
