@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { chatStore } from '$lib/stores/chat';
+  import { chatRepo } from '$lib/repositories/chat-repo';
   import { charactersStore } from '$lib/stores/characters';
   import { worldsStore } from '$lib/stores/worlds';
   import { sceneStore } from '$lib/stores/scene';
@@ -88,10 +89,10 @@
     const characterId = $page.params.id!;
     showSessionPanel = false;
 
-    await chatStore.save();
+    await chatRepo.saveMessages();
     await sceneStore.save();
 
-    await chatStore.loadSession(characterId, newSessionId);
+    await chatRepo.loadSession(characterId, newSessionId);
     await sceneStore.loadScene(characterId, newSessionId);
     await injectFirstMessage();
 
@@ -103,17 +104,16 @@
     const characterId = $page.params.id!;
     showSessionPanel = false;
 
-    await chatStore.save();
+    await chatRepo.saveMessages();
     await sceneStore.save();
 
-    const session = await chatStorage.createSession(characterId);
-    await chatStore.loadSession(characterId, session.id);
-    await sceneStore.loadScene(characterId, session.id);
+    const sessionId = await chatRepo.createSession(characterId);
+    await sceneStore.loadScene(characterId, sessionId);
     await injectFirstMessage();
     sessions = await chatStorage.listSessions(characterId);
 
     const typeParam = cardType === 'world' ? 'cardType=world&' : '';
-    goto(`/chat/${characterId}?${typeParam}session=${session.id}`, { replaceState: true });
+    goto(`/chat/${characterId}?${typeParam}session=${sessionId}`, { replaceState: true });
   }
 
   async function renameSession(sessionId: string, name: string) {
@@ -131,7 +131,7 @@
 
     if (sessionId === currentSessionId) {
       const remaining = sessions[0];
-      await chatStore.loadSession(characterId, remaining.id);
+      await chatRepo.loadSession(characterId, remaining.id);
       await sceneStore.loadScene(characterId, remaining.id);
       await injectFirstMessage();
       const typeParam = cardType === 'world' ? 'cardType=world&' : '';

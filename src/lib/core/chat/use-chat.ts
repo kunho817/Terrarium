@@ -5,6 +5,7 @@
 
 import { get } from 'svelte/store';
 import { chatStore } from '$lib/stores/chat';
+import { chatRepo } from '$lib/repositories/chat-repo';
 import { sceneStore } from '$lib/stores/scene';
 import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
@@ -75,13 +76,12 @@ function resolveActiveCard(): ResolvedCard | null {
 
 export async function initChat(characterId: string, sessionId?: string): Promise<void> {
   if (sessionId) {
-    await chatStore.loadSession(characterId, sessionId);
+    await chatRepo.loadSession(characterId, sessionId);
     await sceneStore.loadScene(characterId, sessionId);
   } else {
-    await chatStore.loadChat(characterId);
-    const chatState = get(chatStore);
-    if (chatState.sessionId) {
-      await sceneStore.loadScene(characterId, chatState.sessionId);
+    const newSessionId = await chatRepo.createSession(characterId);
+    if (newSessionId) {
+      await sceneStore.loadScene(characterId, newSessionId);
     }
   }
 
@@ -117,7 +117,7 @@ export async function injectFirstMessage(): Promise<void> {
         isFirstMessage: true,
       };
       chatStore.addMessage(greeting);
-      await chatStore.save();
+      await chatRepo.saveMessages();
     }
   }
 }
@@ -230,9 +230,9 @@ async function streamAndFinalize(
     generationInfo: { ...rawMessage.generationInfo, durationMs },
   };
 
-  chatStore.clearStreamingMessage();
+  chatStore.setStreamingMessage(null);
   chatStore.addMessage(assistantMessage);
-  await chatStore.save();
+  await chatRepo.saveMessages();
 
   if (imageAutoGenerate && assistantMessage.content.length > 0 && imageConfig) {
     generateAndInsertIllustrations(assistantMessage, config, imageConfig, customPresets);
@@ -272,7 +272,7 @@ async function generateAndInsertIllustrations(
     assistantMessage.revision = (assistantMessage.revision ?? 0) + 1;
 
     chatStore.updateLastMessage(assistantMessage);
-    await chatStore.save();
+    await chatRepo.saveMessages();
   } catch (e) {
     console.error('[Illust] Illustration planning failed:', e);
   }
@@ -313,7 +313,7 @@ export async function generateIllustration(): Promise<void> {
       segments: [{ type: 'image', dataUrl: imgResult.dataUrl, prompt: imgResult.prompt, id: crypto.randomUUID() }],
     };
     chatStore.addMessage(imageMessage);
-    await chatStore.save();
+    await chatRepo.saveMessages();
   }
 }
 
@@ -322,7 +322,7 @@ export async function editMessage(index: number, newContent: string): Promise<vo
   if (index < 0 || index >= state.messages.length) return;
   const message = { ...state.messages[index], content: newContent, revision: (state.messages[index].revision ?? 0) + 1 };
   chatStore.updateMessage(index, message);
-  await chatStore.save();
+  await chatRepo.saveMessages();
 }
 
 export async function rerollFromMessage(userMessageIndex: number): Promise<void> {
@@ -338,7 +338,7 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
   if (userMessage.role !== 'user') return;
 
   chatStore.truncateAfter(userMessageIndex);
-  await chatStore.save();
+  await chatRepo.saveMessages();
 
   const currentState = get(chatStore);
   const sessionPersonaId = await getSessionPersonaId();
