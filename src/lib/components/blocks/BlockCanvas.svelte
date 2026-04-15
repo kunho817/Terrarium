@@ -178,7 +178,7 @@
 >
   <!-- Grid Background (fixed, not transformed - creates infinite grid illusion) -->
   <div 
-    class="grid-background absolute -inset-[1000px] opacity-40 pointer-events-none"
+    class="grid-background absolute -inset-[1000px] opacity-40 pointer-events-none z-0"
     style="
       background-image: radial-gradient(circle, #cdd6f4 1.5px, transparent 1.5px);
       background-size: 20px 20px;
@@ -187,7 +187,7 @@
 
   <!-- Connection Layer -->
   <div 
-    class="absolute inset-0 pointer-events-none"
+    class="absolute inset-0 pointer-events-none z-0"
     style="transform: {canvasTransform};"
   >
     <ConnectionLayer 
@@ -199,7 +199,7 @@
 
   <!-- Blocks Layer -->
   <div 
-    class="absolute inset-0"
+    class="absolute inset-0 z-10"
     style="transform: {canvasTransform};"
   >
     {#each graph.blocks as block (block.id)}
