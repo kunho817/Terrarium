@@ -109,3 +109,19 @@ export type {
   AgentResult,
   Agent,
 } from './agent';
+
+// Branded Types
+export type {
+  CharacterId,
+  WorldId,
+  SessionId,
+  ChatId,
+  PersonaId,
+} from './branded';
+export {
+  makeCharacterId,
+  makeWorldId,
+  makeSessionId,
+  makeChatId,
+  makePersonaId,
+} from './branded';
