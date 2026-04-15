@@ -15,8 +15,8 @@ export const charactersRepo = {
     try {
       await charactersStore.loadList();
     } catch (error) {
-      console.error('Failed to load characters:', error);
       charactersStore.update(s => ({ ...s, isLoading: false }));
+      throw error;
     }
   },
 
@@ -38,7 +38,6 @@ export const charactersRepo = {
       // Reload the list to reflect changes
       await this.load();
     } catch (error) {
-      console.error('Failed to save character:', error);
       throw error;
     }
   },
@@ -49,9 +48,14 @@ export const charactersRepo = {
   async deleteCharacter(id: string): Promise<void> {
     try {
       await charactersStorage.deleteCharacter(id);
-      charactersStore.deleteCharacter(id);
+      // Update store state directly (don't call store.deleteCharacter which also calls storage)
+      charactersStore.update(s => ({
+        ...s,
+        list: s.list.filter(c => c.id !== id),
+        currentId: s.currentId === id ? null : s.currentId,
+        current: s.currentId === id ? null : s.current,
+      }));
     } catch (error) {
-      console.error('Failed to delete character:', error);
       throw error;
     }
   }
