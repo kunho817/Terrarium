@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import { getRegistry } from '$lib/core/bootstrap';
   import { DEFAULT_EXTRACTION_PROMPT, DEFAULT_SUMMARY_PROMPT } from '$lib/types/memory';
 
@@ -37,7 +38,7 @@
   });
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     const ms = $settingsStore.modelSlots || {};
     if (ms.memory) {
       memorySlot = { ...memorySlot, ...(ms.memory as any) };
@@ -70,7 +71,7 @@
         illustration: { ...illustrationSlot } as any,
       },
     });
-    await settingsStore.save();
+    await settingsRepo.save();
   }
 </script>
 

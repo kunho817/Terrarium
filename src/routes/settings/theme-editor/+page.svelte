@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import ThemeRenderer from '$lib/components/editors/ThemeRenderer.svelte';
   import type { Message } from '$lib/types';
 
@@ -43,7 +44,7 @@
   let saved = $state(false);
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     const themeData = $settingsStore.themeTemplates as
       | { html: string; css: string }
       | undefined;
@@ -63,7 +64,7 @@
     settingsStore.update({
       themeTemplates: { html: htmlTemplate, css: cssTemplate },
     } as Record<string, unknown>);
-    await settingsStore.save();
+    await settingsRepo.save();
     saved = true;
     setTimeout(() => {
       saved = false;

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import { listPersonas, loadPersona, createPersona, savePersona, deletePersona } from '$lib/storage/personas';
   import type { UserPersona } from '$lib/types/persona';
 
@@ -64,18 +65,18 @@
     // If this was the default, clear it
     if ($settingsStore.defaultPersonaId === id) {
       settingsStore.update({ defaultPersonaId: undefined });
-      await settingsStore.save();
+      await settingsRepo.save();
     }
     await refreshList();
   }
 
   async function handleSetDefault(id: string) {
     settingsStore.update({ defaultPersonaId: id });
-    await settingsStore.save();
+    await settingsRepo.save();
   }
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     await refreshList();
     loaded = true;
   });

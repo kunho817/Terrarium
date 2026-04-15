@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
   import { DEFAULT_ART_PRESETS } from '$lib/types';
   import type { ImageGenerationConfig } from '$lib/types';
   import { DEFAULT_IMAGE_CONFIG } from '$lib/types';
@@ -186,7 +187,7 @@
       imageGeneration: buildConfig(),
       customArtStylePresets: customPresets,
     });
-    await settingsStore.save();
+    await settingsRepo.save();
   }
 
   async function handleTestGenerate() {
@@ -221,7 +222,7 @@
   }
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     loadFromStore();
     loaded = true;
   });

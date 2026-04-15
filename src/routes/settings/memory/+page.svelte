@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settings';
+  import { settingsRepo } from '$lib/repositories/settings-repo';
 
   let loaded = $state(false);
 
@@ -25,7 +26,7 @@
   }
 
   onMount(async () => {
-    await settingsStore.load();
+    await settingsRepo.load();
     const ms = $settingsStore.memorySettings;
     if (ms) {
       embeddingProvider = ms.embeddingProvider || '';
@@ -52,7 +53,7 @@
         summaryThreshold,
       },
     });
-    await settingsStore.save();
+    await settingsRepo.save();
   }
 </script>
 
