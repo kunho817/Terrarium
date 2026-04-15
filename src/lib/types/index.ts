@@ -125,3 +125,27 @@ export {
   makeChatId,
   makePersonaId,
 } from './branded';
+
+// Blocks
+export type {
+  BlockType,
+  BlockDefinition,
+  BlockInstance,
+  BlockConfig,
+  Connection,
+  BlockGraph,
+  Port,
+  PortType,
+  InputPort,
+  OutputPort,
+} from './blocks';
+
+// Block Execution
+export type {
+  ExecutionContext,
+  PromptFragment,
+  PortValue,
+  BlockExecutionResult,
+  BlockExecutor,
+  ExecutionError,
+} from './block-execution';
