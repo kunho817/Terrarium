@@ -167,7 +167,7 @@
 
 <div
   bind:this={canvasContainer}
-  class="canvas-container relative w-full h-full overflow-hidden bg-base rounded-lg"
+  class="canvas-container relative w-full h-full overflow-hidden bg-base rounded-lg border border-surface2"
   onmousedown={handleMouseDown}
   onmousemove={handleMouseMove}
   onmouseup={handleMouseUp}
@@ -178,9 +178,9 @@
 >
   <!-- Grid Background -->
   <div 
-    class="grid-background absolute inset-0 opacity-10 pointer-events-none"
+    class="grid-background absolute inset-0 opacity-30 pointer-events-none"
     style="
-      background-image: radial-gradient(circle, #cdd6f4 1px, transparent 1px);
+      background-image: radial-gradient(circle, #cdd6f4 1.5px, transparent 1.5px);
       background-size: 20px 20px;
       transform: {canvasTransform};
     "
