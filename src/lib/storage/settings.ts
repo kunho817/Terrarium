@@ -8,7 +8,7 @@ import { PATHS } from './paths';
 import type { PromptPresetSettings } from '$lib/types/prompt-preset';
 import type { ImageGenerationConfig } from '$lib/types/image-config';
 import type { ArtStylePreset } from '$lib/types/art-style';
-import type { ModelSlot, MemorySettings } from '$lib/types/config';
+import type { ModelSlot, MemorySettings, AgentSettings } from '$lib/types/config';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 export interface AppSettings {
@@ -23,7 +23,7 @@ export interface AppSettings {
   modelSlots?: Record<string, ModelSlot>;
   memorySettings?: MemorySettings;
   outputLanguage?: string;
-  agentSettings?: Record<string, Record<string, unknown>>;
+  agentSettings?: AgentSettings;
   [key: string]: unknown;
 }
 

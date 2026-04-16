@@ -52,3 +52,20 @@ export interface MemorySettings {
   embeddingApiKey: string;
   embeddingModel: string;
 }
+
+export interface AgentSettings {
+  director?: {
+    enabled: boolean;
+    mode: 'light' | 'strong' | 'absolute';
+    tokenBudget: number;
+  };
+  scene?: {
+    enabled: boolean;
+    tokenBudget: number;
+  };
+  character?: {
+    enabled: boolean;
+    autoTrack: boolean;
+    tokenBudget: number;
+  };
+}

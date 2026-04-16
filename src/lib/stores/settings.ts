@@ -4,9 +4,27 @@
 
 import { writable, get } from 'svelte/store';
 import type { AppSettings } from '$lib/storage/settings';
+import type { AgentSettings } from '$lib/types/config';
 import * as settingsStorage from '$lib/storage/settings';
 import { createDefaultPresetSettings, migratePresetItems, createDefaultPreset } from '$lib/core/presets/defaults';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
+
+const DEFAULT_AGENT_SETTINGS: AgentSettings = {
+  director: {
+    enabled: true,
+    mode: 'light',
+    tokenBudget: 6400,
+  },
+  scene: {
+    enabled: true,
+    tokenBudget: 2560,
+  },
+  character: {
+    enabled: true,
+    autoTrack: true,
+    tokenBudget: 6400,
+  },
+};
 
 function createSettingsStore() {
   const { subscribe, set, update } = writable<AppSettings>({
@@ -26,6 +44,7 @@ function createSettingsStore() {
       embeddingModel: '',
     },
     outputLanguage: '',
+    agentSettings: { ...DEFAULT_AGENT_SETTINGS },
   });
 
   return {
@@ -65,6 +84,7 @@ function createSettingsStore() {
           embeddingModel: '',
         },
         outputLanguage: '',
+        agentSettings: { ...DEFAULT_AGENT_SETTINGS },
       });
     },
   };
