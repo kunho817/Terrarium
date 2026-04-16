@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { SceneState, CharacterState } from '$lib/types/agent-state';
+import type { SceneState as ContextSceneState } from '$lib/types/scene';
 
 const sceneStatesStore: Map<string, SceneState> = new Map();
 const characterStatesStore: Map<string, CharacterState> = new Map();
@@ -108,7 +109,7 @@ vi.mock('$lib/stores/settings', () => ({
 }));
 
 import { AgentRunner } from '$lib/core/agents/agent-runner';
-import { getSceneState, deleteSceneState, getCharacterStates, deleteCharacterState } from '$lib/storage/agent-states';
+import { getSceneState, deleteSceneState, getCharacterStates, deleteCharacterState, updateSceneState } from '$lib/storage/agent-states';
 import type { AgentContext } from '$lib/types/agent';
 
 describe('Agent Pipeline Integration', () => {
@@ -121,16 +122,31 @@ describe('Agent Pipeline Integration', () => {
 		characterStatesStore.clear();
 		
 		runner = new AgentRunner();
+		const sceneState: ContextSceneState = {
+			location: '',
+			time: '',
+			mood: '',
+			participatingCharacters: [],
+			variables: {}
+		};
+
 		context = {
 			sessionId,
 			cardId: 'test-card',
 			cardType: 'character',
 			messages: [
-				{ id: '1', role: 'user', content: 'I walk into the inn.' } as any
+				{
+					role: 'user',
+					content: 'I walk into the inn.',
+					type: 'dialogue',
+					timestamp: Date.now()
+				}
 			],
-			scene: {} as any,
+			scene: sceneState,
 			turnNumber: 1,
-			config: {} as any
+			config: {
+				providerId: 'test-provider'
+			}
 		};
 		
 		await deleteSceneState(sessionId);
@@ -159,6 +175,10 @@ describe('Agent Pipeline Integration', () => {
 		const result = await runner.onBeforeSend(context);
 		
 		expect(result).toBeDefined();
+
+		if (result.injectPrompt) {
+			expect(typeof result.injectPrompt).toBe('string');
+		}
 	});
 
 	it('runs full pipeline onAfterReceive', async () => {
@@ -168,6 +188,9 @@ describe('Agent Pipeline Integration', () => {
 		const result = await runner.onAfterReceive(context, response);
 		
 		expect(result).toBeDefined();
+
+		const state = await getSceneState(sessionId);
+		expect(state).not.toBeNull();
 	});
 
 	it('agents execute in priority order', async () => {
@@ -195,5 +218,24 @@ describe('Agent Pipeline Integration', () => {
 		expect(state).not.toBeNull();
 		expect(state?.location).toBe('');
 		expect(state?.characters).toEqual([]);
+	});
+
+	it('scene state persists across pipeline phases', async () => {
+		await runner.initAll(context);
+		
+		const stateBefore = await getSceneState(sessionId);
+		expect(stateBefore).not.toBeNull();
+		expect(stateBefore?.location).toBe('');
+		
+		await updateSceneState(sessionId, {
+			location: 'Test Location',
+			characters: ['Alice']
+		});
+		
+		const result = await runner.onBeforeSend(context);
+		
+		if (result.injectPrompt) {
+			expect(result.injectPrompt).toContain('[Scene]');
+		}
 	});
 });
