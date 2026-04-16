@@ -25,7 +25,7 @@
     onRedo
   }: Props = $props();
 
-  const zoomPercent = $derived(Math.round(viewport.zoom * 100));
+  const zoomPercent = $derived(Math.round(viewport.scale * 100));
 </script>
 
 <div class="toolbar flex items-center gap-2 p-2 bg-surface1 rounded-lg">

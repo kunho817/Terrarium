@@ -71,7 +71,10 @@
   }
 </script>
 
-<svg class="connection-layer absolute inset-0 w-full h-full pointer-events-none" style="z-index: 1;">
+<svg 
+  class="connection-layer absolute pointer-events-none" 
+  style="left: -5000px; top: -5000px; width: 10000px; height: 10000px; overflow: visible; z-index: 1;"
+>
   <!-- Existing connections -->
   {#each connections as conn (conn.id)}
     {@const fromPos = getPortPosition(conn.from.blockId, conn.from.portId, false)}
