@@ -5,8 +5,6 @@ import { createBlock } from '$lib/types/scratch-blocks';
 export interface ScratchScriptState {
   currentScript: ScratchScript | null;
   scripts: ScratchScript[];
-  toggles: Map<string, boolean>;
-  toggleNames: Map<string, string>;
 }
 
 export function createEmptyScript(name: string): ScratchScript {
@@ -21,8 +19,6 @@ function createScratchScriptStore() {
   const { subscribe, set, update } = writable<ScratchScriptState>({
     currentScript: null,
     scripts: [],
-    toggles: new Map(),
-    toggleNames: new Map(),
   });
 
   function findBlockById(block: ScratchBlock | null, id: string): ScratchBlock | null {
@@ -70,8 +66,6 @@ function createScratchScriptStore() {
       set({
         currentScript: null,
         scripts: [],
-        toggles: new Map(),
-        toggleNames: new Map(),
       });
     },
 
@@ -81,13 +75,6 @@ function createScratchScriptStore() {
         ...state,
         currentScript: script,
         scripts: [...state.scripts, script],
-      }));
-    },
-
-    loadScript: (script: ScratchScript) => {
-      update(state => ({
-        ...state,
-        currentScript: script,
       }));
     },
 

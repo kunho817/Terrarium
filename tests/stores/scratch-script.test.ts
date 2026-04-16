@@ -98,4 +98,26 @@ describe('scratchScriptStore', () => {
     
     expect(state.currentScript?.root.config.content).toBe('Updated content');
   });
+
+  it('duplicates block and appends to chain', () => {
+    scratchScriptStore.newScript('Test');
+    const block1: ScratchBlock = {
+      id: 'b1',
+      type: 'TextBlock',
+      config: { content: 'Original' },
+      slots: {},
+      next: null,
+    };
+    
+    scratchScriptStore.appendToChain(block1);
+    scratchScriptStore.duplicateBlock('b1');
+    const state = get(scratchScriptStore);
+    
+    const root = state.currentScript?.root;
+    expect(root?.next?.id).toBe('b1');
+    expect(root?.next?.next).toBeDefined();
+    expect(root?.next?.next?.type).toBe('TextBlock');
+    expect(root?.next?.next?.config.content).toBe('Original');
+    expect(root?.next?.next?.id).not.toBe('b1');
+  });
 });
