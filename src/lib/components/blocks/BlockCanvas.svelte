@@ -56,12 +56,29 @@
 
   function handlePortClick(blockId: string, portId: string, isInput: boolean, e: MouseEvent) {
     if ($connectionDragStore.isDragging && isInput) {
+      const fromBlockId = $connectionDragStore.fromBlockId;
+      const fromPortId = $connectionDragStore.fromPortId;
+      if (!fromBlockId || !fromPortId) return;
+      
+      // Prevent self-connection
+      if (fromBlockId === blockId) {
+        connectionDragStore.endDrag();
+        return;
+      }
+      
+      // Prevent duplicate
+      const exists = graph.connections.some(c => 
+        c.from.blockId === fromBlockId && c.from.portId === fromPortId &&
+        c.to.blockId === blockId && c.to.portId === portId
+      );
+      if (exists) {
+        connectionDragStore.endDrag();
+        return;
+      }
+      
       const conn: Connection = {
         id: crypto.randomUUID(),
-        from: { 
-          blockId: $connectionDragStore.fromBlockId!, 
-          portId: $connectionDragStore.fromPortId! 
-        },
+        from: { blockId: fromBlockId, portId: fromPortId },
         to: { blockId, portId },
       };
       blockBuilderStore.addConnection(conn);
