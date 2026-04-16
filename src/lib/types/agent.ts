@@ -2,12 +2,13 @@ import type { Message } from './message';
 import type { SceneState } from './scene';
 import type { UserConfig } from './config';
 import type { MemoryRecord, SessionSummary } from './memory';
+import type { StateUpdate } from './agent-state';
 
 export interface AgentConfig {
   id: string;
   name: string;
   enabled: boolean;
-  modelSlot: 'chat' | 'memory' | 'illustration';
+  modelSlot: 'chat' | 'memory' | 'director';
   settings: Record<string, unknown>;
 }
 
@@ -25,11 +26,13 @@ export interface AgentResult {
   injectPrompt?: string;
   updatedMemories?: MemoryRecord[];
   summaries?: SessionSummary[];
+  updatedState?: StateUpdate;
 }
 
 export interface Agent {
   readonly id: string;
   readonly name: string;
+  readonly priority: number;
   init(ctx: AgentContext): Promise<void>;
   onBeforeSend(ctx: AgentContext): Promise<AgentResult>;
   onAfterReceive(ctx: AgentContext, response: string): Promise<AgentResult>;
