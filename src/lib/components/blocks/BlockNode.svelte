@@ -88,10 +88,10 @@
     {/if}
   </div>
   
-  <div class="block-body bg-surface1 p-3 border-x border-b border-surface2 relative">
+  <div class="block-content relative bg-surface1 border-x border-b border-surface2 min-h-[24px]">
     {#each definition?.inputPorts || [] as port, i}
       {@const portKey = `${block.id}-${port.id}`}
-      <div class="absolute left-0" style="top: {20 + i * 24}px;">
+      <div class="absolute left-0" style="top: {4 + i * 20}px;">
         <Port 
           port={port}
           isInput={true}
@@ -102,7 +102,7 @@
     {/each}
     
     {#if !block.collapsed}
-      <div class="text-xs text-subtext0 line-clamp-3">
+      <div class="block-body p-3 text-xs text-subtext0 line-clamp-3">
         {#if block.config.content}
           {block.config.content}
         {:else}
@@ -113,7 +113,7 @@
     
     {#each definition?.outputPorts || [] as port, i}
       {@const portKey = `${block.id}-${port.id}`}
-      <div class="absolute right-0" style="top: {20 + i * 24}px;">
+      <div class="absolute right-0" style="top: {4 + i * 20}px;">
         <Port 
           port={port}
           isInput={false}

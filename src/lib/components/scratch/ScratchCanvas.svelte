@@ -1,11 +1,23 @@
 <script lang="ts">
   import { scratchScriptStore } from '$lib/stores/scratch-script';
+  import { createBlock } from '$lib/types/scratch-blocks';
+  import { getBlockDefinition } from '$lib/blocks/scratch-definitions';
   import ScratchBlock from './ScratchBlock.svelte';
+  import type { ScratchBlock as ScratchBlockType } from '$lib/types/scratch-blocks';
 
   let { }: {} = $props();
 
   const scriptState = $derived($scratchScriptStore);
   const hasBlocks = $derived(scriptState.currentScript !== null);
+
+  function collectChain(block: ScratchBlockType | null): ScratchBlockType[] {
+    if (!block) return [];
+    return [block, ...collectChain(block.next)];
+  }
+
+  const chainBlocks = $derived(
+    scriptState.currentScript?.root ? collectChain(scriptState.currentScript.root) : []
+  );
 
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
@@ -21,12 +33,22 @@
     const data = e.dataTransfer.getData('application/json');
     if (!data) return;
 
-    const parsed = JSON.parse(data);
-    if (parsed.type === 'new-block') {
-      import('$lib/types/scratch-blocks').then(({ createBlock }) => {
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.type === 'new-block') {
+        const definition = getBlockDefinition(parsed.blockType);
         const block = createBlock(parsed.blockType, crypto.randomUUID());
+        if (definition?.defaultConfig) {
+          block.config = { ...definition.defaultConfig };
+        }
+
+        if (!scriptState.currentScript) {
+          scratchScriptStore.newScript('Untitled');
+        }
         scratchScriptStore.appendToChain(block);
-      });
+      }
+    } catch (err) {
+      console.error('Drop handling error:', err);
     }
   }
 </script>
@@ -38,12 +60,11 @@
   role="region"
   aria-label="Script canvas"
 >
-  {#if hasBlocks && scriptState.currentScript?.root}
+  {#if hasBlocks && chainBlocks.length > 0}
     <div class="blocks">
-      <ScratchBlock block={scriptState.currentScript.root} />
-      {#if scriptState.currentScript.root.next}
-        <ScratchBlock block={scriptState.currentScript.root.next} />
-      {/if}
+      {#each chainBlocks as block}
+        <ScratchBlock {block} isOnCanvas={true} />
+      {/each}
     </div>
   {:else}
     <div class="empty-state">

@@ -5,9 +5,10 @@
 
   interface Props {
     block: ScratchBlockType;
+    isOnCanvas?: boolean;
   }
 
-  let { block }: Props = $props();
+  let { block, isOnCanvas = false }: Props = $props();
 
   const definition = $derived(getBlockDefinition(block.type));
 
@@ -23,9 +24,10 @@
 
 <div
   class="scratch-block"
+  class:canvas-block={isOnCanvas}
   style="background: {definition?.color ?? '#45475a'}"
-  draggable="true"
-  ondragstart={handleDragStart}
+  draggable={isOnCanvas}
+  ondragstart={isOnCanvas ? handleDragStart : undefined}
   data-block-id={block.id}
   data-block-type={block.type}
   role="group"
@@ -48,7 +50,7 @@
     {:else if block.type === 'IfBlock'}
       <div class="slots">
         {#each definition?.slots ?? [] as slotDef}
-          <SlotRenderer {slotDef} block={block.slots[slotDef.name] ?? null} />
+          <SlotRenderer {slotDef} block={block.slots[slotDef.name] ?? null} parentBlockId={block.id} />
         {/each}
       </div>
     {:else if block.type === 'ToggleBlock'}
@@ -56,14 +58,14 @@
     {:else if block.type === 'SwitchBlock'}
       <div class="slots">
         {#each definition?.slots ?? [] as slotDef}
-          <SlotRenderer {slotDef} block={block.slots[slotDef.name] ?? null} />
+          <SlotRenderer {slotDef} block={block.slots[slotDef.name] ?? null} parentBlockId={block.id} />
         {/each}
       </div>
       <span class="cases">{(block.config.cases as Array<unknown>)?.length ?? 0} cases</span>
     {:else if block.type === 'MergeBlock'}
       <div class="slots">
         {#each definition?.slots ?? [] as slotDef}
-          <SlotRenderer {slotDef} block={block.slots[slotDef.name] ?? null} />
+          <SlotRenderer {slotDef} block={block.slots[slotDef.name] ?? null} parentBlockId={block.id} />
         {/each}
       </div>
     {/if}

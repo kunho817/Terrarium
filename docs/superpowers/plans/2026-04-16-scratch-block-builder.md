@@ -1080,25 +1080,30 @@ git commit -m "feat: add Scratch executor with tree traversal"
 **Files:**
 - Modify: `src/lib/types/index.ts`
 
-- [ ] **Step 1: Read current types index**
+- [ ] **Step 1: Add scratch block exports**
 
-Run: Read `src/lib/types/index.ts`
-
-- [ ] **Step 2: Add scratch block exports**
-
-Add these lines to the exports:
+Add these lines at the end of `src/lib/types/index.ts`:
 
 ```typescript
-// Add to existing exports
-export * from './scratch-blocks';
+// Scratch Blocks
+export type {
+  ScratchBlock,
+  ScratchScript,
+  SlotType,
+  SlotDefinition,
+  BlockDefinition as ScratchBlockDefinition,
+  BlockType as ScratchBlockType,
+  BlockConfig as ScratchBlockConfig,
+} from './scratch-blocks';
+export { createBlock, createScript } from './scratch-blocks';
 ```
 
-- [ ] **Step 3: Verify types are accessible**
+- [ ] **Step 2: Verify types are accessible**
 
 Run: `npm test tests/types/scratch-blocks.test.ts -- --run`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/lib/types/index.ts
