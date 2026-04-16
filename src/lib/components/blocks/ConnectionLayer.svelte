@@ -4,7 +4,8 @@
 
   // Layout constants - must match BlockNode.svelte dimensions
   const HEADER_HEIGHT = 40; // Height of block header in pixels
-  const PORT_SPACING = 20; // Vertical spacing between ports in pixels
+  const PORT_Y_OFFSET = 20; // Starting Y offset for ports within block-body (matches BlockNode.svelte)
+  const PORT_SPACING = 24; // Vertical spacing between ports in pixels (matches BlockNode.svelte)
   const BLOCK_WIDTH = 208; // Total block width in pixels (w-52 = 13rem = 208px)
   const BEZIER_CONTROL_FACTOR = 0.5; // Control point offset as fraction of horizontal distance
   
@@ -46,8 +47,9 @@
     const portIndex = ports.findIndex(p => p.id === portId);
     if (portIndex === -1) return null;
 
-    // Port Y position: below header + spacing between ports
-    const portY = HEADER_HEIGHT + portIndex * PORT_SPACING;
+    // Port Y position: below header + offset + spacing between ports
+    // Port center aligns with container top due to top:50% + translateY(-50%) on 0-height container
+    const portY = HEADER_HEIGHT + PORT_Y_OFFSET + portIndex * PORT_SPACING;
     
     return {
       x: block.position.x + (isInput ? 0 : BLOCK_WIDTH),

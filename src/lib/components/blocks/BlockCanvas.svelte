@@ -55,17 +55,34 @@
 
   function handlePortClick(blockId: string, portId: string, isInput: boolean, e: MouseEvent) {
     if (!isInput) {
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      connectionDragStore.startDrag(blockId, portId, isInput, 
-        rect.left + rect.width / 2, 
-        rect.top + rect.height / 2
-      );
+      const portRect = (e.target as HTMLElement).getBoundingClientRect();
+      const canvas = document.querySelector('.canvas-area');
+      if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        connectionDragStore.startDrag(blockId, portId, isInput, 
+          portRect.left + portRect.width / 2 - canvasRect.left, 
+          portRect.top + portRect.height / 2 - canvasRect.top
+        );
+      }
     }
   }
 
   function handleCanvasMouseMove(e: MouseEvent) {
     if ($connectionDragStore.isDragging) {
-      connectionDragStore.updateMouse(e.clientX, e.clientY);
+      const canvas = document.querySelector('.canvas-area');
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        connectionDragStore.updateMouse(
+          e.clientX - rect.left,
+          e.clientY - rect.top
+        );
+      }
+    }
+  }
+  
+  function handleConnectionDragEnd() {
+    if ($connectionDragStore.isDragging) {
+      connectionDragStore.endDrag();
     }
   }
   
@@ -73,7 +90,7 @@
 
 <svelte:window 
   onmousemove={handleMouseMove} 
-  onmouseup={handleMouseUp} 
+  onmouseup={() => { handleMouseUp(); handleConnectionDragEnd(); }}
 />
 
 <div 
