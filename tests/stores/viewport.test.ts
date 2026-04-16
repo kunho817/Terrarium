@@ -1,98 +1,65 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { viewportStore, DEFAULT_VIEWPORT } from '../../src/lib/stores/viewport';
+import { viewportStore } from '../../src/lib/stores/viewport';
 import { get } from 'svelte/store';
 
-describe('viewport store', () => {
+describe('viewportStore', () => {
   beforeEach(() => {
     viewportStore.reset();
   });
 
-  it('initializes with default values', () => {
+  it('has default state', () => {
     const state = get(viewportStore);
-    expect(state).toEqual(DEFAULT_VIEWPORT);
-    expect(state.x).toBe(0);
-    expect(state.y).toBe(0);
-    expect(state.zoom).toBe(1);
+    expect(state.scale).toBe(1.0);
+    expect(state.offsetX).toBe(0);
+    expect(state.offsetY).toBe(0);
   });
 
-  it('resets to default values', () => {
-    viewportStore.setPosition(100, 200);
+  it('zooms centered on a point', () => {
     viewportStore.reset();
+    viewportStore.zoomAt(100, 100, 0.1);
+    
     const state = get(viewportStore);
-    expect(state).toEqual(DEFAULT_VIEWPORT);
+    expect(state.scale).toBeCloseTo(1.1, 2);
   });
 
-  it('sets position', () => {
-    viewportStore.setPosition(100, 200);
+  it('pans by screen delta', () => {
+    viewportStore.reset();
+    viewportStore.pan(50, 30);
+    
     const state = get(viewportStore);
-    expect(state.x).toBe(100);
-    expect(state.y).toBe(200);
-    expect(state.zoom).toBe(1);
+    expect(state.offsetX).toBe(50);
+    expect(state.offsetY).toBe(30);
   });
 
-  it('sets zoom', () => {
-    viewportStore.setZoom(2.0);
-    const state = get(viewportStore);
-    expect(state.zoom).toBe(2.0);
+  it('clamps scale between 0.25 and 2.0', () => {
+    viewportStore.reset();
+    viewportStore.zoomAt(0, 0, 10);
+    expect(get(viewportStore).scale).toBe(2.0);
+    
+    viewportStore.reset();
+    viewportStore.zoomAt(0, 0, -10);
+    expect(get(viewportStore).scale).toBe(0.25);
   });
 
-  it('clamps zoom to minimum 0.1', () => {
-    viewportStore.setZoom(0.05);
-    const state = get(viewportStore);
-    expect(state.zoom).toBe(0.1);
+  it('converts coordinates', () => {
+    viewportStore.reset();
+    
+    let screen = viewportStore.canvasToScreen(100, 100);
+    expect(screen.x).toBe(100);
+    expect(screen.y).toBe(100);
+    
+    viewportStore.pan(50, 25);
+    screen = viewportStore.canvasToScreen(100, 100);
+    expect(screen.x).toBe(150);
+    expect(screen.y).toBe(125);
   });
 
-  it('clamps zoom to maximum 3.0', () => {
-    viewportStore.setZoom(5.0);
-    const state = get(viewportStore);
-    expect(state.zoom).toBe(3.0);
-  });
-
-  it('zooms by factor', () => {
-    viewportStore.setZoom(1.0);
-    viewportStore.zoomBy(2.0);
-    const state = get(viewportStore);
-    expect(state.zoom).toBe(2.0);
-  });
-
-  it('zooms toward point when center coordinates provided', () => {
-    viewportStore.setPosition(0, 0);
-    viewportStore.setZoom(1.0);
-    viewportStore.zoomBy(2.0, 100, 100);
-    const state = get(viewportStore);
-    expect(state.zoom).toBe(2.0);
-    // Position should shift to keep the point under cursor
-    expect(state.x).not.toBe(0);
-    expect(state.y).not.toBe(0);
-  });
-
-  it('pans by screen pixels converted to world space', () => {
-    viewportStore.setPosition(0, 0);
-    viewportStore.setZoom(2.0);
-    viewportStore.panBy(100, 100);
-    const state = get(viewportStore);
-    // 100 pixels at zoom 2.0 = 50 world units
-    expect(state.x).toBe(50);
-    expect(state.y).toBe(50);
-  });
-
-  it('fits to bounds with padding', () => {
-    viewportStore.fitToBounds(0, 0, 200, 150, 50);
-    const state = get(viewportStore);
-    // Center should be at (100, 75)
-    expect(state.x).toBe(100);
-    expect(state.y).toBe(75);
-    // Zoom should fit 300x250 into 800x600
-    expect(state.zoom).toBeGreaterThan(0);
-    expect(state.zoom).toBeLessThanOrEqual(1.5);
-  });
-
-  it('maintains other state properties when updating position', () => {
-    viewportStore.setZoom(2.0);
-    viewportStore.setPosition(100, 200);
-    const state = get(viewportStore);
-    expect(state.zoom).toBe(2.0);
-    expect(state.x).toBe(100);
-    expect(state.y).toBe(200);
+  it('converts screen to canvas coordinates', () => {
+    viewportStore.reset();
+    viewportStore.pan(50, 25);
+    
+    const canvas = viewportStore.screenToCanvas(150, 125);
+    expect(canvas.x).toBe(100);
+    expect(canvas.y).toBe(100);
   });
 });
