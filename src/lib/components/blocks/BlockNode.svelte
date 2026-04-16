@@ -99,14 +99,16 @@
     </div>
     
     <!-- Output ports (right side) -->
-    {#each definition?.outputPorts || [] as port}
+    {#each definition?.outputPorts || [] as port, i}
       {@const portKey = `${block.id}-${port.id}`}
-      <Port 
-        port={port}
-        isInput={false}
-        isConnected={connectedPorts.has(portKey)}
-        onActivate={(e) => onPortClick?.(port.id, false, e as MouseEvent)}
-      />
+      <div class="absolute right-0" style="top: {20 + i * 24}px;">
+        <Port 
+          port={port}
+          isInput={false}
+          isConnected={connectedPorts.has(portKey)}
+          onActivate={(e) => onPortClick?.(port.id, false, e as MouseEvent)}
+        />
+      </div>
     {/each}
   </div>
 </div>

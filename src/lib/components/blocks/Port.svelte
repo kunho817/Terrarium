@@ -38,6 +38,7 @@
   class:input-port={isInput}
   class:output-port={!isInput}
   class:connected={isConnected}
+  data-port-id={port.id}
   style="
     background-color: {isConnected ? color : '#313244'};
     border-color: {color};
