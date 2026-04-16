@@ -10,27 +10,34 @@ import type {
   PortValue,
 } from '$lib/types';
 
+interface BlockContext {
+  blockId: string;
+}
+
 export async function executeBlock(
   blockType: BlockType,
   config: BlockConfig,
   inputs: Map<string, PortValue>,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockContext?: BlockContext
 ): Promise<BlockExecutionResult> {
+  const blockId = blockContext?.blockId || `${blockType}-${Date.now()}`;
+  
   switch (blockType) {
     case 'TextBlock':
-      return executeTextBlock(config, context);
+      return executeTextBlock(config, context, blockId);
     case 'FieldBlock':
-      return executeFieldBlock(config, context);
+      return executeFieldBlock(config, context, blockId);
     case 'MemoryBlock':
-      return executeMemoryBlock(config, inputs, context);
+      return executeMemoryBlock(config, inputs, context, blockId);
     case 'LorebookBlock':
-      return executeLorebookBlock(config, context);
+      return executeLorebookBlock(config, context, blockId);
     case 'IfBlock':
-      return executeIfBlock(config, inputs, context);
+      return executeIfBlock(config, inputs, context, blockId);
     case 'ToggleBlock':
-      return executeToggleBlock(config, context);
+      return executeToggleBlock(config, context, blockId);
     case 'MergeBlock':
-      return executeMergeBlock(config, inputs, context);
+      return executeMergeBlock(config, inputs, context, blockId);
     default:
       throw new Error(`No executor for block type: ${blockType}`);
   }
@@ -38,19 +45,20 @@ export async function executeBlock(
 
 async function executeTextBlock(
   config: BlockConfig,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const content = (config.content as string) || '';
   const enabled = (config.enabled as boolean) ?? true;
   
-  if (!enabled) {
+  if (!enabled || !content.trim()) {
     return {
       outputs: new Map([['text', '']]),
       fragments: [],
     };
   }
 
-  // Simple variable substitution ({{char}}, {{user}}, etc.)
+  // Variable substitution
   let processedContent = content
     .replace(/\{\{char\}\}/g, context.characterId || 'Character')
     .replace(/\{\{user\}\}/g, 'User');
@@ -59,7 +67,7 @@ async function executeTextBlock(
     outputs: new Map([['text', processedContent]]),
     fragments: [{
       text: processedContent,
-      sourceBlockId: 'text-block',
+      sourceBlockId: blockId,
       sourceBlockType: 'TextBlock',
     }],
   };
@@ -67,20 +75,19 @@ async function executeTextBlock(
 
 async function executeFieldBlock(
   config: BlockConfig,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const fieldType = (config.fieldType as string) || 'description';
   const fallback = (config.fallback as string) || '';
   
-  // In real implementation, fetch from character store
-  // For now, return fallback
-  const content = fallback || `[${fieldType} field content]`;
+  const content = fallback || `[${fieldType} field]`;
 
   return {
     outputs: new Map([['text', content]]),
     fragments: [{
       text: content,
-      sourceBlockId: 'field-block',
+      sourceBlockId: blockId,
       sourceBlockType: 'FieldBlock',
     }],
   };
@@ -89,17 +96,16 @@ async function executeFieldBlock(
 async function executeMemoryBlock(
   config: BlockConfig,
   inputs: Map<string, PortValue>,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const count = (config.count as number) || 3;
   const format = (config.format as string) || 'bullet';
   
-  // In real implementation, fetch from memory store
-  // For now, return placeholder memories
   const memories = [
     'User enjoys sci-fi stories',
     'User prefers concise responses',
-    'User likes character to be proactive',
+    'User likes proactive characters',
   ].slice(0, count);
 
   let formattedMemories: string;
@@ -110,7 +116,6 @@ async function executeMemoryBlock(
     case 'numbered':
       formattedMemories = memories.map((m, i) => `${i + 1}. ${m}`).join('\n');
       break;
-    case 'paragraph':
     default:
       formattedMemories = memories.join('. ') + '.';
   }
@@ -119,7 +124,7 @@ async function executeMemoryBlock(
     outputs: new Map([['memories', memories]]),
     fragments: [{
       text: formattedMemories,
-      sourceBlockId: 'memory-block',
+      sourceBlockId: blockId,
       sourceBlockType: 'MemoryBlock',
     }],
   };
@@ -127,22 +132,21 @@ async function executeMemoryBlock(
 
 async function executeLorebookBlock(
   config: BlockConfig,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const maxEntries = (config.maxEntries as number) || 5;
   
-  // In real implementation, fetch from lorebook
-  // For now, return placeholder entries
   const entries = [
-    'The world is set in a cyberpunk future',
-    'Magic exists but is rare and dangerous',
+    'World setting: cyberpunk future',
+    'Magic exists but is rare',
   ].slice(0, maxEntries);
 
   return {
     outputs: new Map([['entries', entries]]),
     fragments: [{
       text: entries.map(e => `[Lore] ${e}`).join('\n'),
-      sourceBlockId: 'lorebook-block',
+      sourceBlockId: blockId,
       sourceBlockType: 'LorebookBlock',
     }],
   };
@@ -151,7 +155,8 @@ async function executeLorebookBlock(
 async function executeIfBlock(
   config: BlockConfig,
   inputs: Map<string, PortValue>,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const condition = inputs.get('condition') as boolean;
   const trueBranch = inputs.get('trueBranch') as string;
@@ -163,7 +168,7 @@ async function executeIfBlock(
     outputs: new Map([['result', result]]),
     fragments: result ? [{
       text: result,
-      sourceBlockId: 'if-block',
+      sourceBlockId: blockId,
       sourceBlockType: 'IfBlock',
       metadata: {
         isConditional: true,
@@ -175,37 +180,34 @@ async function executeIfBlock(
 
 async function executeToggleBlock(
   config: BlockConfig,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const toggleId = (config.toggleId as string) || '';
-  const scope = (config.scope as string) || 'local';
   const defaultValue = (config.defaultValue as boolean) ?? false;
 
-  // Resolve toggle value
   let value = defaultValue;
-  if (toggleId) {
-    // Check context toggles first (local overrides global)
-    if (context.toggles.has(toggleId)) {
-      value = context.toggles.get(toggleId)!;
-    }
+  if (toggleId && context.toggles.has(toggleId)) {
+    value = context.toggles.get(toggleId)!;
   }
 
   return {
     outputs: new Map([['value', value]]),
-    fragments: [], // Toggle blocks don't produce text directly
+    fragments: [],
   };
 }
 
 async function executeMergeBlock(
   config: BlockConfig,
   inputs: Map<string, PortValue>,
-  context: ExecutionContext
+  context: ExecutionContext,
+  blockId: string
 ): Promise<BlockExecutionResult> {
   const separator = (config.separator as string) || '\n\n';
   const filterEmpty = (config.filterEmpty as boolean) ?? true;
 
   const texts: string[] = [];
-  for (const [key, value] of inputs) {
+  for (const [, value] of inputs) {
     if (typeof value === 'string' && (!filterEmpty || value.trim())) {
       texts.push(value);
     }
@@ -217,7 +219,7 @@ async function executeMergeBlock(
     outputs: new Map([['combined', combined]]),
     fragments: combined ? [{
       text: combined,
-      sourceBlockId: 'merge-block',
+      sourceBlockId: blockId,
       sourceBlockType: 'MergeBlock',
     }] : [],
   };

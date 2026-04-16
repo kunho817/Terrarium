@@ -34,7 +34,8 @@ export interface BlockExecutor {
     blockType: BlockType,
     config: BlockConfig,
     inputs: Map<string, PortValue>,
-    context: ExecutionContext
+    context: ExecutionContext,
+    blockContext?: { blockId: string }
   ): BlockExecutionResult | Promise<BlockExecutionResult>;
 }
 

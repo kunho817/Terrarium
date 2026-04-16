@@ -91,7 +91,8 @@ export class ExecutionEngine {
         block.type,
         block.config,
         inputs,
-        context
+        context,
+        { blockId: block.id }
       );
 
       // Mark as executed and cache outputs
