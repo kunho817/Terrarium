@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { BlockGraph, BlockInstance } from '$lib/types';
   import BlockNode from './BlockNode.svelte';
+  import ConnectionLayer from './ConnectionLayer.svelte';
+  import { connectionDragStore } from '$lib/stores/connection-drag';
 
   interface Props {
     graph: BlockGraph;
@@ -51,6 +53,21 @@
     }
   }
 
+  function handlePortClick(blockId: string, portId: string, isInput: boolean, e: MouseEvent) {
+    if (!isInput) {
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      connectionDragStore.startDrag(blockId, portId, isInput, 
+        rect.left + rect.width / 2, 
+        rect.top + rect.height / 2
+      );
+    }
+  }
+
+  function handleCanvasMouseMove(e: MouseEvent) {
+    if ($connectionDragStore.isDragging) {
+      connectionDragStore.updateMouse(e.clientX, e.clientY);
+    }
+  }
   
 </script>
 
@@ -62,6 +79,7 @@
 <div 
   class="canvas-area relative w-full h-full bg-mantle rounded-lg overflow-hidden border-2 border-surface2"
   onclick={handleCanvasClick}
+  onmousemove={handleCanvasMouseMove}
   role="application"
   aria-label="Block canvas"
 >
@@ -70,6 +88,18 @@
     class="absolute inset-0 pointer-events-none opacity-20"
     style="background-image: radial-gradient(circle, #cdd6f4 1px, transparent 1px); background-size: 20px 20px;"
   ></div>
+
+  <!-- Connection Layer -->
+  <ConnectionLayer 
+    connections={graph.connections}
+    blocks={graph.blocks}
+    livePreview={$connectionDragStore.isDragging ? {
+      fromBlockId: $connectionDragStore.fromBlockId!,
+      fromPortId: $connectionDragStore.fromPortId!,
+      mouseX: $connectionDragStore.mouseX,
+      mouseY: $connectionDragStore.mouseY,
+    } : null}
+  />
 
   <!-- Blocks -->
   {#each graph.blocks as block (block.id)}
@@ -84,6 +114,7 @@
         onSelect={() => onBlockSelect?.(block.id)}
         onDoubleClick={() => onBlockDoubleClick?.(block.id)}
         onDragStart={(e) => handleBlockMouseDown(block, e)}
+        onPortClick={(portId, isInput, e) => handlePortClick(block.id, portId, isInput, e)}
       />
     </div>
   {/each}

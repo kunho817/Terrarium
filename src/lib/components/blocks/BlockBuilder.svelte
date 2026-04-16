@@ -35,10 +35,6 @@
   function handleBlockDoubleClick(_blockId: string) {
     // Double click handler
   }
-
-  function handlePortDragStart(_blockId: string, _port: { id: string; type: string }, _e: MouseEvent) {
-    // Port drag handler
-  }
 </script>
 
 <div class="block-builder grid gap-4" style="grid-template-columns: 200px 1fr 250px; height: 500px;">
@@ -50,7 +46,6 @@
     onBlockSelect={handleBlockSelect}
     onBlockDoubleClick={handleBlockDoubleClick}
     onBlockMove={handleBlockMove}
-    onPortDragStart={handlePortDragStart}
   />
   
   <BlockPreview {graph} />
