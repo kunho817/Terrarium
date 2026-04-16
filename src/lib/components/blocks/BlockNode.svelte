@@ -68,7 +68,6 @@
   aria-label="Block: {block.type}"
   tabindex="0"
 >
-  <!-- Header -->
   <div 
     class="block-header px-3 py-2 flex items-center gap-2"
     style="background: linear-gradient(135deg, {headerColor} 0%, {headerColor}dd 100%);"
@@ -89,22 +88,20 @@
     {/if}
   </div>
   
-  <!-- Content Preview -->
-  {#if !block.collapsed}
-    <div class="block-body bg-surface1 p-3 border-x border-b border-surface2 relative">
-      <!-- Input ports (left side) -->
-      {#each definition?.inputPorts || [] as port, i}
-        {@const portKey = `${block.id}-${port.id}`}
-        <div class="absolute left-0" style="top: {20 + i * 24}px;">
-          <Port 
-            port={port}
-            isInput={true}
-            isConnected={connectedPorts.has(portKey)}
-            onActivate={(e) => onPortClick?.(port.id, true, e as MouseEvent)}
-          />
-        </div>
-      {/each}
-      
+  <div class="block-body bg-surface1 p-3 border-x border-b border-surface2 relative">
+    {#each definition?.inputPorts || [] as port, i}
+      {@const portKey = `${block.id}-${port.id}`}
+      <div class="absolute left-0" style="top: {20 + i * 24}px;">
+        <Port 
+          port={port}
+          isInput={true}
+          isConnected={connectedPorts.has(portKey)}
+          onActivate={(e) => onPortClick?.(port.id, true, e as MouseEvent)}
+        />
+      </div>
+    {/each}
+    
+    {#if !block.collapsed}
       <div class="text-xs text-subtext0 line-clamp-3">
         {#if block.config.content}
           {block.config.content}
@@ -112,21 +109,20 @@
           <span class="italic opacity-50">Double-click to edit...</span>
         {/if}
       </div>
-      
-      <!-- Output ports (right side) -->
-      {#each definition?.outputPorts || [] as port, i}
-        {@const portKey = `${block.id}-${port.id}`}
-        <div class="absolute right-0" style="top: {20 + i * 24}px;">
-          <Port 
-            port={port}
-            isInput={false}
-            isConnected={connectedPorts.has(portKey)}
-            onActivate={(e) => onPortClick?.(port.id, false, e as MouseEvent)}
-          />
-        </div>
-      {/each}
-    </div>
-  {/if}
+    {/if}
+    
+    {#each definition?.outputPorts || [] as port, i}
+      {@const portKey = `${block.id}-${port.id}`}
+      <div class="absolute right-0" style="top: {20 + i * 24}px;">
+        <Port 
+          port={port}
+          isInput={false}
+          isConnected={connectedPorts.has(portKey)}
+          onActivate={(e) => onPortClick?.(port.id, false, e as MouseEvent)}
+        />
+      </div>
+    {/each}
+  </div>
 </div>
 
 <style>

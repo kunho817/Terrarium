@@ -2,6 +2,8 @@
   import type { BlockGraph, BlockInstance, Connection } from '$lib/types';
   import BlockNode from './BlockNode.svelte';
   import ConnectionLayer from './ConnectionLayer.svelte';
+  import Minimap from './Minimap.svelte';
+  import ContextMenu from './ContextMenu.svelte';
   import { connectionDragStore } from '$lib/stores/connection-drag';
   import { blockBuilderStore } from '$lib/stores/block-builder';
   import { viewportStore } from '$lib/stores/viewport';
@@ -26,6 +28,13 @@
   let isPanning = $state(false);
   let panStart = $state({ x: 0, y: 0 });
   let panOffsetStart = $state({ x: 0, y: 0 });
+
+  let contextMenu = $state<{ visible: boolean; x: number; y: number; type: 'canvas' | 'node'; blockId?: string }>({
+    visible: false, x: 0, y: 0, type: 'canvas'
+  });
+
+  let containerWidth = $state(800);
+  let containerHeight = $state(600);
 
   function screenToCanvas(screenX: number, screenY: number, canvasRect: DOMRect) {
     const relX = screenX - canvasRect.left;
@@ -177,11 +186,48 @@
 
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
-    const canvas = document.querySelector('.canvas-area');
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const canvasPos = screenToCanvas(e.clientX, e.clientY, rect as DOMRect);
-    console.log('Context menu at canvas position:', canvasPos);
+    const target = e.target as HTMLElement;
+    const blockEl = target.closest('[data-block-id]');
+    
+    if (blockEl) {
+      const blockId = blockEl.getAttribute('data-block-id')!;
+      contextMenu = { visible: true, x: e.clientX, y: e.clientY, type: 'node', blockId };
+    } else {
+      const canvas = document.querySelector('.canvas-area');
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        containerWidth = rect.width;
+        containerHeight = rect.height;
+      }
+      contextMenu = { visible: true, x: e.clientX, y: e.clientY, type: 'canvas' };
+    }
+  }
+
+  function handleContextMenuAction(action: string, data?: Record<string, string>) {
+    if (action === 'delete' && data?.blockId) {
+      blockBuilderStore.removeBlock(data.blockId);
+    } else if (action === 'duplicate' && data?.blockId) {
+      const block = graph.blocks.find(b => b.id === data.blockId);
+      if (block) {
+        blockBuilderStore.addBlock({
+          ...block,
+          id: crypto.randomUUID(),
+          position: { x: block.position.x + 40, y: block.position.y + 40 }
+        });
+      }
+    } else if (action === 'collapse' && data?.blockId) {
+      const block = graph.blocks.find(b => b.id === data.blockId);
+      if (block) {
+        blockBuilderStore.setBlockCollapsed(data.blockId, !block.collapsed);
+      }
+    } else if (action === 'clear-canvas') {
+      graph.blocks.forEach(b => blockBuilderStore.removeBlock(b.id));
+    }
+  }
+
+  function handleResize(e: ResizeObserverEntry) {
+    containerWidth = e.contentRect.width;
+    containerHeight = e.contentRect.height;
   }
 </script>
 
@@ -246,7 +292,29 @@
       </div>
     {/if}
   </div>
+
+  {#if graph.blocks.length > 0}
+    <Minimap 
+      {graph}
+      scale={viewport.scale}
+      offsetX={viewport.offsetX}
+      offsetY={viewport.offsetY}
+      {containerWidth}
+      {containerHeight}
+    />
+  {/if}
 </div>
+
+{#if contextMenu.visible}
+  <ContextMenu
+    x={contextMenu.x}
+    y={contextMenu.y}
+    type={contextMenu.type}
+    blockId={contextMenu.blockId}
+    onAction={handleContextMenuAction}
+    onClose={() => contextMenu.visible = false}
+  />
+{/if}
 
 <style>
   .canvas-area {
