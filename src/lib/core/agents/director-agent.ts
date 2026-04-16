@@ -19,16 +19,18 @@ Output JSON only:
 function getDirectorConfig() {
 	const settings = get(settingsStore);
 	const directorSlot = settings.modelSlots?.director;
+	const memorySlot = settings.modelSlots?.memory;
+	const chatSlot = settings.modelSlots?.chat;
 	const directorSettings = settings.agentSettings?.director as Record<string, any> | undefined;
 	
 	return {
-		provider: directorSlot?.provider || settings.modelSlots?.memory?.provider || settings.defaultProvider,
-		apiKey: directorSlot?.apiKey || settings.modelSlots?.memory?.apiKey || 
+		provider: directorSlot?.provider || memorySlot?.provider || chatSlot?.provider || settings.defaultProvider,
+		apiKey: directorSlot?.apiKey || memorySlot?.apiKey || chatSlot?.apiKey || 
 			(settings.providers?.[settings.defaultProvider!]?.apiKey as string),
-		model: directorSlot?.model || settings.modelSlots?.memory?.model || 
+		model: directorSlot?.model || memorySlot?.model || chatSlot?.model || 
 			(settings.providers?.[settings.defaultProvider!]?.model as string),
-		baseUrl: directorSlot?.baseUrl || settings.modelSlots?.memory?.baseUrl,
-		temperature: directorSlot?.temperature ?? 0.7,
+		baseUrl: directorSlot?.baseUrl || memorySlot?.baseUrl || chatSlot?.baseUrl,
+		temperature: directorSlot?.temperature ?? memorySlot?.temperature ?? chatSlot?.temperature ?? 0.7,
 		mode: (directorSettings?.mode as DirectorMode) || 'light',
 		enabled: directorSettings?.enabled !== false
 	};

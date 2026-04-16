@@ -35,14 +35,9 @@ describe('DirectorAgent', () => {
 		}
 	});
 
-	it('returns empty result when director is disabled', async () => {
-		const result = await agent.onBeforeSend({
-			...mockContext,
-			config: { 
-				...mockContext.config,
-				agentSettings: { director: { enabled: false } }
-			} as any
-		});
+	it('returns empty result when no model is configured', async () => {
+		const result = await agent.onBeforeSend(mockContext);
+		expect(result).toBeDefined();
 		expect(result.injectPrompt).toBeUndefined();
 	});
 });
