@@ -84,24 +84,6 @@
       {/if}
     </div>
     
-    <!-- Input ports (left side) -->
-    {#each definition?.inputPorts || [] as port}
-      {@const portKey = `${block.id}-${port.id}`}
-      <button
-        data-port-id={port.id}
-        data-port-type={port.type}
-        class="port input absolute w-3 h-3 rounded-full border-2 cursor-pointer transition-all"
-        style="left: -6px; top: 50%; transform: translateY(-50%);
-               background: {connectedPorts.has(portKey) ? (port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af') : '#313244'};
-               border-color: {port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af'};"
-        onclick={(e) => {
-          e.stopPropagation();
-          onPortClick?.(port.id, true, e);
-        }}
-        title="{port.name} (input)"
-      ></button>
-    {/each}
-    
     <!-- Output ports (right side) -->
     {#each definition?.outputPorts || [] as port}
       {@const portKey = `${block.id}-${port.id}`}
