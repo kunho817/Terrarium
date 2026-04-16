@@ -33,6 +33,30 @@ CREATE TABLE IF NOT EXISTS embeddings (
   FOREIGN KEY (memory_id) REFERENCES memories(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_embeddings_memory ON embeddings(memory_id);
+
+CREATE TABLE IF NOT EXISTS scene_states (
+  session_id TEXT PRIMARY KEY,
+  location TEXT NOT NULL DEFAULT '',
+  characters TEXT NOT NULL DEFAULT '[]',
+  atmosphere TEXT NOT NULL DEFAULT '',
+  time_of_day TEXT NOT NULL DEFAULT '',
+  environmental_notes TEXT NOT NULL DEFAULT '',
+  last_updated INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS character_states (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  character_name TEXT NOT NULL,
+  emotion TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  inventory TEXT NOT NULL DEFAULT '[]',
+  health TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  last_updated INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_character_states_session ON character_states(session_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_character_states_session_name ON character_states(session_id, character_name);
 `;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
