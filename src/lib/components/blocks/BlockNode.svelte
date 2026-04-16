@@ -8,6 +8,8 @@
     onSelect?: () => void;
     onDoubleClick?: () => void;
     onDragStart?: (e: MouseEvent) => void;
+    onPortClick?: (portId: string, isInput: boolean, e: MouseEvent) => void;
+    connectedPorts?: Set<string>;
   }
 
   let { 
@@ -15,7 +17,9 @@
     isSelected, 
     onSelect = () => {},
     onDoubleClick = () => {},
-    onDragStart = () => {}
+    onDragStart = () => {},
+    onPortClick,
+    connectedPorts = new Set()
   }: Props = $props();
 
   const definition = $derived(blockRegistry.get(block.type));
@@ -71,7 +75,7 @@
   </div>
   
   <!-- Content Preview -->
-  <div class="block-body bg-surface1 p-3 border-x border-b border-surface2">
+  <div class="block-body bg-surface1 p-3 border-x border-b border-surface2 relative">
     <div class="text-xs text-subtext0 line-clamp-3">
       {#if block.config.content}
         {block.config.content}
@@ -79,6 +83,42 @@
         <span class="italic opacity-50">Double-click to edit...</span>
       {/if}
     </div>
+    
+    <!-- Input ports (left side) -->
+    {#each definition?.inputPorts || [] as port}
+      {@const portKey = `${block.id}-${port.id}`}
+      <button
+        data-port-id={port.id}
+        data-port-type={port.type}
+        class="port input absolute w-3 h-3 rounded-full border-2 cursor-pointer transition-all"
+        style="left: -6px; top: 50%; transform: translateY(-50%);
+               background: {connectedPorts.has(portKey) ? (port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af') : '#313244'};
+               border-color: {port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af'};"
+        onclick={(e) => {
+          e.stopPropagation();
+          onPortClick?.(port.id, true, e);
+        }}
+        title="{port.name} (input)"
+      ></button>
+    {/each}
+    
+    <!-- Output ports (right side) -->
+    {#each definition?.outputPorts || [] as port}
+      {@const portKey = `${block.id}-${port.id}`}
+      <button
+        data-port-id={port.id}
+        data-port-type={port.type}
+        class="port output absolute w-3 h-3 rounded-full border-2 cursor-pointer transition-all"
+        style="right: -6px; top: 50%; transform: translateY(-50%);
+               background: {connectedPorts.has(portKey) ? (port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af') : '#313244'};
+               border-color: {port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af'};"
+        onclick={(e) => {
+          e.stopPropagation();
+          onPortClick?.(port.id, false, e);
+        }}
+        title="{port.name} (output)"
+      ></button>
+    {/each}
   </div>
 </div>
 
@@ -102,5 +142,9 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  .port:hover {
+    box-shadow: 0 0 0 4px rgba(203, 166, 247, 0.3);
+    transform: translateY(-50%) scale(1.2) !important;
   }
 </style>
