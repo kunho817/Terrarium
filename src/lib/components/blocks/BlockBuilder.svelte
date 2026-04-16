@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { BlockGraph, BlockInstance } from '$lib/types';
   import BlockPalette from './BlockPalette.svelte';
   import BlockCanvas from './BlockCanvas.svelte';
@@ -24,6 +25,13 @@
   }: Props = $props();
 
   let editingBlock: BlockInstance | null = $state(null);
+  let modalElement: HTMLDivElement | undefined = $state();
+
+  $effect(() => {
+    if (editingBlock) {
+      tick().then(() => modalElement?.focus());
+    }
+  });
 
   function handleBlockClick(blockType: string) {
     onBlockAdd?.(blockType);
@@ -69,6 +77,7 @@
     {#if editingBlock}
       {@const block = editingBlock}
       <div 
+        bind:this={modalElement}
         class="absolute inset-0 bg-mantle/80 z-50 flex items-center justify-center rounded-lg"
         onclick={handleEditorClose}
         onkeydown={(e) => e.key === 'Escape' && handleEditorClose()}
