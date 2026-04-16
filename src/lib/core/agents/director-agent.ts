@@ -56,6 +56,9 @@ async function callDirectorModel(context: string, mode: DirectorMode): Promise<D
 		{ role: 'user', content: context }
 	];
 
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 30000);
+
 	try {
 		if (isClaude) {
 			const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -70,9 +73,14 @@ async function callDirectorModel(context: string, mode: DirectorMode): Promise<D
 					max_tokens: 1024,
 					system: systemPrompt,
 					messages: [{ role: 'user', content: context }]
-				})
+				}),
+				signal: controller.signal
 			});
-			if (!res.ok) return null;
+			clearTimeout(timeoutId);
+			if (!res.ok) {
+				console.warn('[DirectorAgent] Anthropic API returned non-OK status:', res.status);
+				return null;
+			}
 			const data = await res.json();
 			return parseDirectorOutput(data.content?.[0]?.text ?? '');
 		} else {
@@ -88,18 +96,29 @@ async function callDirectorModel(context: string, mode: DirectorMode): Promise<D
 					messages,
 					temperature: config.temperature,
 					max_tokens: 1024
-				})
+				}),
+				signal: controller.signal
 			});
-			if (!res.ok) return null;
+			clearTimeout(timeoutId);
+			if (!res.ok) {
+				console.warn('[DirectorAgent] OpenAI API returned non-OK status:', res.status);
+				return null;
+			}
 			const data = await res.json();
 			return parseDirectorOutput(data.choices?.[0]?.message?.content ?? '');
 		}
-	} catch {
+	} catch (error) {
+		clearTimeout(timeoutId);
+		if ((error as Error).name === 'AbortError') {
+			console.warn('[DirectorAgent] Request timed out');
+		} else {
+			console.warn('[DirectorAgent] LLM call failed:', error);
+		}
 		return null;
 	}
 }
 
-function parseDirectorOutput(content: string): DirectorGuidance | null {
+export function parseDirectorOutput(content: string): DirectorGuidance | null {
 	const match = content.match(/\{[\s\S]*\}/);
 	if (!match) return null;
 
@@ -119,13 +138,15 @@ function parseDirectorOutput(content: string): DirectorGuidance | null {
 				pressureLevel: parsed.pressureLevel || 'medium'
 			};
 		}
+		console.warn('[DirectorAgent] Parsed JSON missing required fields');
 		return null;
-	} catch {
+	} catch (error) {
+		console.warn('[DirectorAgent] Failed to parse director output:', error);
 		return null;
 	}
 }
 
-function formatDirectorPrompt(guidance: DirectorGuidance): string {
+export function formatDirectorPrompt(guidance: DirectorGuidance): string {
 	const lines = ['[Director]'];
 	
 	if (guidance.sceneMandate) {
