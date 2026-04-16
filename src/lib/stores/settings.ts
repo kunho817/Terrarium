@@ -33,7 +33,16 @@ function createSettingsStore() {
     set,
     update,
     
-    // Helper for partial updates (backward compatible)
+    async load() {
+      const settings = await settingsStorage.loadSettings();
+      set(settings);
+    },
+    
+    async save() {
+      const current = get({ subscribe });
+      await settingsStorage.saveSettings(current);
+    },
+    
     updatePartial(partial: Partial<AppSettings>) {
       update((s) => ({ ...s, ...partial }));
     },
