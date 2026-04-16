@@ -14,7 +14,7 @@
   import { registerAllBlocks, blockRegistry } from '$lib/blocks/registry';
   import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
   import { exportToTPrompt, downloadAsJSON } from '$lib/blocks/serialization';
-  import type { BlockInstance } from '$lib/types/blocks';
+  import type { BlockInstance, BlockType, BlockGraph } from '$lib/types';
   import { viewportStore } from '$lib/stores/viewport';
   import RightPanel from '$lib/components/blocks/RightPanel.svelte';
   
@@ -155,25 +155,12 @@
 
   // Block builder state
   let activeView: 'presets' | 'blocks' = $state('presets');
-  
-  // Only create builder state when in block view (lazy initialization)
-  let currentGraph = $state(createEmptyGraph());
-  
-  // Block builder state (add these)
   let rightPanelMode: 'preview' | 'editor' = $state('preview');
   let selectedBlockId: string | null = $state(null);
   
-  // Subscribe to store updates only when in block view
-  $effect(() => {
-    if (activeView === 'blocks') {
-      // Subscribe to store when in blocks view
-      const unsubscribe = blockBuilderStore.subscribe(state => {
-        currentGraph = state.currentGraph;
-      });
-      
-      return unsubscribe;
-    }
-  });
+  // Use store reactive value directly - no need for local state + subscription
+  // This avoids race conditions between store updates and local state
+  const currentGraph: BlockGraph = $derived($blockBuilderStore.currentGraph);
 
   // Convert current preset to blocks when switching views
   function switchToBlocks() {
@@ -181,7 +168,7 @@
     if (currentPreset) {
       const graph = presetToBlocks(currentPreset);
       blockBuilderStore.setGraph(graph);
-      currentGraph = graph;
+      // currentGraph will automatically update via $derived
     }
     activeView = 'blocks';
   }
@@ -199,32 +186,28 @@
 
   // Handle adding new block from palette
   function handleAddBlock(blockType: string) {
-    console.log('handleAddBlock called with type:', blockType);
-    const definition = blockRegistry.get(blockType as import('$lib/types/blocks').BlockType);
-    console.log('definition found:', definition);
-    if (!definition) return;
+    const definition = blockRegistry.get(blockType as BlockType);
+    if (!definition) {
+      console.warn('Block type not found:', blockType);
+      return;
+    }
 
-    // Calculate position - add to right side of existing blocks or center
     const existingBlocks = currentGraph.blocks;
-    // Position first block at canvas center (viewport starts at 0,0 with 400,300 offset)
-    // So visible center is around (-100, -100) to (100, 100) in world coordinates
     const x = existingBlocks.length > 0
-      ? Math.max(...existingBlocks.map((b: BlockInstance) => b.position.x)) + 250
-      : 0; // Center of visible area (0 + 400 = 400px from left)
+      ? Math.max(...existingBlocks.map((b) => b.position.x)) + 250
+      : 0;
     const y = existingBlocks.length > 0
-      ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 100
-      : 0; // Center of visible area (0 + 300 = 300px from top)
+      ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 0
+      : 0;
 
-    const newBlock: import('$lib/types/blocks').BlockInstance = {
+    const newBlock: BlockInstance = {
       id: crypto.randomUUID(),
-      type: blockType as import('$lib/types/blocks').BlockType,
+      type: blockType as BlockType,
       position: { x, y },
       config: { ...definition.defaultConfig },
     };
 
     blockBuilderStore.addBlock(newBlock);
-    console.log('Block added. Total blocks:', currentGraph.blocks.length);
-    console.log('Blocks:', currentGraph.blocks);
   }
 </script>
 

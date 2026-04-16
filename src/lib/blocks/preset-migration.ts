@@ -6,7 +6,6 @@ import type { PromptPreset, PromptItem, BlockGraph, BlockInstance, Connection } 
 
 export function presetToBlocks(preset: PromptPreset): BlockGraph {
   const blocks: BlockInstance[] = [];
-  const connections: Connection[] = [];
   let yOffset = 50;
 
   for (const item of preset.items) {
@@ -19,19 +18,15 @@ export function presetToBlocks(preset: PromptPreset): BlockGraph {
     }
   }
 
-  // Connect blocks in sequence
-  for (let i = 0; i < blocks.length - 1; i++) {
-    connections.push({
-      id: `conn-${i}`,
-      from: { blockId: blocks[i].id, portId: 'text' },
-      to: { blockId: blocks[i + 1].id, portId: 'input' },
-    });
-  }
+  // Note: We don't create connections between blocks because:
+  // 1. TextBlocks don't have input ports
+  // 2. The execution engine processes blocks by Y-position order
+  // 3. Each block produces its own fragment that gets assembled
 
   return {
     version: '1.0',
     blocks,
-    connections,
+    connections: [],
     viewport: { x: 0, y: 0, zoom: 1 },
   };
 }
@@ -123,7 +118,7 @@ function blockToPromptItem(block: BlockInstance, order: number): PromptItem | nu
   const base = {
     id: `block-${block.id}`,
     name: block.type,
-    enabled: block.config.enabled ?? true,
+    enabled: (block.config.enabled as boolean) ?? true,
     role: 'system' as const,
   };
 
@@ -138,22 +133,20 @@ function blockToPromptItem(block: BlockInstance, order: number): PromptItem | nu
     case 'FieldBlock':
       return {
         ...base,
-        type: (block.config.fieldType as string) || 'description',
+        type: 'plain' as const,
         content: (block.config.fallback as string) || '',
       };
 
     case 'MemoryBlock':
     case 'LorebookBlock':
-      // These map to lorebook type
       return {
         ...base,
-        type: 'lorebook' as const,
+        type: 'plain' as const,
         content: '',
       };
 
     case 'IfBlock':
     case 'ToggleBlock':
-      // Logic blocks don't directly map - include their text output
       return {
         ...base,
         type: 'plain' as const,
