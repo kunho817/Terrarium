@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { BlockGraph, BlockInstance, Port } from '$lib/types';
+  import type { BlockGraph, BlockInstance } from '$lib/types';
   import BlockNode from './BlockNode.svelte';
 
   interface Props {
@@ -8,25 +8,14 @@
     onBlockSelect?: (blockId: string | null) => void;
     onBlockMove?: (blockId: string, position: { x: number; y: number }) => void;
     onBlockDoubleClick?: (blockId: string) => void;
-    onPortDragStart?: (blockId: string, port: Port, e: MouseEvent) => void;
   }
 
-  let { graph, selectedBlockId, onBlockSelect, onBlockMove, onBlockDoubleClick, onPortDragStart }: Props = $props();
+  let { graph, selectedBlockId, onBlockSelect, onBlockMove, onBlockDoubleClick }: Props = $props();
 
   // Drag state
   let isDragging = $state(false);
   let dragBlockId: string | null = $state(null);
   let dragOffset = $state({ x: 0, y: 0 });
-
-  // Connected ports tracking
-  const connectedPortIds = $derived.by(() => {
-    const connected = new Set<string>();
-    for (const conn of graph.connections) {
-      connected.add(`${conn.from.blockId}-${conn.from.portId}`);
-      connected.add(`${conn.to.blockId}-${conn.to.portId}`);
-    }
-    return connected;
-  });
 
   function handleBlockMouseDown(block: BlockInstance, e: MouseEvent) {
     e.preventDefault();
@@ -62,11 +51,7 @@
     }
   }
 
-  function handlePortActivate(blockId: string, port: Port, _isInput: boolean, e: MouseEvent | KeyboardEvent) {
-    if (e instanceof MouseEvent) {
-      onPortDragStart?.(blockId, port, e);
-    }
-  }
+  
 </script>
 
 <svelte:window 
@@ -99,8 +84,6 @@
         onSelect={() => onBlockSelect?.(block.id)}
         onDoubleClick={() => onBlockDoubleClick?.(block.id)}
         onDragStart={(e) => handleBlockMouseDown(block, e)}
-        onPortActivate={(port, isInput, e) => handlePortActivate(block.id, port, isInput, e)}
-        {connectedPortIds}
       />
     </div>
   {/each}

@@ -4,7 +4,11 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	resolve: {
+		conditions: ['browser']
+	},
 	test: {
-		include: ['tests/**/*.test.ts']
+		include: ['tests/**/*.test.ts'],
+		environment: 'jsdom'
 	}
 });

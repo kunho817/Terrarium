@@ -1,26 +1,21 @@
 <script lang="ts">
-  import type { BlockInstance, Port } from '$lib/types';
+  import type { BlockInstance } from '$lib/types';
   import { blockRegistry } from '$lib/blocks/registry';
-  import PortComponent from './Port.svelte';
 
   interface Props {
     block: BlockInstance;
     isSelected: boolean;
-    onSelect: () => void;
-    onDoubleClick: () => void;
-    onDragStart: (e: MouseEvent) => void;
-    onPortActivate: (port: Port, isInput: boolean, e: MouseEvent | KeyboardEvent) => void;
-    connectedPortIds: Set<string>;
+    onSelect?: () => void;
+    onDoubleClick?: () => void;
+    onDragStart?: (e: MouseEvent) => void;
   }
 
   let { 
     block, 
     isSelected, 
-    onSelect, 
-    onDoubleClick, 
-    onDragStart,
-    onPortActivate,
-    connectedPortIds
+    onSelect = () => {},
+    onDoubleClick = () => {},
+    onDragStart = () => {}
   }: Props = $props();
 
   const definition = $derived(blockRegistry.get(block.type));
@@ -83,33 +78,6 @@
       {:else}
         <span class="italic opacity-50">Double-click to edit...</span>
       {/if}
-    </div>
-    
-    <!-- Ports Row -->
-    <div class="ports-row relative h-6 mt-2">
-      <!-- Input Ports (Left) -->
-      {#each definition?.inputPorts || [] as port, i}
-        <div style="position: absolute; left: 0; top: {4 + i * 20}px;">
-          <PortComponent
-            {port}
-            isInput={true}
-            isConnected={connectedPortIds.has(`${block.id}-${port.id}`)}
-            onActivate={(e) => onPortActivate(port, true, e)}
-          />
-        </div>
-      {/each}
-      
-      <!-- Output Ports (Right) -->
-      {#each definition?.outputPorts || [] as port, i}
-        <div style="position: absolute; right: 0; top: {4 + i * 20}px;">
-          <PortComponent
-            {port}
-            isInput={false}
-            isConnected={connectedPortIds.has(`${block.id}-${port.id}`)}
-            onActivate={(e) => onPortActivate(port, false, e)}
-          />
-        </div>
-      {/each}
     </div>
   </div>
 </div>
