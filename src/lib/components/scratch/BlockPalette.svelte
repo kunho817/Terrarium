@@ -7,13 +7,19 @@
     { id: 'logic' as const, name: 'Logic', color: '#f38ba8' },
   ];
 
-  function handleDragStart(e: DragEvent, block: BlockDefinition) {
+  function onDragStart(e: DragEvent, block: BlockDefinition) {
     if (!e.dataTransfer) return;
-    e.dataTransfer.setData('application/json', JSON.stringify({
+    
+    const payload = JSON.stringify({
       type: 'new-block',
       blockType: block.type,
-    }));
+    });
+    
+    e.dataTransfer.setData('application/json', payload);
+    e.dataTransfer.setData('text/plain', payload);
     e.dataTransfer.effectAllowed = 'copy';
+    
+    console.log('Drag start:', block.type, payload);
   }
 </script>
 
@@ -32,7 +38,7 @@
             class="palette-block flex items-center gap-2 px-3 py-2 rounded cursor-grab hover:brightness-110 transition-all"
             style="background: {block.color};"
             draggable="true"
-            ondragstart={(e) => handleDragStart(e, block)}
+            ondragstart={(e) => onDragStart(e, block)}
             data-block-type={block.type}
             role="button"
             tabindex="0"

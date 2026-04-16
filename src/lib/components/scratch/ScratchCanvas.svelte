@@ -19,18 +19,21 @@
     scriptState.currentScript?.root ? collectChain(scriptState.currentScript.root) : []
   );
 
-  function handleDragOver(e: DragEvent) {
+  function onDragOver(e: DragEvent) {
     e.preventDefault();
+    e.stopPropagation();
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy';
     }
   }
 
-  function handleDrop(e: DragEvent) {
+  function onDrop(e: DragEvent) {
     e.preventDefault();
+    e.stopPropagation();
     if (!e.dataTransfer) return;
 
     const data = e.dataTransfer.getData('application/json');
+    console.log('Drop data:', data);
     if (!data) return;
 
     try {
@@ -46,6 +49,7 @@
           scratchScriptStore.newScript('Untitled');
         }
         scratchScriptStore.appendToChain(block);
+        console.log('Block dropped:', block);
       }
     } catch (err) {
       console.error('Drop handling error:', err);
@@ -55,10 +59,10 @@
 
 <div
   class="scratch-canvas"
-  ondragover={handleDragOver}
-  ondrop={handleDrop}
   role="region"
   aria-label="Script canvas"
+  ondragover={onDragOver}
+  ondrop={onDrop}
 >
   {#if hasBlocks && chainBlocks.length > 0}
     <div class="blocks">
@@ -67,7 +71,13 @@
       {/each}
     </div>
   {:else}
-    <div class="empty-state">
+    <div 
+      class="empty-state"
+      role="region"
+      aria-label="Drop zone"
+      ondragover={onDragOver}
+      ondrop={onDrop}
+    >
       <p>Drag a block from the palette to start building your prompt</p>
     </div>
   {/if}
