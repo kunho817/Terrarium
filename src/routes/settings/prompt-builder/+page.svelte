@@ -8,14 +8,12 @@
   import { createDefaultPreset } from '$lib/core/presets/defaults';
   
   // Block builder imports
-  import BlockCanvas from '$lib/components/blocks/BlockCanvas.svelte';
-  import BlockPalette from '$lib/components/blocks/BlockPalette.svelte';
-  import { blockBuilderStore, createEmptyGraph } from '$lib/stores/block-builder';
+  import BlockBuilder from '$lib/components/blocks/BlockBuilder.svelte';
+  import { blockBuilderStore } from '$lib/stores/block-builder';
   import { registerAllBlocks, blockRegistry } from '$lib/blocks/registry';
-  import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
+  import { presetToBlocks } from '$lib/blocks/preset-migration';
   import { exportToTPrompt, downloadAsJSON } from '$lib/blocks/serialization';
   import type { BlockInstance, BlockType, BlockGraph } from '$lib/types';
-  import RightPanel from '$lib/components/blocks/RightPanel.svelte';
   
   // Initialize blocks - only register once
   if (!blockRegistry.has('TextBlock')) {
@@ -154,7 +152,6 @@
 
   // Block builder state
   let activeView: 'presets' | 'blocks' = $state('presets');
-  let rightPanelMode: 'preview' | 'editor' = $state('preview');
   let selectedBlockId: string | null = $state(null);
   
   // Use store reactive value directly - no need for local state + subscription
@@ -183,8 +180,13 @@
     blockBuilderStore.updateBlockPosition(blockId, position);
   }
 
+  // Handle block selection
+  function handleBlockSelect(blockId: string | null) {
+    selectedBlockId = blockId;
+  }
+
   // Handle adding new block from palette
-  function handleAddBlock(blockType: string) {
+  function handleBlockAdd(blockType: string) {
     const definition = blockRegistry.get(blockType as BlockType);
     if (!definition) {
       console.warn('Block type not found:', blockType);
@@ -193,11 +195,11 @@
 
     const existingBlocks = currentGraph.blocks;
     const x = existingBlocks.length > 0
-      ? Math.max(...existingBlocks.map((b) => b.position.x)) + 250
-      : 0;
+      ? Math.max(...existingBlocks.map(b => b.position.x)) + 250
+      : 50;
     const y = existingBlocks.length > 0
-      ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 0
-      : 0;
+      ? existingBlocks[existingBlocks.length - 1]?.position.y ?? 50
+      : 50;
 
     const newBlock: BlockInstance = {
       id: crypto.randomUUID(),
@@ -336,34 +338,31 @@
           </div>
         </div>
       {:else}
-        {@const selectedBlock = currentGraph.blocks.find((b: BlockInstance) => b.id === selectedBlockId) ?? null}
-        <div class="flex gap-4 h-[600px]">
-          <BlockPalette onBlockClick={handleAddBlock} />
-          <div class="flex-1 flex gap-4 min-w-0 h-full">
-            <div class="flex-1 relative min-w-0 h-full">
-              <BlockCanvas
-                graph={currentGraph}
-                {selectedBlockId}
-                onBlockSelect={(id: string | null) => selectedBlockId = id}
-                onBlockDoubleClick={(id: string) => {
-                  selectedBlockId = id;
-                  rightPanelMode = 'editor';
-                }}
-                onBlockMove={(id: string, pos: { x: number; y: number }) => blockBuilderStore.updateBlockPosition(id, pos)}
-                onPortDragStart={(blockId: string, port: { id: string; type: string }, _e: MouseEvent) => {
-                  // TODO: Implement port drag
-                }}
-              />
-            </div>
-            <div class="w-80 flex-shrink-0">
-              <RightPanel
-                mode={rightPanelMode}
-                {selectedBlock}
-                graph={currentGraph}
-                onBlockChange={(id, config) => blockBuilderStore.updateBlockConfig(id, config)}
-                onCloseEditor={() => rightPanelMode = 'preview'}
-              />
-            </div>
+        <!-- Block Builder View -->
+        <div>
+          <BlockBuilder
+            graph={currentGraph}
+            onBlockAdd={handleBlockAdd}
+            onBlockSelect={handleBlockSelect}
+            onBlockMove={handleBlockMove}
+            selectedBlockId={selectedBlockId}
+          />
+          
+          <!-- Toolbar below -->
+          <div class="flex gap-2 mt-4">
+            <button
+              class="px-3 py-2 bg-surface1 rounded-md text-sm text-text hover:bg-surface2 transition-colors"
+              onclick={() => activeView = 'presets'}
+            >
+              ← Back to Presets
+            </button>
+            <div class="flex-1"></div>
+            <button
+              class="px-3 py-2 bg-mauve text-crust rounded-md text-sm font-medium hover:bg-lavender transition-colors"
+              onclick={handleExportTPrompt}
+            >
+              💾 Save .tprompt
+            </button>
           </div>
         </div>
       {/if}
