@@ -3,7 +3,7 @@
   import { blockRegistry } from '$lib/blocks/registry';
 
   // Layout constants - must match BlockNode.svelte dimensions
-  const HEADER_HEIGHT = 40; // Height of block header in pixels
+  const HEADER_HEIGHT = 44; // Height of block header in pixels
   const PORT_Y_OFFSET = 20; // Starting Y offset for ports within block-body (matches BlockNode.svelte)
   const PORT_SPACING = 24; // Vertical spacing between ports in pixels (matches BlockNode.svelte)
   const BLOCK_WIDTH = 208; // Total block width in pixels (w-52 = 13rem = 208px)
