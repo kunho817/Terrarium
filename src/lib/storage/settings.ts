@@ -23,6 +23,7 @@ export interface AppSettings {
   modelSlots?: Record<string, ModelSlot>;
   memorySettings?: MemorySettings;
   outputLanguage?: string;
+  agentSettings?: Record<string, Record<string, unknown>>;
   [key: string]: unknown;
 }
 
