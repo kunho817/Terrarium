@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { BlockInstance } from '$lib/types';
   import { blockRegistry } from '$lib/blocks/registry';
+  import Port from './Port.svelte';
 
   interface Props {
     block: BlockInstance;
@@ -76,6 +77,19 @@
   
   <!-- Content Preview -->
   <div class="block-body bg-surface1 p-3 border-x border-b border-surface2 relative">
+    <!-- Input ports (left side) -->
+    {#each definition?.inputPorts || [] as port, i}
+      {@const portKey = `${block.id}-${port.id}`}
+      <div class="absolute left-0" style="top: {20 + i * 24}px;">
+        <Port 
+          port={port}
+          isInput={true}
+          isConnected={connectedPorts.has(portKey)}
+          onActivate={(e) => onPortClick?.(port.id, true, e as MouseEvent)}
+        />
+      </div>
+    {/each}
+    
     <div class="text-xs text-subtext0 line-clamp-3">
       {#if block.config.content}
         {block.config.content}
@@ -87,19 +101,12 @@
     <!-- Output ports (right side) -->
     {#each definition?.outputPorts || [] as port}
       {@const portKey = `${block.id}-${port.id}`}
-      <button
-        data-port-id={port.id}
-        data-port-type={port.type}
-        class="port output absolute w-3 h-3 rounded-full border-2 cursor-pointer transition-all"
-        style="right: -6px; top: 50%; transform: translateY(-50%);
-               background: {connectedPorts.has(portKey) ? (port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af') : '#313244'};
-               border-color: {port.type === 'text' ? '#a6e3a1' : port.type === 'boolean' ? '#cba6f7' : port.type === 'number' ? '#74c7ec' : '#f9e2af'};"
-        onclick={(e) => {
-          e.stopPropagation();
-          onPortClick?.(port.id, false, e);
-        }}
-        title="{port.name} (output)"
-      ></button>
+      <Port 
+        port={port}
+        isInput={false}
+        isConnected={connectedPorts.has(portKey)}
+        onActivate={(e) => onPortClick?.(port.id, false, e as MouseEvent)}
+      />
     {/each}
   </div>
 </div>
@@ -124,9 +131,5 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-  .port:hover {
-    box-shadow: 0 0 0 4px rgba(203, 166, 247, 0.3);
-    transform: translateY(-50%) scale(1.2) !important;
   }
 </style>
