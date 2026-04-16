@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { BlockGraph, BlockInstance } from '$lib/types';
+  import type { BlockGraph, BlockInstance, Connection } from '$lib/types';
   import BlockNode from './BlockNode.svelte';
   import ConnectionLayer from './ConnectionLayer.svelte';
   import { connectionDragStore } from '$lib/stores/connection-drag';
+  import { blockBuilderStore } from '$lib/stores/block-builder';
 
   interface Props {
     graph: BlockGraph;
@@ -54,7 +55,18 @@
   }
 
   function handlePortClick(blockId: string, portId: string, isInput: boolean, e: MouseEvent) {
-    if (!isInput) {
+    if ($connectionDragStore.isDragging && isInput) {
+      const conn: Connection = {
+        id: crypto.randomUUID(),
+        from: { 
+          blockId: $connectionDragStore.fromBlockId!, 
+          portId: $connectionDragStore.fromPortId! 
+        },
+        to: { blockId, portId },
+      };
+      blockBuilderStore.addConnection(conn);
+      connectionDragStore.endDrag();
+    } else if (!isInput) {
       const portRect = (e.target as HTMLElement).getBoundingClientRect();
       const canvas = document.querySelector('.canvas-area');
       if (canvas) {
