@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { BlockGraph } from '$lib/types';
+  import { countTokens } from '$lib/utils/tokenizer';
 
   interface Props {
     graph: BlockGraph;
@@ -7,7 +8,6 @@
 
   let { graph }: Props = $props();
 
-  // Simple preview: concatenate all TextBlock contents
   const previewText = $derived(() => {
     const texts: string[] = [];
     for (const block of graph.blocks) {
@@ -20,11 +20,14 @@
     }
     return texts.join('\n\n');
   });
+
+  const tokenCount = $derived(countTokens(previewText()));
 </script>
 
 <div class="preview-panel flex flex-col h-full bg-surface1 rounded-lg overflow-hidden">
-  <div class="px-4 py-3 border-b border-surface2">
+  <div class="preview-header flex items-center justify-between px-4 py-3 border-b border-surface2">
     <h3 class="text-sm font-semibold text-text">Live Preview</h3>
+    <span class="text-xs text-subtext0">{tokenCount} tokens</span>
   </div>
   
   <div class="flex-1 p-4 overflow-y-auto">

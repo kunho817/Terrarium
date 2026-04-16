@@ -162,6 +162,18 @@ function createBlockBuilderStore() {
         selectedBlockId: blockId,
       }));
     },
+
+    setBlockCollapsed: (blockId: string, collapsed: boolean) => {
+      update((state) => ({
+        ...state,
+        currentGraph: {
+          ...state.currentGraph,
+          blocks: state.currentGraph.blocks.map((b) =>
+            b.id === blockId ? { ...b, collapsed } : b
+          ),
+        },
+      }));
+    },
   };
 }
 
