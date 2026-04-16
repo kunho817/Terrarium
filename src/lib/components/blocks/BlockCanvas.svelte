@@ -146,10 +146,11 @@
       const canvas = document.querySelector('.canvas-area');
       if (canvas) {
         const canvasRect = canvas.getBoundingClientRect();
-        connectionDragStore.startDrag(blockId, portId, isInput, 
-          portRect.left + portRect.width / 2 - canvasRect.left, 
+        const pos = viewportStore.screenToCanvas(
+          portRect.left + portRect.width / 2 - canvasRect.left,
           portRect.top + portRect.height / 2 - canvasRect.top
         );
+        connectionDragStore.startDrag(blockId, portId, isInput, pos.x, pos.y);
       }
     }
   }
@@ -159,10 +160,11 @@
       const canvas = document.querySelector('.canvas-area');
       if (canvas) {
         const rect = canvas.getBoundingClientRect();
-        connectionDragStore.updateMouse(
+        const pos = viewportStore.screenToCanvas(
           e.clientX - rect.left,
           e.clientY - rect.top
         );
+        connectionDragStore.updateMouse(pos.x, pos.y);
       }
     }
   }
