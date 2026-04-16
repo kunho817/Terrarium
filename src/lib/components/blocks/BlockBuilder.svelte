@@ -68,8 +68,18 @@
     
     {#if editingBlock}
       {@const block = editingBlock}
-      <div class="absolute inset-0 bg-mantle/80 z-50 flex items-center justify-center rounded-lg">
-        <div class="bg-surface1 rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto border border-surface2">
+      <div 
+        class="absolute inset-0 bg-mantle/80 z-50 flex items-center justify-center rounded-lg"
+        onclick={handleEditorClose}
+        onkeydown={(e) => e.key === 'Escape' && handleEditorClose()}
+        role="dialog"
+        aria-modal="true"
+        tabindex="-1"
+      >
+        <div 
+          class="bg-surface1 rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto border border-surface2"
+          onclick={(e) => e.stopPropagation()}
+        >
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-text">Edit {block.type}</h3>
             <button 
@@ -86,6 +96,13 @@
           {:else}
             <p class="text-subtext0">No editor available for this block type</p>
           {/if}
+          
+          <div class="flex justify-end mt-4 pt-4 border-t border-surface2">
+            <button
+              class="px-4 py-2 text-sm text-subtext0 hover:text-text transition-colors"
+              onclick={handleEditorClose}
+            >Cancel</button>
+          </div>
         </div>
       </div>
     {/if}
