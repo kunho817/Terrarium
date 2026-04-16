@@ -113,4 +113,75 @@ describe('Scratch Executor', () => {
     });
     expect(result).toBe('Alice is a curious girl');
   });
+
+  it('executes ToggleBlock', () => {
+    const block: ScratchBlock = {
+      id: 't1',
+      type: 'ToggleBlock',
+      config: { toggleId: 'my-toggle', defaultValue: false },
+      slots: {},
+      next: null,
+    };
+    
+    const result = executeScratchBlock(block, { toggles: new Map([['my-toggle', true]]) });
+    expect(result).toBe('true');
+  });
+
+  it('executes MemoryBlock', () => {
+    const block: ScratchBlock = {
+      id: 'm1',
+      type: 'MemoryBlock',
+      config: { count: 2, format: 'bullet' },
+      slots: {},
+      next: null,
+    };
+    
+    const result = executeScratchBlock(block, { 
+      memories: [
+        { content: 'Memory 1', relevance: 0.9 },
+        { content: 'Memory 2', relevance: 0.8 },
+        { content: 'Memory 3', relevance: 0.7 },
+      ]
+    });
+    expect(result).toBe('- Memory 1\n- Memory 2');
+  });
+
+  it('executes LorebookBlock', () => {
+    const block: ScratchBlock = {
+      id: 'l1',
+      type: 'LorebookBlock',
+      config: { maxEntries: 2, format: 'bullet' },
+      slots: {},
+      next: null,
+    };
+    
+    const result = executeScratchBlock(block, { 
+      lorebookEntries: [
+        { keywords: ['test'], content: 'Entry 1' },
+        { keywords: ['foo'], content: 'Entry 2' },
+      ]
+    });
+    expect(result).toBe('- Entry 1\n- Entry 2');
+  });
+
+  it('executes SwitchBlock', () => {
+    const block: ScratchBlock = {
+      id: 's1',
+      type: 'SwitchBlock',
+      config: { 
+        cases: [
+          { value: 'option1', result: 'First option' },
+          { value: 'option2', result: 'Second option' },
+        ],
+        defaultCase: 'Unknown'
+      },
+      slots: {
+        variable: { id: 'v1', type: 'TextBlock', config: { content: 'option2' }, slots: {}, next: null },
+      },
+      next: null,
+    };
+    
+    const result = executeScratchBlock(block, {});
+    expect(result).toBe('Second option');
+  });
 });
