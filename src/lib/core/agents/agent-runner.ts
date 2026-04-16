@@ -2,17 +2,35 @@ import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 import { MemoryAgent } from './memory-agent';
 
 export class AgentRunner {
-	private agents: Agent[] = [];
+	private agents: Map<string, Agent> = new Map();
 
 	constructor() {
-		this.agents = [new MemoryAgent()];
+		this.registerAgent(new MemoryAgent());
+	}
+
+	registerAgent(agent: Agent): void {
+		this.agents.set(agent.id, agent);
+	}
+
+	unregisterAgent(id: string): void {
+		this.agents.delete(id);
+	}
+
+	hasAgent(id: string): boolean {
+		return this.agents.has(id);
+	}
+
+	getAgentsByPriority(): Agent[] {
+		return Array.from(this.agents.values()).sort((a, b) => a.priority - b.priority);
 	}
 
 	async initAll(ctx: AgentContext): Promise<void> {
-		for (const agent of this.agents) {
+		for (const agent of this.getAgentsByPriority()) {
 			try {
 				await agent.init(ctx);
-			} catch {}
+			} catch {
+				console.warn(`[AgentRunner] Agent ${agent.id} init failed`);
+			}
 		}
 	}
 
@@ -20,13 +38,21 @@ export class AgentRunner {
 		const combined: AgentResult = {};
 		const injectParts: string[] = [];
 
-		for (const agent of this.agents) {
+		for (const agent of this.getAgentsByPriority()) {
 			try {
 				const result = await agent.onBeforeSend(ctx);
 				if (result.injectPrompt) {
 					injectParts.push(result.injectPrompt);
 				}
-			} catch {}
+				if (result.updatedState) {
+					combined.updatedState = {
+						...combined.updatedState,
+						...result.updatedState
+					};
+				}
+			} catch {
+				console.warn(`[AgentRunner] Agent ${agent.id} onBeforeSend failed`);
+			}
 		}
 
 		if (injectParts.length) {
@@ -40,13 +66,21 @@ export class AgentRunner {
 		const combined: AgentResult = {};
 		const allMemories: import('$lib/types/memory').MemoryRecord[] = [];
 
-		for (const agent of this.agents) {
+		for (const agent of this.getAgentsByPriority()) {
 			try {
 				const result = await agent.onAfterReceive(ctx, response);
 				if (result.updatedMemories) {
 					allMemories.push(...result.updatedMemories);
 				}
-			} catch {}
+				if (result.updatedState) {
+					combined.updatedState = {
+						...combined.updatedState,
+						...result.updatedState
+					};
+				}
+			} catch {
+				console.warn(`[AgentRunner] Agent ${agent.id} onAfterReceive failed`);
+			}
 		}
 
 		if (allMemories.length) {
@@ -57,10 +91,12 @@ export class AgentRunner {
 	}
 
 	async shutdownAll(): Promise<void> {
-		for (const agent of this.agents) {
+		for (const agent of this.getAgentsByPriority()) {
 			try {
 				await agent.shutdown();
-			} catch {}
+			} catch {
+				console.warn(`[AgentRunner] Agent ${agent.id} shutdown failed`);
+			}
 		}
 	}
 }

@@ -112,6 +112,7 @@ async function callExtractionModel(conversation: string, prompt: string): Promis
 export class MemoryAgent implements Agent {
 	readonly id = 'memory';
 	readonly name = 'Memory Agent';
+	readonly priority = 10;
 	private lastExtractionTurn = -Infinity;
 
 	async init(_ctx: AgentContext): Promise<void> {
