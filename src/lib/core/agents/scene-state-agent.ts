@@ -3,6 +3,7 @@ import { settingsStore } from '$lib/stores/settings';
 import { getSceneState, updateSceneState } from '$lib/storage/agent-states';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 import type { SceneState, StateUpdate } from '$lib/types/agent-state';
+import type { AgentSettings } from '$lib/types/config';
 
 const SCENE_SYSTEM_PROMPT = `You are a scene analyzer that extracts scene information from narrative text.
 Analyze the text and extract details about the current scene.
@@ -30,7 +31,8 @@ function getSceneConfig() {
 	const settings = get(settingsStore);
 	const memorySlot = settings.modelSlots?.memory;
 	const chatSlot = settings.modelSlots?.chat;
-	const sceneSettings = settings.agentSettings?.scene as Record<string, any> | undefined;
+	const agentSettings = settings.agentSettings as AgentSettings | undefined;
+	const sceneSettings = agentSettings?.scene;
 	
 	return {
 		provider: memorySlot?.provider || chatSlot?.provider || settings.defaultProvider,
@@ -40,7 +42,8 @@ function getSceneConfig() {
 			(settings.providers?.[settings.defaultProvider!]?.model as string),
 		baseUrl: memorySlot?.baseUrl || chatSlot?.baseUrl,
 		temperature: memorySlot?.temperature ?? chatSlot?.temperature ?? 0.3,
-		enabled: sceneSettings?.enabled !== false
+		enabled: sceneSettings?.enabled !== false,
+		tokenBudget: sceneSettings?.tokenBudget || 2560
 	};
 }
 

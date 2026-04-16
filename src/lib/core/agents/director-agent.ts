@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 import type { DirectorGuidance, DirectorMode } from '$lib/types/agent-state';
+import type { AgentSettings } from '$lib/types/config';
 
 const DIRECTOR_SYSTEM_PROMPT = `You are a story director that guides narrative direction.
 Analyze the current scene and provide guidance for the next response.
@@ -21,7 +22,8 @@ function getDirectorConfig() {
 	const directorSlot = settings.modelSlots?.director;
 	const memorySlot = settings.modelSlots?.memory;
 	const chatSlot = settings.modelSlots?.chat;
-	const directorSettings = settings.agentSettings?.director as Record<string, any> | undefined;
+	const agentSettings = settings.agentSettings as AgentSettings | undefined;
+	const directorSettings = agentSettings?.director;
 	
 	return {
 		provider: directorSlot?.provider || memorySlot?.provider || chatSlot?.provider || settings.defaultProvider,
@@ -31,8 +33,9 @@ function getDirectorConfig() {
 			(settings.providers?.[settings.defaultProvider!]?.model as string),
 		baseUrl: directorSlot?.baseUrl || memorySlot?.baseUrl || chatSlot?.baseUrl,
 		temperature: directorSlot?.temperature ?? memorySlot?.temperature ?? chatSlot?.temperature ?? 0.7,
-		mode: (directorSettings?.mode as DirectorMode) || 'light',
-		enabled: directorSettings?.enabled !== false
+		mode: directorSettings?.mode || 'light',
+		enabled: directorSettings?.enabled !== false,
+		tokenBudget: directorSettings?.tokenBudget || 1024
 	};
 }
 
