@@ -17,7 +17,6 @@ export function createEmptyGraph(): BlockGraph {
     version: '1.0',
     blocks: [],
     connections: [],
-    viewport: { x: 0, y: 0, zoom: 1 },
   };
 }
 

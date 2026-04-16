@@ -65,9 +65,4 @@ export interface BlockGraph {
   version: '1.0';
   blocks: BlockInstance[];
   connections: Connection[];
-  viewport: {
-    x: number;
-    y: number;
-    zoom: number;
-  };
 }

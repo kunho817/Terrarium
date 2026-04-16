@@ -52,9 +52,8 @@
 </script>
 
 <div
-  class="block-node absolute w-52 rounded-lg overflow-hidden select-none"
+  class="block-node w-52 rounded-lg overflow-hidden select-none"
   class:selected={isSelected}
-  style="left: {block.position.x}px; top: {block.position.y}px;"
   onmousedown={handleMouseDown}
   ondblclick={onDoubleClick}
   onkeydown={handleKeyDown}

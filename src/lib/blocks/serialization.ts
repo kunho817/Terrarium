@@ -72,7 +72,6 @@ export function importFromTPrompt(file: TPromptFile): BlockGraph {
     version: '1.0',
     blocks: file.blocks,
     connections: file.connections,
-    viewport: { x: 0, y: 0, zoom: 1 },
   };
 }
 
@@ -96,7 +95,6 @@ export function importFromTChunk(file: TChunkFile): BlockGraph {
     version: '1.0',
     blocks: file.blocks,
     connections: file.connections,
-    viewport: { x: 0, y: 0, zoom: 1 },
   };
 }
 

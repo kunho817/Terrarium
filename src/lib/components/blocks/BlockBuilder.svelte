@@ -24,32 +24,12 @@
     onBlockAdd?.(blockType);
   }
 
-  function handleBlockSelect(blockId: string) {
-    onBlockSelect?.(blockId || null);
+  function handleBlockSelect(blockId: string | null) {
+    onBlockSelect?.(blockId);
   }
 
-  function handleBlockDrag(blockId: string, position: { x: number; y: number }) {
+  function handleBlockMove(blockId: string, position: { x: number; y: number }) {
     onBlockMove?.(blockId, position);
-  }
-
-  function handleCanvasPan(_dx: number, _dy: number) {
-    // Pan handler - would update viewport
-  }
-
-  function handleZoomIn() {
-    // Zoom in handler
-  }
-
-  function handleZoomOut() {
-    // Zoom out handler
-  }
-
-  function handleZoomReset() {
-    // Reset zoom handler
-  }
-
-  function handleFitToScreen() {
-    // Fit to screen handler
   }
 
   function handleBlockDoubleClick(_blockId: string) {
@@ -66,17 +46,11 @@
   
   <BlockCanvas 
     {graph} 
-    viewport={graph.viewport}
     selectedBlockId={selectedBlockId ?? null}
     onBlockSelect={handleBlockSelect}
     onBlockDoubleClick={handleBlockDoubleClick}
-    onBlockDrag={handleBlockDrag}
+    onBlockMove={handleBlockMove}
     onPortDragStart={handlePortDragStart}
-    onCanvasPan={handleCanvasPan}
-    onZoomIn={handleZoomIn}
-    onZoomOut={handleZoomOut}
-    onZoomReset={handleZoomReset}
-    onFitToScreen={handleFitToScreen}
   />
   
   <BlockPreview {graph} />

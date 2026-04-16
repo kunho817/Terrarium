@@ -15,7 +15,6 @@
   import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
   import { exportToTPrompt, downloadAsJSON } from '$lib/blocks/serialization';
   import type { BlockInstance, BlockType, BlockGraph } from '$lib/types';
-  import { viewportStore } from '$lib/stores/viewport';
   import RightPanel from '$lib/components/blocks/RightPanel.svelte';
   
   // Initialize blocks - only register once
@@ -344,34 +343,15 @@
             <div class="flex-1 relative min-w-0 h-full">
               <BlockCanvas
                 graph={currentGraph}
-                viewport={$viewportStore}
                 {selectedBlockId}
-                onBlockSelect={(id) => selectedBlockId = id}
-                onBlockDoubleClick={(id) => {
+                onBlockSelect={(id: string | null) => selectedBlockId = id}
+                onBlockDoubleClick={(id: string) => {
                   selectedBlockId = id;
                   rightPanelMode = 'editor';
                 }}
-                onBlockDrag={(id, pos) => blockBuilderStore.updateBlockPosition(id, pos)}
-                onPortDragStart={(blockId, port, e) => {
+                onBlockMove={(id: string, pos: { x: number; y: number }) => blockBuilderStore.updateBlockPosition(id, pos)}
+                onPortDragStart={(blockId: string, port: { id: string; type: string }, _e: MouseEvent) => {
                   // TODO: Implement port drag
-                }}
-                onCanvasPan={(dx, dy) => viewportStore.panBy(dx, dy)}
-                onZoomIn={() => viewportStore.zoomBy(1.1)}
-                onZoomOut={() => viewportStore.zoomBy(0.9)}
-                onZoomReset={() => viewportStore.reset()}
-                onFitToScreen={() => {
-                  // Calculate bounds and fit
-                  const positions = currentGraph.blocks.map((b: BlockInstance) => b.position);
-                  if (positions.length > 0) {
-                    const xs = positions.map((p: {x: number; y: number}) => p.x);
-                    const ys = positions.map((p: {x: number; y: number}) => p.y);
-                    viewportStore.fitToBounds(
-                      Math.min(...xs) - 100,
-                      Math.min(...ys) - 100,
-                      Math.max(...xs) + 300,
-                      Math.max(...ys) + 200
-                    );
-                  }
                 }}
               />
             </div>
