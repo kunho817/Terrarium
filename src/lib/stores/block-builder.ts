@@ -10,6 +10,8 @@ export interface BlockBuilderState {
   selectedBlockId: string | null;
   history: BlockGraph[];
   historyIndex: number;
+  toggles: Map<string, boolean>;
+  toggleNames: Map<string, string>;
 }
 
 export function createEmptyGraph(): BlockGraph {
@@ -26,6 +28,8 @@ function createBlockBuilderStore() {
     selectedBlockId: null,
     history: [createEmptyGraph()],
     historyIndex: 0,
+    toggles: new Map(),
+    toggleNames: new Map(),
   });
 
   return {
@@ -37,6 +41,44 @@ function createBlockBuilderStore() {
         selectedBlockId: null,
         history: [createEmptyGraph()],
         historyIndex: 0,
+        toggles: new Map(),
+        toggleNames: new Map(),
+      });
+    },
+
+    setToggle: (id: string, value: boolean) => {
+      update((state) => {
+        const toggles = new Map(state.toggles);
+        toggles.set(id, value);
+        return { ...state, toggles };
+      });
+    },
+
+    addToggle: (id: string, name: string) => {
+      update((state) => {
+        const toggles = new Map(state.toggles);
+        const toggleNames = new Map(state.toggleNames);
+        toggles.set(id, false);
+        toggleNames.set(id, name);
+        return { ...state, toggles, toggleNames };
+      });
+    },
+
+    removeToggle: (id: string) => {
+      update((state) => {
+        const toggles = new Map(state.toggles);
+        const toggleNames = new Map(state.toggleNames);
+        toggles.delete(id);
+        toggleNames.delete(id);
+        return { ...state, toggles, toggleNames };
+      });
+    },
+
+    renameToggle: (id: string, name: string) => {
+      update((state) => {
+        const toggleNames = new Map(state.toggleNames);
+        toggleNames.set(id, name);
+        return { ...state, toggleNames };
       });
     },
 

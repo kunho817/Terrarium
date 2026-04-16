@@ -4,6 +4,7 @@
   import BlockPalette from './BlockPalette.svelte';
   import BlockCanvas from './BlockCanvas.svelte';
   import BlockPreview from './BlockPreview.svelte';
+  import TogglePanel from './TogglePanel.svelte';
   import TextBlockEditor from './editors/TextBlockEditor.svelte';
 
   interface Props {
@@ -117,5 +118,8 @@
     {/if}
   </div>
   
-  <BlockPreview {graph} />
+  <div class="flex flex-col gap-4">
+    <BlockPreview {graph} />
+    <TogglePanel />
+  </div>
 </div>
