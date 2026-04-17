@@ -180,6 +180,9 @@ export class ChatEngine {
       turnNumber: allMessages.filter(m => m.role === 'user').length,
       config: options.config,
     });
+    if (agentResult.agentOutputs) {
+      ctx.agentOutputs = agentResult.agentOutputs;
+    }
     if (agentResult.injectPrompt) {
       ctx.additionalPrompt = (ctx.additionalPrompt || '') + '\n\n' + agentResult.injectPrompt;
     }
@@ -198,6 +201,7 @@ export class ChatEngine {
         worldCard: options.worldCard,
         additionalPrompt: ctx.additionalPrompt,
         outputLanguage: get(settingsStore).outputLanguage || '',
+        agentOutputs: ctx.agentOutputs,
       });
       assembled = result.messages;
       prefillText = result.prefill;

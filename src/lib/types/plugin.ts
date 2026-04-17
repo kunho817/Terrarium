@@ -61,6 +61,7 @@ export interface ChatContext {
   config: UserConfig;
   additionalPrompt?: string;
   lorebookMatches: LorebookEntry[];
+  agentOutputs?: import('$lib/types/agent').AgentOutputs;
 }
 
 // === Agent Plugin (v2 expansion) ===
