@@ -13,6 +13,8 @@ const DEFAULT_SCENE: SceneState = {
   mood: '',
   participatingCharacters: [],
   variables: {},
+  environmentalNotes: '',
+  lastUpdated: 0,
 };
 
 function createSceneStore() {
@@ -22,6 +24,8 @@ function createSceneStore() {
     mood: '',
     participatingCharacters: [],
     variables: {},
+    environmentalNotes: '',
+    lastUpdated: 0,
     currentCharacterId: null,
     currentSessionId: null,
   };

@@ -32,6 +32,8 @@ const mockScene: SceneState = {
   mood: 'Peaceful',
   participatingCharacters: ['alice-id'],
   variables: {},
+  environmentalNotes: '',
+  lastUpdated: 0,
 };
 
 const mockMessages: Message[] = [
@@ -107,6 +109,8 @@ describe('Default Prompt Builder', () => {
         mood: '',
         participatingCharacters: [],
         variables: {},
+        environmentalNotes: '',
+        lastUpdated: 0,
       };
       const prompt = defaultPromptBuilder.buildSystemPrompt(mockCard, emptyScene);
 
@@ -140,6 +144,8 @@ describe('Default Prompt Builder', () => {
         mood: '',
         participatingCharacters: [],
         variables: {},
+        environmentalNotes: '',
+        lastUpdated: 0,
       };
       const context = defaultPromptBuilder.buildContext(mockMessages, emptyScene);
       expect(context).not.toContain('[Scene:');

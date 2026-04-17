@@ -23,6 +23,8 @@ export const sceneRepo = {
         mood: '',
         participatingCharacters: [],
         variables: {},
+        environmentalNotes: '',
+        lastUpdated: 0,
       };
       sceneStore.setSceneState(characterId, sessionId, scene ?? DEFAULT_SCENE);
       log.debug('Scene loaded', { characterId, sessionId });
@@ -73,6 +75,8 @@ export const sceneRepo = {
           mood: state.mood,
           participatingCharacters: state.participatingCharacters,
           variables: state.variables,
+          environmentalNotes: state.environmentalNotes,
+          lastUpdated: state.lastUpdated,
         };
         await chatStorage.saveScene(currentCharacterId, currentSessionId, sceneState);
         log.debug('Scene saved', { characterId: currentCharacterId, sessionId: currentSessionId });

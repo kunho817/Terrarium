@@ -11,4 +11,6 @@ export interface SceneState {
   mood: string;
   participatingCharacters: string[];
   variables: VariableStore;
+  environmentalNotes: string;
+  lastUpdated: number;
 }

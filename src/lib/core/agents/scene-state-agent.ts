@@ -2,7 +2,8 @@ import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
 import { getSceneState, updateSceneState } from '$lib/storage/agent-states';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
-import type { SceneState, StateUpdate } from '$lib/types/agent-state';
+import type { SceneState } from '$lib/types/scene';
+import type { StateUpdate } from '$lib/types/agent-state';
 import type { AgentSettings } from '$lib/types/config';
 
 const SCENE_SYSTEM_PROMPT = `You are a scene analyzer that extracts scene information from narrative text.
@@ -142,9 +143,9 @@ export function parseSceneOutput(content: string): SceneExtraction | null {
 
 export function formatScenePrompt(state: SceneState): string | undefined {
 	const hasContent = state.location || 
-		state.characters.length > 0 || 
-		state.atmosphere || 
-		state.timeOfDay || 
+		state.participatingCharacters.length > 0 || 
+		state.mood || 
+		state.time || 
 		state.environmentalNotes;
 
 	if (!hasContent) return undefined;
@@ -154,14 +155,14 @@ export function formatScenePrompt(state: SceneState): string | undefined {
 	if (state.location) {
 		lines.push(`Location: ${state.location}`);
 	}
-	if (state.characters.length) {
-		lines.push(`Characters Present: ${state.characters.join(', ')}`);
+	if (state.participatingCharacters.length) {
+		lines.push(`Characters Present: ${state.participatingCharacters.join(', ')}`);
 	}
-	if (state.atmosphere) {
-		lines.push(`Atmosphere: ${state.atmosphere}`);
+	if (state.mood) {
+		lines.push(`Atmosphere: ${state.mood}`);
 	}
-	if (state.timeOfDay) {
-		lines.push(`Time of Day: ${state.timeOfDay}`);
+	if (state.time) {
+		lines.push(`Time of Day: ${state.time}`);
 	}
 	if (state.environmentalNotes) {
 		lines.push(`Environment: ${state.environmentalNotes}`);
@@ -180,9 +181,9 @@ export class SceneStateAgent implements Agent {
 		if (!existing) {
 			await updateSceneState(ctx.sessionId, {
 				location: '',
-				characters: [],
-				atmosphere: '',
-				timeOfDay: '',
+				participatingCharacters: [],
+				mood: '',
+				time: '',
 				environmentalNotes: ''
 			});
 		}
@@ -207,10 +208,19 @@ export class SceneStateAgent implements Agent {
 		const extraction = await callSceneExtractionModel(response);
 		if (!extraction) return {};
 
-		await updateSceneState(ctx.sessionId, extraction);
+		const mapped = {
+			location: extraction.location,
+			participatingCharacters: extraction.characters,
+			mood: extraction.atmosphere,
+			time: extraction.timeOfDay,
+			environmentalNotes: extraction.environmentalNotes,
+			lastUpdated: Date.now()
+		};
+
+		await updateSceneState(ctx.sessionId, mapped);
 
 		const stateUpdate: StateUpdate = {
-			scene: extraction
+			scene: mapped
 		};
 
 		return { updatedState: stateUpdate };

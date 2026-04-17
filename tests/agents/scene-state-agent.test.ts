@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { SceneState } from '$lib/types/agent-state';
+import type { SceneState } from '$lib/types/scene';
 
 const sceneStatesStore: Map<string, SceneState> = new Map();
 
@@ -16,12 +16,12 @@ vi.mock('$lib/storage/agent-states', () => ({
 			});
 		} else {
 			sceneStatesStore.set(sessionId, {
-				sessionId,
 				location: partial.location ?? '',
-				characters: partial.characters ?? [],
-				atmosphere: partial.atmosphere ?? '',
-				timeOfDay: partial.timeOfDay ?? '',
+				participatingCharacters: partial.participatingCharacters ?? [],
+				mood: partial.mood ?? '',
+				time: partial.time ?? '',
 				environmentalNotes: partial.environmentalNotes ?? '',
+				variables: {},
 				lastUpdated: now
 			});
 		}
@@ -120,41 +120,41 @@ describe('parseSceneOutput', () => {
 describe('formatScenePrompt', () => {
 	it('returns undefined for empty state', () => {
 		const result = formatScenePrompt({
-			sessionId: 'test',
 			location: '',
-			characters: [],
-			atmosphere: '',
-			timeOfDay: '',
+			participatingCharacters: [],
+			mood: '',
+			time: '',
 			environmentalNotes: '',
+			variables: {},
 			lastUpdated: 0
-		} as SceneState);
+		});
 		expect(result).toBeUndefined();
 	});
 
 	it('formats scene with location', () => {
 		const result = formatScenePrompt({
-			sessionId: 'test',
 			location: 'Rusty Tankard Inn',
-			characters: [],
-			atmosphere: '',
-			timeOfDay: '',
+			participatingCharacters: [],
+			mood: '',
+			time: '',
 			environmentalNotes: '',
+			variables: {},
 			lastUpdated: 0
-		} as SceneState);
+		});
 		expect(result).toContain('[Scene]');
 		expect(result).toContain('Location: Rusty Tankard Inn');
 	});
 
 	it('formats scene with all fields', () => {
 		const result = formatScenePrompt({
-			sessionId: 'test',
 			location: 'Inn',
-			characters: ['Elara', 'Kai'],
-			atmosphere: 'tense',
-			timeOfDay: 'evening',
+			participatingCharacters: ['Elara', 'Kai'],
+			mood: 'tense',
+			time: 'evening',
 			environmentalNotes: 'rain pattering',
+			variables: {},
 			lastUpdated: 0
-		} as SceneState);
+		});
 		expect(result).toContain('[Scene]');
 		expect(result).toContain('Location: Inn');
 		expect(result).toContain('Characters Present: Elara, Kai');

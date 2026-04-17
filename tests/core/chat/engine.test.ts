@@ -66,6 +66,8 @@ const baseScene: SceneState = {
   mood: '',
   participatingCharacters: [],
   variables: {},
+  environmentalNotes: '',
+  lastUpdated: 0,
 };
 
 const baseConfig: UserConfig = {

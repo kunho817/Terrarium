@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { SceneState, CharacterState } from '$lib/types/agent-state';
-import type { SceneState as ContextSceneState } from '$lib/types/scene';
+import type { SceneState } from '$lib/types/scene';
+import type { CharacterState } from '$lib/types/agent-state';
 
 const sceneStatesStore: Map<string, SceneState> = new Map();
 const characterStatesStore: Map<string, CharacterState> = new Map();
@@ -11,12 +11,12 @@ vi.mock('$lib/storage/db', () => ({
 			if (sql.includes('INSERT INTO scene_states')) {
 				const [sessionId, location, charactersJson, atmosphere, timeOfDay, environmentalNotes, lastUpdated] = params as [string, string, string, string, string, string, number];
 				sceneStatesStore.set(sessionId, {
-					sessionId, location, characters: JSON.parse(charactersJson), atmosphere, timeOfDay, environmentalNotes, lastUpdated
+					location, participatingCharacters: JSON.parse(charactersJson), mood: atmosphere, time: timeOfDay, environmentalNotes, variables: {}, lastUpdated
 				});
 			} else if (sql.includes('UPDATE scene_states')) {
 				const [location, charactersJson, atmosphere, timeOfDay, environmentalNotes, lastUpdated, sessionId] = params as [string, string, string, string, string, number, string];
 				sceneStatesStore.set(sessionId, {
-					sessionId, location, characters: JSON.parse(charactersJson), atmosphere, timeOfDay, environmentalNotes, lastUpdated
+					location, participatingCharacters: JSON.parse(charactersJson), mood: atmosphere, time: timeOfDay, environmentalNotes, variables: {}, lastUpdated
 				});
 			} else if (sql.includes('DELETE FROM scene_states')) {
 				sceneStatesStore.delete(params[0] as string);
@@ -55,7 +55,7 @@ vi.mock('$lib/storage/db', () => ({
 				const sessionId = params[0] as string;
 				const state = sceneStatesStore.get(sessionId);
 				if (state) {
-					return [{ values: [[state.sessionId, state.location, JSON.stringify(state.characters), state.atmosphere, state.timeOfDay, state.environmentalNotes, state.lastUpdated]] }];
+					return [{ values: [[sessionId, state.location, JSON.stringify(state.participatingCharacters), state.mood, state.time, state.environmentalNotes, state.lastUpdated]] }];
 				}
 				return [];
 			}
@@ -122,12 +122,14 @@ describe('Agent Pipeline Integration', () => {
 		characterStatesStore.clear();
 		
 		runner = new AgentRunner();
-		const sceneState: ContextSceneState = {
+		const sceneState: SceneState = {
 			location: '',
 			time: '',
 			mood: '',
 			participatingCharacters: [],
-			variables: {}
+			variables: {},
+			environmentalNotes: '',
+			lastUpdated: 0
 		};
 
 		context = {
@@ -217,7 +219,7 @@ describe('Agent Pipeline Integration', () => {
 		const state = await getSceneState(sessionId);
 		expect(state).not.toBeNull();
 		expect(state?.location).toBe('');
-		expect(state?.characters).toEqual([]);
+		expect(state?.participatingCharacters).toEqual([]);
 	});
 
 	it('scene state persists across pipeline phases', async () => {
@@ -229,7 +231,7 @@ describe('Agent Pipeline Integration', () => {
 		
 		await updateSceneState(sessionId, {
 			location: 'Test Location',
-			characters: ['Alice']
+			participatingCharacters: ['Alice']
 		});
 		
 		const result = await runner.onBeforeSend(context);

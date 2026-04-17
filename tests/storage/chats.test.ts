@@ -35,6 +35,8 @@ const mockScene: SceneState = {
   mood: 'Mysterious',
   participatingCharacters: ['char-1'],
   variables: { health: 100 },
+  environmentalNotes: '',
+  lastUpdated: 0,
 };
 
 // Helper: mock sessions.json not existing (triggers migration check path)

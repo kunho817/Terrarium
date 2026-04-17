@@ -23,9 +23,9 @@ function mockSceneAgent(): Agent {
       updatedState: {
         scene: {
           location: 'The Rusty Tankard',
-          atmosphere: 'Tense',
-          timeOfDay: 'Late evening',
-          characters: ['Elara', 'Kai'],
+          mood: 'Tense',
+          time: 'Late evening',
+          participatingCharacters: ['Elara', 'Kai'],
         },
       },
     }),
@@ -45,6 +45,8 @@ function mockContext(): AgentContext {
       mood: '',
       participatingCharacters: [],
       variables: {},
+      environmentalNotes: '',
+      lastUpdated: 0,
     },
     turnNumber: 1,
     config: { providerId: 'test', model: 'test' },
@@ -75,6 +77,8 @@ describe('AgentRunner state persistence', () => {
       mood: '',
       participatingCharacters: [],
       variables: {},
+      environmentalNotes: '',
+      lastUpdated: 0,
     });
     expect(result.location).toBe('The Rusty Tankard');
     expect(result.mood).toBe('Tense');

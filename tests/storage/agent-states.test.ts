@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const sceneStatesStore: Map<string, import('$lib/types/agent-state').SceneState> = new Map();
+const sceneStatesStore: Map<string, import('$lib/types/scene').SceneState> = new Map();
 const characterStatesStore: Map<string, import('$lib/types/agent-state').CharacterState> = new Map();
 
 vi.mock('$lib/storage/db', () => ({
@@ -9,12 +9,12 @@ vi.mock('$lib/storage/db', () => ({
 			if (sql.includes('INSERT INTO scene_states')) {
 				const [sessionId, location, charactersJson, atmosphere, timeOfDay, environmentalNotes, lastUpdated] = params as [string, string, string, string, string, string, number];
 				sceneStatesStore.set(sessionId, {
-					sessionId, location, characters: JSON.parse(charactersJson), atmosphere, timeOfDay, environmentalNotes, lastUpdated
+					location, participatingCharacters: JSON.parse(charactersJson), mood: atmosphere, time: timeOfDay, environmentalNotes, variables: {}, lastUpdated
 				});
 			} else if (sql.includes('UPDATE scene_states')) {
 				const [location, charactersJson, atmosphere, timeOfDay, environmentalNotes, lastUpdated, sessionId] = params as [string, string, string, string, string, number, string];
 				sceneStatesStore.set(sessionId, {
-					sessionId, location, characters: JSON.parse(charactersJson), atmosphere, timeOfDay, environmentalNotes, lastUpdated
+					location, participatingCharacters: JSON.parse(charactersJson), mood: atmosphere, time: timeOfDay, environmentalNotes, variables: {}, lastUpdated
 				});
 			} else if (sql.includes('DELETE FROM scene_states')) {
 				sceneStatesStore.delete(params[0] as string);
@@ -53,7 +53,7 @@ vi.mock('$lib/storage/db', () => ({
 				const sessionId = params[0] as string;
 				const state = sceneStatesStore.get(sessionId);
 				if (state) {
-					return [{ values: [[state.sessionId, state.location, JSON.stringify(state.characters), state.atmosphere, state.timeOfDay, state.environmentalNotes, state.lastUpdated]] }];
+					return [{ values: [[sessionId, state.location, JSON.stringify(state.participatingCharacters), state.mood, state.time, state.environmentalNotes, state.lastUpdated]] }];
 				}
 				return [];
 			}
@@ -106,45 +106,45 @@ describe('Agent States Storage', () => {
 		it('creates and retrieves scene state', async () => {
 			await updateSceneState(sessionId, {
 				location: 'Test Location',
-				characters: ['Alice', 'Bob'],
-				atmosphere: 'Test atmosphere',
-				timeOfDay: 'Morning',
+				participatingCharacters: ['Alice', 'Bob'],
+				mood: 'Test atmosphere',
+				time: 'Morning',
 				environmentalNotes: 'Test notes'
 			});
 
 			const state = await getSceneState(sessionId);
 			expect(state).not.toBeNull();
 			expect(state?.location).toBe('Test Location');
-			expect(state?.characters).toEqual(['Alice', 'Bob']);
-			expect(state?.atmosphere).toBe('Test atmosphere');
+			expect(state?.participatingCharacters).toEqual(['Alice', 'Bob']);
+			expect(state?.mood).toBe('Test atmosphere');
 		});
 
 		it('updates existing scene state', async () => {
 			await updateSceneState(sessionId, {
 				location: 'Initial Location',
-				characters: ['Alice'],
-				atmosphere: 'Initial',
-				timeOfDay: 'Morning',
+				participatingCharacters: ['Alice'],
+				mood: 'Initial',
+				time: 'Morning',
 				environmentalNotes: ''
 			});
 
 			await updateSceneState(sessionId, {
 				location: 'Updated Location',
-				characters: ['Alice', 'Bob']
+				participatingCharacters: ['Alice', 'Bob']
 			});
 
 			const state = await getSceneState(sessionId);
 			expect(state?.location).toBe('Updated Location');
-			expect(state?.characters).toEqual(['Alice', 'Bob']);
-			expect(state?.atmosphere).toBe('Initial');
+			expect(state?.participatingCharacters).toEqual(['Alice', 'Bob']);
+			expect(state?.mood).toBe('Initial');
 		});
 
 		it('deletes scene state', async () => {
 			await updateSceneState(sessionId, {
 				location: 'To Delete',
-				characters: [],
-				atmosphere: '',
-				timeOfDay: '',
+				participatingCharacters: [],
+				mood: '',
+				time: '',
 				environmentalNotes: ''
 			});
 

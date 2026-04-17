@@ -120,9 +120,11 @@ export class AgentRunner {
 				sceneStore.update((state: any) => ({
 					...state,
 					location: agentScene.location || state.location,
-					mood: agentScene.atmosphere || state.mood,
-					time: agentScene.timeOfDay || state.time,
-					participatingCharacters: agentScene.characters || state.participatingCharacters,
+					mood: agentScene.mood || state.mood,
+					time: agentScene.time || state.time,
+					participatingCharacters: agentScene.participatingCharacters || state.participatingCharacters,
+					environmentalNotes: agentScene.environmentalNotes || state.environmentalNotes,
+					lastUpdated: agentScene.lastUpdated || state.lastUpdated,
 				}));
 			} catch {
 				console.warn('[AgentRunner] Failed to persist scene state to sceneStore');

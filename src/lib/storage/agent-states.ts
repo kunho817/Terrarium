@@ -1,5 +1,6 @@
 import { getDb, persist } from './db';
-import type { SceneState, CharacterState } from '$lib/types/agent-state';
+import type { SceneState } from '$lib/types/scene';
+import type { CharacterState } from '$lib/types/agent-state';
 
 export async function getSceneState(sessionId: string): Promise<SceneState | null> {
 	const db = await getDb();
@@ -14,41 +15,39 @@ export async function getSceneState(sessionId: string): Promise<SceneState | nul
 
 	const row = result[0].values[0];
 	return {
-		sessionId: row[0] as string,
 		location: row[1] as string,
-		characters: JSON.parse(row[2] as string) as string[],
-		atmosphere: row[3] as string,
-		timeOfDay: row[4] as string,
+		participatingCharacters: JSON.parse(row[2] as string) as string[],
+		mood: row[3] as string,
+		time: row[4] as string,
 		environmentalNotes: row[5] as string,
-		lastUpdated: row[6] as number
+		lastUpdated: row[6] as number,
+		variables: {}
 	};
 }
 
 export async function updateSceneState(
 	sessionId: string,
-	partial: Partial<Omit<SceneState, 'sessionId' | 'lastUpdated'>>
+	partial: Partial<Omit<SceneState, 'variables' | 'lastUpdated'>>
 ): Promise<void> {
 	const existing = await getSceneState(sessionId);
 	const now = Date.now();
 
-	if (existing) {
-		const updated = {
-			location: partial.location ?? existing.location,
-			characters: partial.characters ?? existing.characters,
-			atmosphere: partial.atmosphere ?? existing.atmosphere,
-			timeOfDay: partial.timeOfDay ?? existing.timeOfDay,
-			environmentalNotes: partial.environmentalNotes ?? existing.environmentalNotes
-		};
+	const location = partial.location ?? existing?.location ?? '';
+	const characters = partial.participatingCharacters ?? existing?.participatingCharacters ?? [];
+	const atmosphere = partial.mood ?? existing?.mood ?? '';
+	const timeOfDay = partial.time ?? existing?.time ?? '';
+	const environmentalNotes = partial.environmentalNotes ?? existing?.environmentalNotes ?? '';
 
+	if (existing) {
 		const db = await getDb();
 		db.run(
 			'UPDATE scene_states SET location = ?, characters = ?, atmosphere = ?, time_of_day = ?, environmental_notes = ?, last_updated = ? WHERE session_id = ?',
 			[
-				updated.location,
-				JSON.stringify(updated.characters),
-				updated.atmosphere,
-				updated.timeOfDay,
-				updated.environmentalNotes,
+				location,
+				JSON.stringify(characters),
+				atmosphere,
+				timeOfDay,
+				environmentalNotes,
 				now,
 				sessionId
 			]
@@ -59,11 +58,11 @@ export async function updateSceneState(
 			'INSERT INTO scene_states (session_id, location, characters, atmosphere, time_of_day, environmental_notes, last_updated) VALUES (?, ?, ?, ?, ?, ?, ?)',
 			[
 				sessionId,
-				partial.location ?? '',
-				JSON.stringify(partial.characters ?? []),
-				partial.atmosphere ?? '',
-				partial.timeOfDay ?? '',
-				partial.environmentalNotes ?? '',
+				location,
+				JSON.stringify(characters),
+				atmosphere,
+				timeOfDay,
+				environmentalNotes,
 				now
 			]
 		);

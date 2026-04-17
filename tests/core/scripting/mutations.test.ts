@@ -9,6 +9,8 @@ const baseScene: SceneState = {
   mood: 'calm',
   participatingCharacters: [],
   variables: { 'player.hp': 100, 'player.gold': 50 },
+  environmentalNotes: '',
+  lastUpdated: 0,
 };
 
 describe('applyMutations', () => {

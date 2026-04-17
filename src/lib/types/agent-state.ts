@@ -1,12 +1,4 @@
-export interface SceneState {
-	sessionId: string;
-	location: string;
-	characters: string[];
-	atmosphere: string;
-	timeOfDay: string;
-	environmentalNotes: string;
-	lastUpdated: number;
-}
+export type { SceneState } from './scene';
 
 export interface CharacterState {
 	id: string;

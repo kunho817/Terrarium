@@ -1,15 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import type { SceneState, CharacterState, DirectorGuidance, StateUpdate } from '$lib/types/agent-state';
+import type { CharacterState, DirectorGuidance, StateUpdate } from '$lib/types/agent-state';
+import type { SceneState } from '$lib/types/scene';
 
 describe('Agent State Types', () => {
 	it('SceneState has all required fields', () => {
 		const state: SceneState = {
-			sessionId: 'test-session',
 			location: 'The Rusty Tankard Inn',
-			characters: ['Elara', 'Kai'],
-			atmosphere: 'Tense',
-			timeOfDay: 'Late evening',
+			participatingCharacters: ['Elara', 'Kai'],
+			mood: 'Tense',
+			time: 'Late evening',
 			environmentalNotes: 'Fire crackling',
+			variables: {},
 			lastUpdated: Date.now()
 		};
 		expect(state.location).toBe('The Rusty Tankard Inn');
