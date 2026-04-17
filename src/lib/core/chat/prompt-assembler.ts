@@ -10,6 +10,7 @@ import type { PromptItem, PromptPreset } from '$lib/types/prompt-preset';
 import type { Message, CharacterCard, SceneState, LorebookEntry } from '$lib/types';
 import type { UserPersona } from '$lib/types/persona';
 import type { WorldCard } from '$lib/types/world';
+import type { AgentOutputs } from '$lib/types/agent';
 import { parseExampleMessages, groupLoreByPosition } from './pipeline';
 import { substituteVariables, type TemplateVariables } from './template-engine';
 
@@ -22,6 +23,7 @@ export interface AssemblyContext {
   worldCard?: WorldCard;
   additionalPrompt?: string;
   outputLanguage?: string;
+  agentOutputs?: AgentOutputs;
 }
 
 function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string, persona?: UserPersona, worldCard?: WorldCard): TemplateVariables {
@@ -188,6 +190,30 @@ export function resolveItem(
     case 'plain': {
       if (!item.content) return null;
       return sysMsg(substituteVariables(item.content, buildTemplateVars(card, scene, '', ctx.persona, ctx.worldCard)));
+    }
+
+    case 'memory': {
+      const output = ctx.agentOutputs?.memory;
+      if (!output) return null;
+      return sysMsg(output);
+    }
+
+    case 'director': {
+      const output = ctx.agentOutputs?.director;
+      if (!output) return null;
+      return sysMsg(output);
+    }
+
+    case 'sceneState': {
+      const output = ctx.agentOutputs?.sceneState;
+      if (!output) return null;
+      return sysMsg(output);
+    }
+
+    case 'characterState': {
+      const output = ctx.agentOutputs?.characterState;
+      if (!output) return null;
+      return sysMsg(output);
     }
 
     default:
