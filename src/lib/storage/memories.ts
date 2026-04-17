@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, persist } from './db';
 import type { MemoryRecord, SessionSummary } from '$lib/types/memory';
 import { cosineSimilarity } from '$lib/core/embedding';
 
@@ -33,12 +33,14 @@ export async function insertMemory(memory: MemoryRecord): Promise<void> {
 		memory.id,
 		serializeEmbedding(memory.embedding),
 	]);
+	try { await persist(); } catch {}
 }
 
 export async function deleteMemory(id: string): Promise<void> {
 	const db = await getDb();
 	db.run('DELETE FROM embeddings WHERE memory_id = ?', [id]);
 	db.run('DELETE FROM memories WHERE id = ?', [id]);
+	try { await persist(); } catch {}
 }
 
 export async function getMemoriesForSession(sessionId: string): Promise<Omit<MemoryRecord, 'embedding'>[]> {
@@ -131,6 +133,7 @@ export async function insertSummary(summary: SessionSummary): Promise<void> {
      VALUES (?, ?, ?, ?, ?, ?)`,
 		[summary.id, summary.sessionId, summary.startTurn, summary.endTurn, summary.summary, summary.createdAt],
 	);
+	try { await persist(); } catch {}
 }
 
 export async function getSummariesForSession(sessionId: string): Promise<SessionSummary[]> {
@@ -168,4 +171,5 @@ export async function deleteMemoriesForSession(sessionId: string): Promise<void>
 	}
 	db.run('DELETE FROM memories WHERE session_id = ?', [sessionId]);
 	db.run('DELETE FROM summaries WHERE session_id = ?', [sessionId]);
+	try { await persist(); } catch {}
 }

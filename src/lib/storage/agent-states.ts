@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDb, persist } from './db';
 import type { SceneState, CharacterState } from '$lib/types/agent-state';
 
 export async function getSceneState(sessionId: string): Promise<SceneState | null> {
@@ -69,10 +69,12 @@ export async function updateSceneState(
 		);
 	}
 }
+	try { await persist(); } catch {}
 
 export async function deleteSceneState(sessionId: string): Promise<void> {
 	const db = await getDb();
 	db.run('DELETE FROM scene_states WHERE session_id = ?', [sessionId]);
+	try { await persist(); } catch {}
 }
 
 export async function getCharacterStates(sessionId: string): Promise<CharacterState[]> {
@@ -175,6 +177,7 @@ export async function updateCharacterState(
 			]
 		);
 	}
+	try { await persist(); } catch {}
 }
 
 export async function deleteCharacterState(
@@ -186,4 +189,5 @@ export async function deleteCharacterState(
 		sessionId,
 		characterName
 	]);
+	try { await persist(); } catch {}
 }
