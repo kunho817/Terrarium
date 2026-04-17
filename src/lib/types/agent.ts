@@ -22,11 +22,19 @@ export interface AgentContext {
   config: UserConfig;
 }
 
+export interface AgentOutputs {
+  memory?: string;
+  director?: string;
+  sceneState?: string;
+  characterState?: string;
+}
+
 export interface AgentResult {
   injectPrompt?: string;
   updatedMemories?: MemoryRecord[];
   summaries?: SessionSummary[];
   updatedState?: StateUpdate;
+  agentOutputs?: AgentOutputs;
 }
 
 export interface Agent {
