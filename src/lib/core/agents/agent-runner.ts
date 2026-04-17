@@ -113,6 +113,22 @@ export class AgentRunner {
 			combined.updatedMemories = allMemories;
 		}
 
+		if (combined.updatedState?.scene) {
+			try {
+				const { sceneStore } = await import('$lib/stores/scene');
+				const agentScene = combined.updatedState.scene;
+				sceneStore.update((state: any) => ({
+					...state,
+					location: agentScene.location || state.location,
+					mood: agentScene.atmosphere || state.mood,
+					time: agentScene.timeOfDay || state.time,
+					participatingCharacters: agentScene.characters || state.participatingCharacters,
+				}));
+			} catch {
+				console.warn('[AgentRunner] Failed to persist scene state to sceneStore');
+			}
+		}
+
 		return combined;
 	}
 
