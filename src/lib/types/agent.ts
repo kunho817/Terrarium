@@ -3,6 +3,7 @@ import type { SceneState } from './scene';
 import type { UserConfig } from './config';
 import type { MemoryRecord, SessionSummary } from './memory';
 import type { StateUpdate } from './agent-state';
+import type { SessionId, CharacterId } from './branded';
 
 export interface AgentConfig {
   id: string;
@@ -13,8 +14,8 @@ export interface AgentConfig {
 }
 
 export interface AgentContext {
-  sessionId: string;
-  cardId: string;
+  sessionId: SessionId;
+  cardId: CharacterId;
   cardType: 'character' | 'world';
   messages: Message[];
   scene: SceneState;

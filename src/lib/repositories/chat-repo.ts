@@ -8,6 +8,7 @@ import { StorageError, ValidationError } from '$lib/errors/error-types';
 import { logger } from '$lib/utils/logger';
 import * as chatStorage from '$lib/storage/chats';
 import type { Message } from '$lib/types';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 
 const log = logger.scope('ChatRepo');
 
@@ -25,10 +26,10 @@ export const chatRepo = {
     
     try {
       const messages = await chatStorage.loadMessages(characterId, sessionId);
-      chatStore.setSessionState(characterId, sessionId, messages);
+      chatStore.setSessionState(makeCharacterId(characterId), makeSessionId(sessionId), messages);
       log.info('Session loaded', { characterId, sessionId, messageCount: messages.length });
     } catch (error) {
-      chatStore.setSessionState(characterId, sessionId, []);
+      chatStore.setSessionState(makeCharacterId(characterId), makeSessionId(sessionId), []);
       throw new StorageError(
         'loadMessages',
         'Failed to load chat messages',
@@ -52,21 +53,20 @@ export const chatRepo = {
     try {
       await chatStorage.listSessions(chatId); // triggers migration
       const sessions = await chatStorage.listSessions(chatId);
-      let sessionId: string;
+      let sessionId: ReturnType<typeof makeSessionId>;
 
       if (sessions.length > 0) {
-        // Pick most recent
         sessions.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
         sessionId = sessions[0].id;
-        log.debug('Using existing session', { sessionId });
+        log.debug('Using existing session', { sessionId: sessionId as string });
       } else {
         const session = await chatStorage.createSession(chatId);
         sessionId = session.id;
-        log.info('Created new session', { sessionId });
+        log.info('Created new session', { sessionId: sessionId as string });
       }
 
-      const messages = await chatStorage.loadMessages(chatId, sessionId);
-      chatStore.setSessionState(chatId, sessionId, messages);
+      const messages = await chatStorage.loadMessages(chatId, sessionId as string);
+      chatStore.setSessionState(makeCharacterId(chatId), sessionId, messages);
       log.info('Chat loaded', { chatId, sessionId, messageCount: messages.length });
     } catch (error) {
       chatStore.clear();

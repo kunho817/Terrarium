@@ -1,5 +1,6 @@
 import { getDb, persist } from './db';
 import type { MemoryRecord, SessionSummary } from '$lib/types/memory';
+import { makeSessionId } from '$lib/types/branded';
 import { cosineSimilarity } from '$lib/core/embedding';
 
 function serializeEmbedding(embedding: number[]): Uint8Array {
@@ -53,7 +54,7 @@ export async function getMemoriesForSession(sessionId: string): Promise<Omit<Mem
 	if (!rows.length) return [];
 	return rows[0].values.map((row) => ({
 		id: row[0] as string,
-		sessionId: row[1] as string,
+		sessionId: makeSessionId(row[1] as string),
 		type: row[2] as MemoryRecord['type'],
 		content: row[3] as string,
 		importance: row[4] as number,
@@ -76,7 +77,7 @@ export async function getTopKMemories(
 	if (!rows.length) return [];
 	return rows[0].values.map((row) => ({
 		id: row[0] as string,
-		sessionId: row[1] as string,
+		sessionId: makeSessionId(row[1] as string),
 		type: row[2] as MemoryRecord['type'],
 		content: row[3] as string,
 		importance: row[4] as number,
@@ -111,7 +112,7 @@ export async function findSimilarMemories(
 		const score = sim * importance * freshnessDecay;
 		return {
 			id: row[0] as string,
-			sessionId: row[1] as string,
+			sessionId: makeSessionId(row[1] as string),
 			type: row[2] as MemoryRecord['type'],
 			content: row[3] as string,
 			importance,
@@ -146,7 +147,7 @@ export async function getSummariesForSession(sessionId: string): Promise<Session
 	if (!rows.length) return [];
 	return rows[0].values.map((row) => ({
 		id: row[0] as string,
-		sessionId: row[1] as string,
+		sessionId: makeSessionId(row[1] as string),
 		startTurn: row[2] as number,
 		endTurn: row[3] as number,
 		summary: row[4] as string,

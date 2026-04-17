@@ -28,6 +28,7 @@ import { executeScript } from '$lib/core/scripting/bridge';
 import type { ScriptMutation } from '$lib/core/scripting/api';
 import { EventEmitter } from '$lib/core/events';
 import { AgentRunner } from '../agents/agent-runner';
+import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
 
@@ -172,8 +173,8 @@ export class ChatEngine {
 
     // 6b. Run agent runner (memory, future agents)
     const agentResult = await this.agentRunner.onBeforeSend({
-      sessionId: options.characterId || '',
-      cardId: options.characterId || '',
+      sessionId: makeSessionId(options.characterId || ''),
+      cardId: makeCharacterId(options.characterId || ''),
       cardType: options.worldCard ? 'world' : 'character',
       messages: allMessages,
       scene: triggerScene,
@@ -267,8 +268,8 @@ export class ChatEngine {
       // 11b. Run agent runner onAfterReceive
       try {
         await self.agentRunner.onAfterReceive({
-          sessionId: capturedCharacterId || '',
-          cardId: capturedCharacterId || '',
+          sessionId: makeSessionId(capturedCharacterId || ''),
+          cardId: makeCharacterId(capturedCharacterId || ''),
           cardType: 'character',
           messages: capturedCtx.messages,
           scene: capturedCtx.scene,

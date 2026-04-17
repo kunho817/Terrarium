@@ -6,11 +6,12 @@
 
 import { writable, get } from 'svelte/store';
 import type { Message } from '$lib/types';
+import type { CharacterId, SessionId } from '$lib/types/branded';
 import * as chatStorage from '$lib/storage/chats';
 
 interface ChatState {
-  chatId: string | null;       // characterId
-  sessionId: string | null;    // active session
+  chatId: CharacterId | null;
+  sessionId: SessionId | null;
   messages: Message[];
   isLoading: boolean;
   streamingMessage: string | null;
@@ -70,7 +71,7 @@ function createChatStore() {
       update((s) => ({ ...s, streamingMessage: null, isStreaming: false }));
     },
 
-    setSessionState(chatId: string | null, sessionId: string | null, messages: Message[]) {
+    setSessionState(chatId: CharacterId | null, sessionId: SessionId | null, messages: Message[]) {
       update((s) => ({ ...s, chatId, sessionId, messages, isLoading: false }));
     },
 

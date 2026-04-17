@@ -1,4 +1,5 @@
 import type { ChatSession, Message, SceneState } from '$lib/types';
+import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from './database';
 import { PATHS } from './paths';
 
@@ -21,13 +22,13 @@ export async function migrateLegacyChat(characterId: string): Promise<void> {
 		scene = null;
 	}
 
-	const sessionId = crypto.randomUUID();
+		const sessionId = makeSessionId(crypto.randomUUID());
 	const now = Date.now();
 	const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
 
 	const session: ChatSession = {
 		id: sessionId,
-		characterId,
+		characterId: makeCharacterId(characterId),
 		name: 'Chat',
 		createdAt: now,
 		lastMessageAt: lastMsg?.timestamp ?? now,
@@ -66,9 +67,9 @@ export async function createSession(
 ): Promise<ChatSession> {
 	const sessions = await listSessions(characterId);
 	const now = Date.now();
-	const session: ChatSession = {
-		id: crypto.randomUUID(),
-		characterId,
+		const session: ChatSession = {
+		id: makeSessionId(crypto.randomUUID()),
+		characterId: makeCharacterId(characterId),
 		name: name ?? `Chat ${sessions.length + 1}`,
 		createdAt: now,
 		lastMessageAt: now,

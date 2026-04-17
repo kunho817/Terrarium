@@ -10,9 +10,11 @@ export const MEMORY_WRITE_MODES: Record<MemoryType, WriteMode> = {
   state: 'overwrite',
 };
 
+import type { SessionId } from './branded';
+
 export interface MemoryRecord {
   id: string;
-  sessionId: string;
+  sessionId: SessionId;
   type: MemoryType;
   content: string;
   importance: number;
@@ -24,7 +26,7 @@ export interface MemoryRecord {
 
 export interface SessionSummary {
   id: string;
-  sessionId: string;
+  sessionId: SessionId;
   startTurn: number;
   endTurn: number;
   summary: string;
