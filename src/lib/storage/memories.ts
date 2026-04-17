@@ -1,5 +1,6 @@
 import { getDb } from './db';
 import type { MemoryRecord, SessionSummary } from '$lib/types/memory';
+import { cosineSimilarity } from '$lib/core/embedding';
 
 function serializeEmbedding(embedding: number[]): Uint8Array {
 	const f32 = new Float32Array(embedding);
@@ -11,17 +12,6 @@ function deserializeEmbedding(blob: Uint8Array): number[] {
 	return Array.from(f32);
 }
 
-export function cosineSimilarity(a: number[], b: number[]): number {
-	let dot = 0;
-	let normA = 0;
-	let normB = 0;
-	for (let i = 0; i < a.length; i++) {
-		dot += a[i] * b[i];
-		normA += a[i] * a[i];
-		normB += b[i] * b[i];
-	}
-	return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-}
 
 export async function insertMemory(memory: MemoryRecord): Promise<void> {
 	const db = await getDb();
