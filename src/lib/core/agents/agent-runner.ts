@@ -42,6 +42,7 @@ export class AgentRunner {
 
 	async onBeforeSend(ctx: AgentContext): Promise<AgentResult> {
 		const combined: AgentResult = {};
+		const outputs: import('$lib/types/agent').AgentOutputs = {};
 		const injectParts: string[] = [];
 
 		for (const agent of this.getAgentsByPriority()) {
@@ -49,6 +50,20 @@ export class AgentRunner {
 				const result = await agent.onBeforeSend(ctx);
 				if (result.injectPrompt) {
 					injectParts.push(result.injectPrompt);
+					switch (agent.id) {
+						case 'memory':
+							outputs.memory = result.injectPrompt;
+							break;
+						case 'director':
+							outputs.director = result.injectPrompt;
+							break;
+						case 'scene-state':
+							outputs.sceneState = result.injectPrompt;
+							break;
+						case 'character-state':
+							outputs.characterState = result.injectPrompt;
+							break;
+					}
 				}
 				if (result.updatedState) {
 					combined.updatedState = {
@@ -63,6 +78,11 @@ export class AgentRunner {
 
 		if (injectParts.length) {
 			combined.injectPrompt = injectParts.join('\n\n');
+		}
+
+		const hasOutputs = outputs.memory || outputs.director || outputs.sceneState || outputs.characterState;
+		if (hasOutputs) {
+			combined.agentOutputs = outputs;
 		}
 
 		return combined;
