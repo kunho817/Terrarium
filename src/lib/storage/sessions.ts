@@ -1,0 +1,106 @@
+import type { ChatSession, Message, SceneState } from '$lib/types';
+import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from './database';
+import { PATHS } from './paths';
+
+export async function migrateLegacyChat(characterId: string): Promise<void> {
+	const legacyMsgPath = PATHS.chatMessages(characterId);
+	if (!(await existsPath(legacyMsgPath))) return;
+
+	let messages: Message[] = [];
+	let scene: SceneState | null = null;
+
+	try {
+		messages = await readJson<Message[]>(legacyMsgPath);
+	} catch {
+		messages = [];
+	}
+
+	try {
+		scene = await readJson<SceneState>(PATHS.chatScene(characterId));
+	} catch {
+		scene = null;
+	}
+
+	const sessionId = crypto.randomUUID();
+	const now = Date.now();
+	const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+
+	const session: ChatSession = {
+		id: sessionId,
+		characterId,
+		name: 'Chat',
+		createdAt: now,
+		lastMessageAt: lastMsg?.timestamp ?? now,
+		preview: lastMsg ? lastMsg.content.slice(0, 80) : '',
+	};
+
+	await ensureDir(PATHS.sessionDir(characterId, sessionId));
+	await writeJson(PATHS.sessionMessages(characterId, sessionId), messages);
+	if (scene) {
+		await writeJson(PATHS.sessionScene(characterId, sessionId), scene);
+	}
+	await writeJson(PATHS.sessionsIndex(characterId), [session]);
+
+	await removePath(legacyMsgPath);
+	const legacyScenePath = PATHS.chatScene(characterId);
+	if (await existsPath(legacyScenePath)) {
+		await removePath(legacyScenePath);
+	}
+}
+
+export async function listSessions(characterId: string): Promise<ChatSession[]> {
+	if (!(await existsPath(PATHS.sessionsIndex(characterId)))) {
+		await migrateLegacyChat(characterId);
+	}
+
+	try {
+		return await readJson<ChatSession[]>(PATHS.sessionsIndex(characterId));
+	} catch {
+		return [];
+	}
+}
+
+export async function createSession(
+	characterId: string,
+	name?: string,
+): Promise<ChatSession> {
+	const sessions = await listSessions(characterId);
+	const now = Date.now();
+	const session: ChatSession = {
+		id: crypto.randomUUID(),
+		characterId,
+		name: name ?? `Chat ${sessions.length + 1}`,
+		createdAt: now,
+		lastMessageAt: now,
+		preview: '',
+	};
+
+	sessions.push(session);
+	await ensureDir(PATHS.characterChatDir(characterId));
+	await ensureDir(PATHS.sessionDir(characterId, session.id));
+	await writeJson(PATHS.sessionsIndex(characterId), sessions);
+	return session;
+}
+
+export async function updateSession(
+	characterId: string,
+	sessionId: string,
+	patch: Partial<ChatSession>,
+): Promise<void> {
+	const sessions = await listSessions(characterId);
+	const idx = sessions.findIndex((s) => s.id === sessionId);
+	if (idx === -1) return;
+	sessions[idx] = { ...sessions[idx], ...patch };
+	await writeJson(PATHS.sessionsIndex(characterId), sessions);
+}
+
+export async function deleteSession(
+	characterId: string,
+	sessionId: string,
+): Promise<void> {
+	await removePath(PATHS.sessionDir(characterId, sessionId));
+
+	const sessions = await listSessions(characterId);
+	const filtered = sessions.filter((s) => s.id !== sessionId);
+	await writeJson(PATHS.sessionsIndex(characterId), filtered);
+}
