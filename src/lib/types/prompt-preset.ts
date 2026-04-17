@@ -3,7 +3,8 @@ import type { LorebookPosition } from './lorebook';
 export type PromptItemType =
   | 'system' | 'description' | 'persona' | 'personality' | 'scenario'
   | 'exampleMessages' | 'chatHistory' | 'lorebook' | 'authornote'
-  | 'postHistoryInstructions' | 'depthPrompt' | 'jailbreak' | 'prefill' | 'plain';
+  | 'postHistoryInstructions' | 'depthPrompt' | 'jailbreak' | 'prefill' | 'plain'
+  | 'memory' | 'director' | 'sceneState' | 'characterState';
 
 export type PromptItemRole = 'system' | 'user' | 'assistant';
 
