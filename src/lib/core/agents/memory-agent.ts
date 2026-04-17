@@ -3,6 +3,7 @@ import { settingsStore } from '$lib/stores/settings';
 import { getEmbedding } from '$lib/core/embedding';
 import { findSimilarMemories, insertMemory, deleteMemory, getMemoriesForSession } from '$lib/storage/memories';
 import { MEMORY_WRITE_MODES, DEFAULT_EXTRACTION_PROMPT } from '$lib/types/memory';
+import { callAgentLLM } from './agent-llm';
 import type { MemoryRecord, MemoryType, ExtractionResult } from '$lib/types/memory';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 
@@ -60,53 +61,14 @@ async function callExtractionModel(conversation: string, prompt: string): Promis
 		throw new Error('No model configured for memory extraction');
 	}
 
-	const isClaude = config.provider === 'claude' || config.provider === 'anthropic';
-	const messages = [
-		{ role: 'system', content: prompt },
-		{ role: 'user', content: conversation },
-	];
-
-	if (isClaude) {
-		const res = await fetch('https://api.anthropic.com/v1/messages', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'x-api-key': config.apiKey,
-				'anthropic-version': '2023-06-01',
-			},
-			body: JSON.stringify({
-				model: config.model,
-				max_tokens: 2048,
-				system: prompt,
-				messages: [{ role: 'user', content: conversation }],
-			}),
-		});
-		if (!res.ok) {
-			throw new Error(`Claude API error: ${res.status} ${res.statusText}`);
-		}
-		const data = await res.json();
-		return data.content?.[0]?.text ?? '';
-	} else {
-		const baseUrl = config.baseUrl || 'https://api.openai.com/v1';
-		const res = await fetch(`${baseUrl}/chat/completions`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${config.apiKey}`,
-			},
-			body: JSON.stringify({
-				model: config.model,
-				messages,
-				temperature: config.temperature,
-				max_tokens: 2048,
-			}),
-		});
-		if (!res.ok) {
-			throw new Error(`Extraction API error: ${res.status} ${res.statusText}`);
-		}
-		const data = await res.json();
-		return data.choices?.[0]?.message?.content ?? '';
-	}
+	return callAgentLLM(prompt, conversation, {
+		providerId: config.provider,
+		apiKey: config.apiKey,
+		model: config.model,
+		baseUrl: config.baseUrl,
+		temperature: config.temperature,
+		maxTokens: 2048,
+	});
 }
 
 export class MemoryAgent implements Agent {

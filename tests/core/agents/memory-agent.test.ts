@@ -21,8 +21,10 @@ vi.mock('$lib/storage/memories', () => ({
 	getMemoriesForSession: vi.fn().mockResolvedValue([]),
 }));
 
-const fetchMock = vi.fn();
-vi.stubGlobal('fetch', fetchMock);
+const callAgentLLMMock = vi.fn();
+vi.mock('$lib/core/agents/agent-llm', () => ({
+	callAgentLLM: (...args: any[]) => callAgentLLMMock(...args),
+}));
 
 vi.mock('$lib/stores/settings', () => {
 	const store = {
@@ -151,12 +153,9 @@ describe('MemoryAgent', () => {
 	});
 
 	it('extracts facts from messages', async () => {
-		fetchMock.mockResolvedValueOnce({
-			ok: true,
-			json: async () => ({
-				choices: [{ message: { content: '{"facts": [{"content": "User likes dogs", "type": "trait", "importance": 0.9}]}' } }],
-			}),
-		});
+		callAgentLLMMock.mockResolvedValueOnce(
+			'{"facts": [{"content": "User likes dogs", "type": "trait", "importance": 0.9}]}',
+		);
 
 		const ctx = makeContext({
 			messages: [
@@ -186,7 +185,7 @@ describe('MemoryAgent', () => {
 		agent['lastExtractionTurn'] = 0;
 		const result = await agent.onAfterReceive(ctx, 'response');
 		expect(result.updatedMemories).toBeUndefined();
-		expect(fetchMock).not.toHaveBeenCalled();
+		expect(callAgentLLMMock).not.toHaveBeenCalled();
 	});
 
 	it('init resets last extraction turn', async () => {

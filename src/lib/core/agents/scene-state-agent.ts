@@ -1,6 +1,7 @@
 import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
 import { getSceneState, updateSceneState } from '$lib/storage/agent-states';
+import { callAgentLLM } from './agent-llm';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 import type { SceneState } from '$lib/types/scene';
 import type { StateUpdate } from '$lib/types/agent-state';
@@ -54,70 +55,17 @@ async function callSceneExtractionModel(response: string): Promise<SceneExtracti
 		return null;
 	}
 
-	const isClaude = config.provider === 'claude' || config.provider === 'anthropic';
-	const messages = [
-		{ role: 'system', content: SCENE_SYSTEM_PROMPT },
-		{ role: 'user', content: response }
-	];
-
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 30000);
-
 	try {
-		if (isClaude) {
-			const res = await fetch('https://api.anthropic.com/v1/messages', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': config.apiKey,
-					'anthropic-version': '2023-06-01'
-				},
-				body: JSON.stringify({
-					model: config.model,
-					max_tokens: 512,
-					system: SCENE_SYSTEM_PROMPT,
-					messages: [{ role: 'user', content: response }]
-				}),
-				signal: controller.signal
-			});
-			clearTimeout(timeoutId);
-			if (!res.ok) {
-				console.warn('[SceneStateAgent] Anthropic API returned non-OK status:', res.status);
-				return null;
-			}
-			const data = await res.json();
-			return parseSceneOutput(data.content?.[0]?.text ?? '');
-		} else {
-			const baseUrl = config.baseUrl || 'https://api.openai.com/v1';
-			const res = await fetch(`${baseUrl}/chat/completions`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${config.apiKey}`
-				},
-				body: JSON.stringify({
-					model: config.model,
-					messages,
-					temperature: config.temperature,
-					max_tokens: 512
-				}),
-				signal: controller.signal
-			});
-			clearTimeout(timeoutId);
-			if (!res.ok) {
-				console.warn('[SceneStateAgent] OpenAI API returned non-OK status:', res.status);
-				return null;
-			}
-			const data = await res.json();
-			return parseSceneOutput(data.choices?.[0]?.message?.content ?? '');
-		}
-	} catch (error) {
-		clearTimeout(timeoutId);
-		if ((error as Error).name === 'AbortError') {
-			console.warn('[SceneStateAgent] Request timed out');
-		} else {
-			console.warn('[SceneStateAgent] LLM call failed:', error);
-		}
+		const text = await callAgentLLM(SCENE_SYSTEM_PROMPT, response, {
+			providerId: config.provider,
+			apiKey: config.apiKey,
+			model: config.model,
+			baseUrl: config.baseUrl,
+			temperature: config.temperature,
+			maxTokens: 512,
+		});
+		return parseSceneOutput(text);
+	} catch {
 		return null;
 	}
 }

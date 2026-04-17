@@ -1,5 +1,6 @@
 import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
+import { callAgentLLM } from './agent-llm';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 import type { DirectorGuidance, DirectorMode } from '$lib/types/agent-state';
 import type { AgentSettings } from '$lib/types/config';
@@ -45,7 +46,7 @@ async function callDirectorModel(context: string, mode: DirectorMode): Promise<D
 		return null;
 	}
 
-	const modePrompt = mode === 'absolute' 
+	const modePrompt = mode === 'absolute'
 		? 'This is top-priority direction. The response must obey it and create a strong narrative turn now.'
 		: mode === 'strong'
 			? 'Apply strong directorial control and force a meaningful beat in this response.'
@@ -53,70 +54,17 @@ async function callDirectorModel(context: string, mode: DirectorMode): Promise<D
 
 	const systemPrompt = `${DIRECTOR_SYSTEM_PROMPT}\n\nMode: ${modePrompt}`;
 
-	const isClaude = config.provider === 'claude' || config.provider === 'anthropic';
-	const messages = [
-		{ role: 'system', content: systemPrompt },
-		{ role: 'user', content: context }
-	];
-
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), 30000);
-
 	try {
-		if (isClaude) {
-			const res = await fetch('https://api.anthropic.com/v1/messages', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': config.apiKey,
-					'anthropic-version': '2023-06-01'
-				},
-				body: JSON.stringify({
-					model: config.model,
-					max_tokens: 1024,
-					system: systemPrompt,
-					messages: [{ role: 'user', content: context }]
-				}),
-				signal: controller.signal
-			});
-			clearTimeout(timeoutId);
-			if (!res.ok) {
-				console.warn('[DirectorAgent] Anthropic API returned non-OK status:', res.status);
-				return null;
-			}
-			const data = await res.json();
-			return parseDirectorOutput(data.content?.[0]?.text ?? '');
-		} else {
-			const baseUrl = config.baseUrl || 'https://api.openai.com/v1';
-			const res = await fetch(`${baseUrl}/chat/completions`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${config.apiKey}`
-				},
-				body: JSON.stringify({
-					model: config.model,
-					messages,
-					temperature: config.temperature,
-					max_tokens: 1024
-				}),
-				signal: controller.signal
-			});
-			clearTimeout(timeoutId);
-			if (!res.ok) {
-				console.warn('[DirectorAgent] OpenAI API returned non-OK status:', res.status);
-				return null;
-			}
-			const data = await res.json();
-			return parseDirectorOutput(data.choices?.[0]?.message?.content ?? '');
-		}
-	} catch (error) {
-		clearTimeout(timeoutId);
-		if ((error as Error).name === 'AbortError') {
-			console.warn('[DirectorAgent] Request timed out');
-		} else {
-			console.warn('[DirectorAgent] LLM call failed:', error);
-		}
+		const text = await callAgentLLM(systemPrompt, context, {
+			providerId: config.provider,
+			apiKey: config.apiKey,
+			model: config.model,
+			baseUrl: config.baseUrl,
+			temperature: config.temperature,
+			maxTokens: 1024,
+		});
+		return parseDirectorOutput(text);
+	} catch {
 		return null;
 	}
 }
