@@ -4,8 +4,8 @@ import { createDefaultPreset, createDefaultPresetSettings } from '$lib/core/pres
 describe('createDefaultPreset', () => {
   const preset = createDefaultPreset();
 
-  it('returns a preset with exactly 15 items', () => {
-    expect(preset.items).toHaveLength(15);
+  it('returns a preset with exactly 19 items', () => {
+    expect(preset.items).toHaveLength(19);
   });
 
   it('has correct types in order', () => {
@@ -18,6 +18,10 @@ describe('createDefaultPreset', () => {
       'description',
       'personality',
       'scenario',
+      'memory',
+      'director',
+      'sceneState',
+      'characterState',
       'exampleMessages',
       'lorebook',
       'chatHistory',
@@ -39,6 +43,10 @@ describe('createDefaultPreset', () => {
       'Description',
       'Personality',
       'Scenario',
+      'Memory',
+      'Director',
+      'Scene State',
+      'Character State',
       'Example Messages',
       'Lorebook (After Char)',
       'Chat History',
@@ -60,21 +68,21 @@ describe('createDefaultPreset', () => {
     }
   });
 
-  it('has jailbreak (item 14) disabled', () => {
-    const jailbreak = preset.items[13];
+  it('has jailbreak (item 18) disabled', () => {
+    const jailbreak = preset.items[17];
     expect(jailbreak.type).toBe('jailbreak');
     expect(jailbreak.enabled).toBe(false);
   });
 
-  it('has prefill (item 15) disabled', () => {
-    const prefill = preset.items[14];
+  it('has prefill (item 19) disabled', () => {
+    const prefill = preset.items[18];
     expect(prefill.type).toBe('prefill');
     expect(prefill.enabled).toBe(false);
   });
 
   it('has all items except jailbreak and prefill enabled', () => {
     for (let i = 0; i < preset.items.length; i++) {
-      if (i === 13 || i === 14) continue; // jailbreak, prefill
+      if (i === 17 || i === 18) continue;
       expect(preset.items[i].enabled, `item ${i} (${preset.items[i].name}) should be enabled`).toBe(true);
     }
   });
