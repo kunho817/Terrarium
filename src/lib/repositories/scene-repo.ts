@@ -67,7 +67,7 @@ export const sceneRepo = {
   async save(): Promise<void> {
     try {
       const state = get(sceneStore);
-      const { currentCharacterId, currentSessionId } = state as any;
+      const { currentCharacterId, currentSessionId } = state;
       if (currentCharacterId && currentSessionId) {
         const sceneState = {
           location: state.location,

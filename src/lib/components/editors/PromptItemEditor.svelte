@@ -31,6 +31,10 @@
     { value: 'depthPrompt', label: 'Depth Prompt' },
     { value: 'jailbreak', label: 'Jailbreak' },
     { value: 'prefill', label: 'Prefill' },
+    { value: 'memory', label: 'Memory (Agent)' },
+    { value: 'director', label: 'Director (Agent)' },
+    { value: 'sceneState', label: 'Scene State (Agent)' },
+    { value: 'characterState', label: 'Character State (Agent)' },
   ];
 
   const roleOptions: { value: PromptItemRole; label: string }[] = [
@@ -62,12 +66,16 @@
     depthPrompt: 'bg-sky/20 text-sky',
     jailbreak: 'bg-flamingo/20 text-flamingo',
     prefill: 'bg-rosewater/20 text-rosewater',
+    memory: 'bg-lavender/20 text-lavender',
+    director: 'bg-mauve/20 text-mauve',
+    sceneState: 'bg-blue/20 text-blue',
+    characterState: 'bg-peach/20 text-peach',
   };
 
   // Types that use "Prompt Text" label for content
   const promptTextTypes: Set<PromptItemType> = new Set(['plain', 'system', 'jailbreak', 'prefill']);
   // Types that hide the content textarea (auto-resolved)
-  const hiddenContentTypes: Set<PromptItemType> = new Set(['chatHistory', 'exampleMessages']);
+  const hiddenContentTypes: Set<PromptItemType> = new Set(['chatHistory', 'exampleMessages', 'memory', 'director', 'sceneState', 'characterState']);
 
   function getContentLabel(): string {
     if (promptTextTypes.has(item.type)) return 'Prompt Text';

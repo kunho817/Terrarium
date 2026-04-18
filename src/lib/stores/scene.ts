@@ -5,20 +5,14 @@
 
 import { writable, get } from 'svelte/store';
 import type { SceneState, VariableValue } from '$lib/types';
-import * as chatStorage from '$lib/storage/chats';
 
-const DEFAULT_SCENE: SceneState = {
-  location: '',
-  time: '',
-  mood: '',
-  participatingCharacters: [],
-  variables: {},
-  environmentalNotes: '',
-  lastUpdated: 0,
-};
+export interface SceneStateWithContext extends SceneState {
+  currentCharacterId: string | null;
+  currentSessionId: string | null;
+}
 
 function createSceneStore() {
-  const DEFAULT_SCENE: SceneState & { currentCharacterId: string | null; currentSessionId: string | null } = {
+  const DEFAULT_SCENE: SceneStateWithContext = {
     location: '',
     time: '',
     mood: '',
@@ -30,7 +24,7 @@ function createSceneStore() {
     currentSessionId: null,
   };
 
-  const { subscribe, set, update } = writable(DEFAULT_SCENE);
+  const { subscribe, set, update } = writable<SceneStateWithContext>(DEFAULT_SCENE);
 
   return {
     subscribe,

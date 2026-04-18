@@ -1,4 +1,6 @@
-export type { SceneState } from './scene';
+import type { SceneState } from './scene';
+
+export type { SceneState };
 
 export interface CharacterState {
 	id: string;

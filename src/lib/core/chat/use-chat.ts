@@ -12,8 +12,6 @@ export { generateIllustration } from './use-chat-illustration';
 export { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
 export type { ResolvedCard } from './use-chat-helpers';
 
-import { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
-import { streamAndFinalize } from './use-chat-streaming';
 import type { MessageType, Message } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 
