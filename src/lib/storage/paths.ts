@@ -21,6 +21,9 @@ export const PATHS = {
     `chats/${characterId}/${sessionId}/messages.json`,
   sessionScene: (characterId: string, sessionId: string) =>
     `chats/${characterId}/${sessionId}/scene.json`,
+  sessionArchive: (characterId: string) => `chats/${characterId}/.archive`,
+  sessionArchiveDir: (characterId: string, sessionId: string) =>
+    `chats/${characterId}/.archive/${sessionId}`,
 
   // Settings
   settings: 'settings.json',

@@ -5,6 +5,11 @@ import type { CharacterId, SessionId, PersonaId } from './branded';
  * A character can have multiple sessions, each with its own messages and scene state.
  */
 
+export interface SessionsFile {
+  sessions: ChatSession[];
+  archivedSessions?: ChatSession[];
+}
+
 export interface ChatSession {
   id: SessionId;
   characterId: CharacterId;

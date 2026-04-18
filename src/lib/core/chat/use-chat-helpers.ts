@@ -3,7 +3,7 @@ import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
 import { worldsStore } from '$lib/stores/worlds';
 import { loadPersona } from '$lib/storage/personas';
-import { listSessions } from '$lib/storage/chats';
+import { chatRepo } from '$lib/repositories/chat-repo';
 import type { CharacterCard } from '$lib/types';
 import type { UserPersona } from '$lib/types/persona';
 import type { WorldCard } from '$lib/types/world';
@@ -79,7 +79,7 @@ export async function getSessionPersonaId(): Promise<string | undefined> {
 	const state = get(chatStore);
 	if (!state.characterId || !state.sessionId) return undefined;
 	try {
-		const sessions = await listSessions(state.characterId);
+		const sessions = await chatRepo.getCachedSessions(state.characterId);
 		const session = sessions.find(s => s.id === state.sessionId);
 		return session?.personaId;
 	} catch {

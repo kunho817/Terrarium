@@ -1,4 +1,14 @@
-export { listSessions, createSession, updateSession, deleteSession, migrateLegacyChat } from './sessions';
+export {
+  listSessions,
+  createSession,
+  updateSession,
+  deleteSession,
+  migrateLegacyChat,
+  listArchivedSessions,
+  archiveSession,
+  restoreSession,
+  permanentDeleteSession,
+} from './sessions';
 export { loadMessages, saveMessages, loadMessagesLegacy, saveMessagesLegacy } from './messages';
 export { loadScene, saveScene, loadSceneLegacy, saveSceneLegacy } from './scene-storage';
 

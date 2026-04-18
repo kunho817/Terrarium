@@ -22,6 +22,7 @@ import {
   listChats,
   deleteChat,
 } from '$lib/storage/chats';
+import type { SessionsFile } from '$lib/types';
 import type { Message, SceneState } from '$lib/types';
 
 const mockMessages: Message[] = [
@@ -134,13 +135,12 @@ describe('chat session storage', () => {
 
       await updateSession('char-1', 's1', { name: 'Updated' });
 
-      // writeJsonAtomic is called with updated sessions array
       const writeCall = vi.mocked(writeJsonAtomic).mock.calls.find(
         (c) => c[0].includes('sessions.json'),
       );
       expect(writeCall).toBeDefined();
-      const written = writeCall![1] as Array<{ name: string }>;
-      expect(written[0].name).toBe('Updated');
+      const written = writeCall![1] as SessionsFile;
+      expect(written.sessions[0].name).toBe('Updated');
     });
   });
 
@@ -161,8 +161,8 @@ describe('chat session storage', () => {
         (c) => c[0].includes('sessions.json'),
       );
       expect(writeCall).toBeDefined();
-      const written = writeCall![1] as unknown[];
-      expect(written).toHaveLength(1);
+      const written = writeCall![1] as SessionsFile;
+      expect(written.sessions).toHaveLength(1);
     });
   });
 

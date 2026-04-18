@@ -52,7 +52,7 @@ export type {
 export type { SceneState } from './scene';
 
 // Session
-export type { ChatSession } from './session';
+export type { ChatSession, SessionsFile } from './session';
 
 // Prompt Preset
 export type {

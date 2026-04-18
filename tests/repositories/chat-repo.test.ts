@@ -25,6 +25,7 @@ describe('chatRepo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     chatStore.clear();
+    chatRepo.invalidateCache('char-1');
   });
 
   describe('loadSession', () => {

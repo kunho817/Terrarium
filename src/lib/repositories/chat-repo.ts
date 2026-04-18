@@ -8,8 +8,15 @@ import { StorageError, ValidationError } from '$lib/errors/error-types';
 import { logger } from '$lib/utils/logger';
 import * as chatStorage from '$lib/storage/chats';
 import { makeCharacterId, makeSessionId } from '$lib/types/branded';
+import type { ChatSession } from '$lib/types';
 
 const log = logger.scope('ChatRepo');
+
+const _sessionCache = new Map<string, ChatSession[]>();
+
+function invalidateCache(characterId: string): void {
+  _sessionCache.delete(characterId);
+}
 
 export const chatRepo = {
   /**
@@ -19,10 +26,10 @@ export const chatRepo = {
     if (!characterId || !sessionId) {
       throw new ValidationError('ids', 'Character ID and Session ID are required');
     }
-    
+
     chatStore.update((s) => ({ ...s, isLoading: true }));
     log.debug('Loading session', { characterId, sessionId });
-    
+
     try {
       const messages = await chatStorage.loadMessages(characterId, sessionId);
       chatStore.setSessionState(makeCharacterId(characterId), makeSessionId(sessionId), messages);
@@ -45,12 +52,12 @@ export const chatRepo = {
     if (!chatId) {
       throw new ValidationError('chatId', 'Chat ID is required');
     }
-    
+
     chatStore.update((s) => ({ ...s, isLoading: true }));
     log.debug('Loading chat', { chatId });
-    
+
     try {
-      const sessions = await chatStorage.listSessions(chatId);
+      const sessions = await chatRepo.getCachedSessions(chatId);
       let sessionId: ReturnType<typeof makeSessionId>;
 
       if (sessions.length > 0) {
@@ -59,6 +66,7 @@ export const chatRepo = {
         log.debug('Using existing session', { sessionId: sessionId as string });
       } else {
         const session = await chatStorage.createSession(chatId);
+        invalidateCache(chatId);
         sessionId = session.id;
         log.info('Created new session', { sessionId: sessionId as string });
       }
@@ -95,6 +103,8 @@ export const chatRepo = {
           });
         }
 
+        invalidateCache(characterId);
+
         log.debug('Messages saved', {
           characterId,
           sessionId,
@@ -116,6 +126,7 @@ export const chatRepo = {
   async createSession(characterId: string): Promise<string> {
     try {
       const session = await chatStorage.createSession(characterId);
+      invalidateCache(characterId);
       log.info('Session created', { characterId, sessionId: session.id });
       return session.id;
     } catch (error) {
@@ -127,4 +138,33 @@ export const chatRepo = {
     }
   },
 
+  async getCachedSessions(characterId: string): Promise<ChatSession[]> {
+    if (_sessionCache.has(characterId)) {
+      return _sessionCache.get(characterId)!;
+    }
+    const sessions = await chatStorage.listSessions(characterId);
+    _sessionCache.set(characterId, sessions);
+    return sessions;
+  },
+
+  async archiveSession(characterId: string, sessionId: string): Promise<void> {
+    await chatStorage.archiveSession(characterId, sessionId);
+    invalidateCache(characterId);
+  },
+
+  async restoreSession(characterId: string, sessionId: string): Promise<string> {
+    await chatStorage.restoreSession(characterId, sessionId);
+    invalidateCache(characterId);
+    return sessionId;
+  },
+
+  async permanentDeleteSession(characterId: string, sessionId: string): Promise<void> {
+    await chatStorage.permanentDeleteSession(characterId, sessionId);
+  },
+
+  async getArchivedSessions(characterId: string): Promise<ChatSession[]> {
+    return chatStorage.listArchivedSessions(characterId);
+  },
+
+  invalidateCache,
 };

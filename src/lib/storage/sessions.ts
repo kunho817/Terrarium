@@ -1,7 +1,27 @@
-import type { ChatSession, Message, SceneState } from '$lib/types';
+import type { ChatSession, Message, SceneState, SessionsFile } from '$lib/types';
 import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { readJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath } from './database';
 import { PATHS } from './paths';
+
+async function readSessionsFile(characterId: string): Promise<SessionsFile> {
+	const indexPath = PATHS.sessionsIndex(characterId);
+	if (!(await existsPath(indexPath))) {
+		return { sessions: [] };
+	}
+	try {
+		const data = await readJson<SessionsFile | ChatSession[]>(indexPath);
+		if (Array.isArray(data)) {
+			return { sessions: data };
+		}
+		return data;
+	} catch {
+		return { sessions: [] };
+	}
+}
+
+async function writeSessionsFile(characterId: string, file: SessionsFile): Promise<void> {
+	await writeJsonAtomic(PATHS.sessionsIndex(characterId), file);
+}
 
 export async function migrateLegacyChat(characterId: string): Promise<void> {
 	const legacyMsgPath = PATHS.chatMessages(characterId);
@@ -22,7 +42,7 @@ export async function migrateLegacyChat(characterId: string): Promise<void> {
 		scene = null;
 	}
 
-		const sessionId = makeSessionId(crypto.randomUUID());
+	const sessionId = makeSessionId(crypto.randomUUID());
 	const now = Date.now();
 	const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
 
@@ -41,7 +61,7 @@ export async function migrateLegacyChat(characterId: string): Promise<void> {
 	if (scene) {
 		await writeJsonAtomic(PATHS.sessionScene(characterId, sessionId), scene);
 	}
-	await writeJsonAtomic(PATHS.sessionsIndex(characterId), [session]);
+	await writeSessionsFile(characterId, { sessions: [session] });
 
 	await removePath(legacyMsgPath);
 	const legacyScenePath = PATHS.chatScene(characterId);
@@ -55,11 +75,8 @@ export async function listSessions(characterId: string): Promise<ChatSession[]> 
 		await migrateLegacyChat(characterId);
 	}
 
-	try {
-		return await readJson<ChatSession[]>(PATHS.sessionsIndex(characterId));
-	} catch {
-		return [];
-	}
+	const file = await readSessionsFile(characterId);
+	return file.sessions;
 }
 
 export async function createSession(
@@ -67,22 +84,22 @@ export async function createSession(
 	name?: string,
 	cardType?: 'character' | 'world',
 ): Promise<ChatSession> {
-	const sessions = await listSessions(characterId);
+	const file = await readSessionsFile(characterId);
 	const now = Date.now();
-		const session: ChatSession = {
+	const session: ChatSession = {
 		id: makeSessionId(crypto.randomUUID()),
 		characterId: makeCharacterId(characterId),
-		name: name ?? `Chat ${sessions.length + 1}`,
+		name: name ?? `Chat ${file.sessions.length + 1}`,
 		createdAt: now,
 		lastMessageAt: now,
 		preview: '',
 		cardType,
 	};
 
-	sessions.push(session);
+	file.sessions.push(session);
 	await ensureDir(PATHS.characterChatDir(characterId));
 	await ensureDir(PATHS.sessionDir(characterId, session.id));
-	await writeJsonAtomic(PATHS.sessionsIndex(characterId), sessions);
+	await writeSessionsFile(characterId, file);
 	return session;
 }
 
@@ -91,11 +108,11 @@ export async function updateSession(
 	sessionId: string,
 	patch: Partial<ChatSession>,
 ): Promise<void> {
-	const sessions = await listSessions(characterId);
-	const idx = sessions.findIndex((s) => s.id === sessionId);
+	const file = await readSessionsFile(characterId);
+	const idx = file.sessions.findIndex((s) => s.id === sessionId);
 	if (idx === -1) return;
-	sessions[idx] = { ...sessions[idx], ...patch };
-	await writeJsonAtomic(PATHS.sessionsIndex(characterId), sessions);
+	file.sessions[idx] = { ...file.sessions[idx], ...patch };
+	await writeSessionsFile(characterId, file);
 }
 
 export async function deleteSession(
@@ -104,7 +121,75 @@ export async function deleteSession(
 ): Promise<void> {
 	await removePath(PATHS.sessionDir(characterId, sessionId));
 
-	const sessions = await listSessions(characterId);
-	const filtered = sessions.filter((s) => s.id !== sessionId);
-	await writeJsonAtomic(PATHS.sessionsIndex(characterId), filtered);
+	const file = await readSessionsFile(characterId);
+	file.sessions = file.sessions.filter((s) => s.id !== sessionId);
+	await writeSessionsFile(characterId, file);
+}
+
+export async function listArchivedSessions(characterId: string): Promise<ChatSession[]> {
+	const file = await readSessionsFile(characterId);
+	return file.archivedSessions ?? [];
+}
+
+export async function archiveSession(characterId: string, sessionId: string): Promise<void> {
+	const file = await readSessionsFile(characterId);
+	const idx = file.sessions.findIndex((s) => s.id === sessionId);
+	if (idx === -1) return;
+
+	const [session] = file.sessions.splice(idx, 1);
+	file.archivedSessions = [...(file.archivedSessions ?? []), session];
+	await writeSessionsFile(characterId, file);
+
+	const srcDir = PATHS.sessionDir(characterId, sessionId);
+	const destDir = PATHS.sessionArchiveDir(characterId, sessionId);
+	if (await existsPath(srcDir)) {
+		await ensureDir(PATHS.sessionArchive(characterId));
+		const { readDir, readTextFile, writeTextFile, remove, BaseDirectory } = await import('@tauri-apps/plugin-fs');
+		const BASE = { baseDir: BaseDirectory.AppData };
+		const entries = await readDir(srcDir, BASE);
+		for (const entry of entries) {
+			if (!entry.isDirectory) {
+				const content = await readTextFile(`${srcDir}/${entry.name}`, BASE);
+				await writeTextFile(`${destDir}/${entry.name}`, content, BASE);
+			}
+		}
+		await remove(srcDir, { ...BASE, recursive: true });
+	}
+}
+
+export async function restoreSession(characterId: string, sessionId: string): Promise<void> {
+	const file = await readSessionsFile(characterId);
+	const archived = file.archivedSessions ?? [];
+	const idx = archived.findIndex((s) => s.id === sessionId);
+	if (idx === -1) return;
+
+	const [session] = archived.splice(idx, 1);
+	file.archivedSessions = archived.length > 0 ? archived : undefined;
+	file.sessions.push(session);
+	await writeSessionsFile(characterId, file);
+
+	const srcDir = PATHS.sessionArchiveDir(characterId, sessionId);
+	const destDir = PATHS.sessionDir(characterId, sessionId);
+	if (await existsPath(srcDir)) {
+		await ensureDir(PATHS.sessionDir(characterId, sessionId));
+		const { readDir, readTextFile, writeTextFile, remove, BaseDirectory } = await import('@tauri-apps/plugin-fs');
+		const BASE = { baseDir: BaseDirectory.AppData };
+		const entries = await readDir(srcDir, BASE);
+		for (const entry of entries) {
+			if (!entry.isDirectory) {
+				const content = await readTextFile(`${srcDir}/${entry.name}`, BASE);
+				await writeTextFile(`${destDir}/${entry.name}`, content, BASE);
+			}
+		}
+		await remove(srcDir, { ...BASE, recursive: true });
+	}
+}
+
+export async function permanentDeleteSession(characterId: string, sessionId: string): Promise<void> {
+	const file = await readSessionsFile(characterId);
+	const archived = file.archivedSessions ?? [];
+	file.archivedSessions = archived.filter((s) => s.id !== sessionId);
+	if (file.archivedSessions.length === 0) file.archivedSessions = undefined;
+	await writeSessionsFile(characterId, file);
+	await removePath(PATHS.sessionArchiveDir(characterId, sessionId));
 }
