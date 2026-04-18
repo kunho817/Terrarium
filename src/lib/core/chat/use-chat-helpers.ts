@@ -77,9 +77,9 @@ export async function resolvePersona(card: { defaultPersonaId?: string }, sessio
 
 export async function getSessionPersonaId(): Promise<string | undefined> {
 	const state = get(chatStore);
-	if (!state.chatId || !state.sessionId) return undefined;
+	if (!state.characterId || !state.sessionId) return undefined;
 	try {
-		const sessions = await listSessions(state.chatId);
+		const sessions = await listSessions(state.characterId);
 		const session = sessions.find(s => s.id === state.sessionId);
 		return session?.personaId;
 	} catch {

@@ -10,7 +10,7 @@ import type { CharacterId, SessionId } from '$lib/types/branded';
 import * as chatStorage from '$lib/storage/chats';
 
 interface ChatState {
-  chatId: CharacterId | null;
+  characterId: CharacterId | null;
   sessionId: SessionId | null;
   messages: Message[];
   isLoading: boolean;
@@ -20,7 +20,7 @@ interface ChatState {
 
 function createChatStore() {
   const { subscribe, set, update } = writable<ChatState>({
-    chatId: null,
+    characterId: null,
     sessionId: null,
     messages: [],
     isLoading: false,
@@ -71,13 +71,13 @@ function createChatStore() {
       update((s) => ({ ...s, streamingMessage: null, isStreaming: false }));
     },
 
-    setSessionState(chatId: CharacterId | null, sessionId: SessionId | null, messages: Message[]) {
-      update((s) => ({ ...s, chatId, sessionId, messages, isLoading: false }));
+    setSessionState(characterId: CharacterId | null, sessionId: SessionId | null, messages: Message[]) {
+      update((s) => ({ ...s, characterId, sessionId, messages, isLoading: false }));
     },
 
     clear() {
       set({
-        chatId: null,
+        characterId: null,
         sessionId: null,
         messages: [],
         isLoading: false,

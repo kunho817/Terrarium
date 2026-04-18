@@ -23,9 +23,9 @@ describe('chatStore', () => {
   });
 
   describe('initial state', () => {
-    it('starts with null chatId', () => {
+    it('starts with null characterId', () => {
       const state = get(chatStore);
-      expect(state.chatId).toBeNull();
+      expect(state.characterId).toBeNull();
     });
 
     it('starts with empty messages', () => {

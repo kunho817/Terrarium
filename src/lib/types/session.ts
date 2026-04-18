@@ -1,4 +1,4 @@
-import type { SessionId, CharacterId } from './branded';
+import type { CharacterId, SessionId, PersonaId } from './branded';
 
 /**
  * Chat session type — represents a single conversation with a character.
@@ -12,6 +12,7 @@ export interface ChatSession {
   createdAt: number;
   lastMessageAt: number;
   preview: string;
-  personaId?: string;
+  personaId?: PersonaId;
   cardType?: 'character' | 'world';
+  pinnedAt?: number;
 }

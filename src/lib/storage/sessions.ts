@@ -33,6 +33,7 @@ export async function migrateLegacyChat(characterId: string): Promise<void> {
 		createdAt: now,
 		lastMessageAt: lastMsg?.timestamp ?? now,
 		preview: lastMsg ? lastMsg.content.slice(0, 80) : '',
+		cardType: undefined,
 	};
 
 	await ensureDir(PATHS.sessionDir(characterId, sessionId));
@@ -64,6 +65,7 @@ export async function listSessions(characterId: string): Promise<ChatSession[]> 
 export async function createSession(
 	characterId: string,
 	name?: string,
+	cardType?: 'character' | 'world',
 ): Promise<ChatSession> {
 	const sessions = await listSessions(characterId);
 	const now = Date.now();
@@ -74,6 +76,7 @@ export async function createSession(
 		createdAt: now,
 		lastMessageAt: now,
 		preview: '',
+		cardType,
 	};
 
 	sessions.push(session);

@@ -132,7 +132,7 @@ describe('Chat Flow Integration', () => {
       await chatRepo.loadChat('char-1');
       
       const chatState = get(chatStore);
-      expect(chatState.chatId).toBe('char-1');
+      expect(chatState.characterId).toBe('char-1');
       expect(chatState.sessionId).toBeDefined();
     });
 

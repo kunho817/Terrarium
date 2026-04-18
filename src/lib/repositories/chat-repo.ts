@@ -83,9 +83,9 @@ export const chatRepo = {
    */
   async saveMessages(): Promise<void> {
     const state = get(chatStore);
-    if (state.chatId && state.sessionId) {
+    if (state.characterId && state.sessionId) {
       try {
-        await chatStorage.saveMessages(state.chatId, state.sessionId, state.messages);
+        await chatStorage.saveMessages(state.characterId, state.sessionId, state.messages);
         log.debug('Messages saved', { 
           chatId: state.chatId, 
           sessionId: state.sessionId,

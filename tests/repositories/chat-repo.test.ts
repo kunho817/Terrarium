@@ -33,7 +33,7 @@ describe('chatRepo', () => {
       await chatRepo.loadSession('char-1', 'session-1');
       
       const state = get(chatStore);
-      expect(state.chatId).toBe('char-1');
+      expect(state.characterId).toBe('char-1');
       expect(state.sessionId).toBe('session-1');
       expect(state.messages).toEqual([mockMessage]);
       expect(state.isLoading).toBe(false);
@@ -63,7 +63,7 @@ describe('chatRepo', () => {
       await chatRepo.loadChat('char-1');
       
       const state = get(chatStore);
-      expect(state.chatId).toBe('char-1');
+      expect(state.characterId).toBe('char-1');
       expect(state.sessionId).toBe('session-2'); // Most recent
       expect(loadMessages).toHaveBeenCalledWith('char-1', 'session-2');
     });
@@ -76,7 +76,7 @@ describe('chatRepo', () => {
       await chatRepo.loadChat('char-1');
       
       const state = get(chatStore);
-      expect(state.chatId).toBe('char-1');
+      expect(state.characterId).toBe('char-1');
       expect(state.sessionId).toBe('new-session');
       expect(createSession).toHaveBeenCalledWith('char-1');
     });
@@ -85,7 +85,7 @@ describe('chatRepo', () => {
   describe('saveMessages', () => {
     it('saves current messages', async () => {
       chatStore.set({
-        chatId: 'char-1',
+        characterId: 'char-1',
         sessionId: 'session-1',
         messages: [mockMessage],
         isLoading: false,
@@ -98,7 +98,7 @@ describe('chatRepo', () => {
       expect(saveMessages).toHaveBeenCalledWith('char-1', 'session-1', [mockMessage]);
     });
 
-    it('does not save if no chatId or sessionId', async () => {
+    it('does not save if no characterId or sessionId', async () => {
       chatStore.clear();
       
       await chatRepo.saveMessages();
