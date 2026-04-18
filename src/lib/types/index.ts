@@ -107,6 +107,7 @@ export type {
   AgentConfig,
   AgentContext,
   AgentResult,
+  ProgressCallback,
   Agent,
 } from './agent';
 

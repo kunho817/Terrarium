@@ -30,6 +30,8 @@ export interface AgentOutputs {
   characterState?: string;
 }
 
+export type ProgressCallback = (agentId: string, status: 'running' | 'done' | 'failed') => void;
+
 export interface AgentResult {
   injectPrompt?: string;
   updatedMemories?: MemoryRecord[];

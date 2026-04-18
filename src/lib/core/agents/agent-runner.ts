@@ -40,14 +40,16 @@ export class AgentRunner {
 		}
 	}
 
-	async onBeforeSend(ctx: AgentContext): Promise<AgentResult> {
+	async onBeforeSend(ctx: AgentContext, onProgress?: import('$lib/types/agent').ProgressCallback): Promise<AgentResult> {
 		const combined: AgentResult = {};
 		const outputs: import('$lib/types/agent').AgentOutputs = {};
 		const injectParts: string[] = [];
 
 		for (const agent of this.getAgentsByPriority()) {
+			onProgress?.(agent.id, 'running');
 			try {
 				const result = await agent.onBeforeSend(ctx);
+				onProgress?.(agent.id, 'done');
 				if (result.injectPrompt) {
 					injectParts.push(result.injectPrompt);
 					switch (agent.id) {
@@ -72,6 +74,7 @@ export class AgentRunner {
 					};
 				}
 			} catch {
+				onProgress?.(agent.id, 'failed');
 				console.warn(`[AgentRunner] Agent ${agent.id} onBeforeSend failed`);
 			}
 		}
