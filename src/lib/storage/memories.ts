@@ -1,5 +1,5 @@
 import { getDb, persist } from './db';
-import type { MemoryRecord, SessionSummary } from '$lib/types/memory';
+import type { MemoryRecord, SessionSummary, MemoryType } from '$lib/types/memory';
 import { makeSessionId } from '$lib/types/branded';
 import { cosineSimilarity } from '$lib/core/embedding';
 
@@ -172,5 +172,48 @@ export async function deleteMemoriesForSession(sessionId: string): Promise<void>
 	}
 	db.run('DELETE FROM memories WHERE session_id = ?', [sessionId]);
 	db.run('DELETE FROM summaries WHERE session_id = ?', [sessionId]);
+	try { await persist(); } catch {}
+}
+
+export async function countMemories(sessionId: string): Promise<number> {
+	const db = await getDb();
+	const rows = db.exec('SELECT COUNT(*) FROM memories WHERE session_id = ?', [sessionId]);
+	if (!rows.length) return 0;
+	return rows[0].values[0][0] as number;
+}
+
+export async function updateMemory(
+	id: string,
+	patch: { content?: string; importance?: number; type?: MemoryType },
+): Promise<void> {
+	const db = await getDb();
+	const sets: string[] = [];
+	const values: unknown[] = [];
+	if (patch.content !== undefined) { sets.push('content = ?'); values.push(patch.content); }
+	if (patch.importance !== undefined) { sets.push('importance = ?'); values.push(patch.importance); }
+	if (patch.type !== undefined) { sets.push('type = ?'); values.push(patch.type); }
+	if (!sets.length) return;
+	values.push(id);
+	db.run(`UPDATE memories SET ${sets.join(', ')} WHERE id = ?`, values);
+	try { await persist(); } catch {}
+}
+
+export async function deleteSummary(id: string): Promise<void> {
+	const db = await getDb();
+	db.run('DELETE FROM summaries WHERE id = ?', [id]);
+	try { await persist(); } catch {}
+}
+
+export async function updateSummary(
+	id: string,
+	patch: { summary?: string },
+): Promise<void> {
+	const db = await getDb();
+	const sets: string[] = [];
+	const values: unknown[] = [];
+	if (patch.summary !== undefined) { sets.push('summary = ?'); values.push(patch.summary); }
+	if (!sets.length) return;
+	values.push(id);
+	db.run(`UPDATE summaries SET ${sets.join(', ')} WHERE id = ?`, values);
 	try { await persist(); } catch {}
 }

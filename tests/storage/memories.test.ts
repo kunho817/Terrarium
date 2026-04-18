@@ -29,15 +29,42 @@ vi.mock('$lib/storage/db', () => ({
 				} else if (sql.startsWith('INSERT INTO summaries')) {
 					const [id, sessionId, startTurn, endTurn, summary, createdAt] = params as [string, string, number, number, string, number];
 					summariesStore.set(id, { id, sessionId, startTurn, endTurn, summary, createdAt });
+				} else if (sql.startsWith('DELETE FROM summaries WHERE id')) {
+					summariesStore.delete(params[0] as string);
 				} else if (sql.startsWith('DELETE FROM summaries')) {
 					for (const [id, summary] of summariesStore) {
 						if (summary.sessionId === params[0]) summariesStore.delete(id);
 					}
 				} else if (sql.startsWith('DELETE FROM memories WHERE id')) {
 					memoriesStore.delete(params[0] as string);
+				} else if (sql.startsWith('UPDATE memories')) {
+					const id = params[params.length - 1] as string;
+					const entry = memoriesStore.get(id);
+					if (entry) {
+						const assignments = sql.match(/SET (.+?) WHERE/)?.[1]?.split(',').map((s: string) => s.trim()) ?? [];
+						let paramIdx = 0;
+						for (const a of assignments) {
+							if (a.startsWith('content')) { entry.memory.content = params[paramIdx++] as string; }
+							else if (a.startsWith('importance')) { entry.memory.importance = params[paramIdx++] as number; }
+							else if (a.startsWith('type')) { entry.memory.type = params[paramIdx++] as any; }
+						}
+					}
+				} else if (sql.startsWith('UPDATE summaries')) {
+					const id = params[params.length - 1] as string;
+					const entry = summariesStore.get(id);
+					if (entry) {
+						if (sql.includes('summary')) {
+							entry.summary = params[0] as string;
+						}
+					}
 				}
 			},
 			exec(sql: string, params: unknown[]) {
+				if (sql.includes('COUNT(*)') && sql.includes('FROM memories')) {
+					const sessionId = params[0] as string;
+					const count = [...memoriesStore.values()].filter((e) => e.memory.sessionId === sessionId).length;
+					return [{ values: [[count]] }];
+				}
 				if (sql.includes('FROM summaries') && sql.includes('MAX')) {
 					const sessionId = params[0] as string;
 					let maxTurn: number | null = null;
@@ -109,6 +136,10 @@ import {
 	getSummariesForSession,
 	getLatestSummaryTurn,
 	deleteMemoriesForSession,
+	countMemories,
+	updateMemory,
+	deleteSummary,
+	updateSummary,
 } from '$lib/storage/memories';
 import type { MemoryRecord, SessionSummary } from '$lib/types/memory';
 
@@ -221,5 +252,51 @@ describe('memories storage', () => {
 		await deleteMemoriesForSession('sess-1');
 		expect(await getMemoriesForSession('sess-1')).toHaveLength(0);
 		expect(await getSummariesForSession('sess-1')).toHaveLength(0);
+	});
+
+	it('countMemories returns count for a session', async () => {
+		await insertMemory(makeMemory({ id: 'm1' }));
+		await insertMemory(makeMemory({ id: 'm2' }));
+		await insertMemory(makeMemory({ id: 'm3', sessionId: 'sess-other' }));
+		const count = await countMemories('sess-1');
+		expect(count).toBe(2);
+	});
+
+	it('countMemories returns 0 for session with no memories', async () => {
+		const count = await countMemories('nonexistent-session');
+		expect(count).toBe(0);
+	});
+
+	it('updateMemory updates content and importance', async () => {
+		await insertMemory(makeMemory({ id: 'mem-1' }));
+		await updateMemory('mem-1', { content: 'Updated content', importance: 0.9 });
+		const results = await getMemoriesForSession('sess-1');
+		expect(results).toHaveLength(1);
+		expect(results[0].content).toBe('Updated content');
+		expect(results[0].importance).toBe(0.9);
+	});
+
+	it('updateMemory updates type', async () => {
+		await insertMemory(makeMemory({ id: 'mem-1', type: 'event' }));
+		await updateMemory('mem-1', { type: 'trait' });
+		const results = await getMemoriesForSession('sess-1');
+		expect(results[0].type).toBe('trait');
+	});
+
+	it('updateSummary changes summary text', async () => {
+		await insertSummary(makeSummary({ id: 'sum-1', summary: 'Old summary' }));
+		await updateSummary('sum-1', { summary: 'New summary' });
+		const results = await getSummariesForSession('sess-1');
+		expect(results).toHaveLength(1);
+		expect(results[0].summary).toBe('New summary');
+	});
+
+	it('deleteSummary removes a summary', async () => {
+		await insertSummary(makeSummary({ id: 'sum-1' }));
+		await insertSummary(makeSummary({ id: 'sum-2', startTurn: 6 }));
+		await deleteSummary('sum-1');
+		const results = await getSummariesForSession('sess-1');
+		expect(results).toHaveLength(1);
+		expect(results[0].id).toBe('sum-2');
 	});
 });
