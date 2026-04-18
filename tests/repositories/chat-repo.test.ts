@@ -6,11 +6,12 @@ vi.mock('$lib/storage/chats', () => ({
   saveMessages: vi.fn(),
   listSessions: vi.fn(),
   createSession: vi.fn(),
+  updateSession: vi.fn(),
 }));
 
 import { chatRepo } from '$lib/repositories/chat-repo';
 import { chatStore } from '$lib/stores/chat';
-import { loadMessages, saveMessages, listSessions, createSession } from '$lib/storage/chats';
+import { loadMessages, saveMessages, listSessions, createSession, updateSession } from '$lib/storage/chats';
 import type { Message } from '$lib/types';
 
 const mockMessage: Message = {
@@ -96,6 +97,10 @@ describe('chatRepo', () => {
       await chatRepo.saveMessages();
       
       expect(saveMessages).toHaveBeenCalledWith('char-1', 'session-1', [mockMessage]);
+      expect(updateSession).toHaveBeenCalledWith('char-1', 'session-1', {
+        lastMessageAt: mockMessage.timestamp,
+        preview: mockMessage.content.slice(0, 80),
+      });
     });
 
     it('does not save if no characterId or sessionId', async () => {

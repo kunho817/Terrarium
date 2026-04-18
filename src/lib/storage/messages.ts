@@ -2,7 +2,6 @@ import type { Message } from '$lib/types';
 import { readJson, writeJsonAtomic, ensureDir } from './database';
 import { PATHS } from './paths';
 import { listSessions, createSession, migrateLegacyChat } from './sessions';
-import { updateSession } from './sessions';
 
 export async function loadMessages(
 	characterId: string,
@@ -22,14 +21,6 @@ export async function saveMessages(
 ): Promise<void> {
 	await ensureDir(PATHS.sessionDir(characterId, sessionId));
 	await writeJsonAtomic(PATHS.sessionMessages(characterId, sessionId), messages);
-
-	const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-	if (lastMsg) {
-		await updateSession(characterId, sessionId, {
-			lastMessageAt: lastMsg.timestamp,
-			preview: lastMsg.content.slice(0, 80),
-		});
-	}
 }
 
 export async function loadMessagesLegacy(chatId: string): Promise<Message[]> {

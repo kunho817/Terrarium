@@ -7,7 +7,6 @@ import { chatStore } from '$lib/stores/chat';
 import { StorageError, ValidationError } from '$lib/errors/error-types';
 import { logger } from '$lib/utils/logger';
 import * as chatStorage from '$lib/storage/chats';
-import type { Message } from '$lib/types';
 import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 
 const log = logger.scope('ChatRepo');
@@ -51,7 +50,6 @@ export const chatRepo = {
     log.debug('Loading chat', { chatId });
     
     try {
-      await chatStorage.listSessions(chatId); // triggers migration
       const sessions = await chatStorage.listSessions(chatId);
       let sessionId: ReturnType<typeof makeSessionId>;
 
@@ -85,11 +83,22 @@ export const chatRepo = {
     const state = get(chatStore);
     if (state.characterId && state.sessionId) {
       try {
-        await chatStorage.saveMessages(state.characterId, state.sessionId, state.messages);
-        log.debug('Messages saved', { 
-          chatId: state.chatId, 
-          sessionId: state.sessionId,
-          messageCount: state.messages.length 
+        const characterId = state.characterId as string;
+        const sessionId = state.sessionId as string;
+        await chatStorage.saveMessages(characterId, sessionId, state.messages);
+
+        const lastMsg = state.messages.length > 0 ? state.messages[state.messages.length - 1] : null;
+        if (lastMsg) {
+          await chatStorage.updateSession(characterId, sessionId, {
+            lastMessageAt: lastMsg.timestamp,
+            preview: lastMsg.content.slice(0, 80),
+          });
+        }
+
+        log.debug('Messages saved', {
+          characterId,
+          sessionId,
+          messageCount: state.messages.length
         });
       } catch (error) {
         throw new StorageError(
@@ -118,10 +127,4 @@ export const chatRepo = {
     }
   },
 
-  /**
-   * Load a specific session by ID.
-   */
-  async loadSessionById(characterId: string, sessionId: string): Promise<void> {
-    await this.loadSession(characterId, sessionId);
-  },
 };

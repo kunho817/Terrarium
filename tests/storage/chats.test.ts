@@ -185,30 +185,18 @@ describe('chat session storage', () => {
   });
 
   describe('saveMessages', () => {
-    it('saves messages and updates session metadata', async () => {
-      const sessions = [
-        { id: 's1', characterId: 'char-1', name: 'Chat 1', createdAt: 1000, lastMessageAt: 1000, preview: '' },
-      ];
-      mockSessionsIndex(sessions);
+    it('saves messages to file', async () => {
       vi.mocked(ensureDir).mockResolvedValue(undefined);
       vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       await saveMessages('char-1', 's1', mockMessages);
 
-      // Should save messages file
+      expect(ensureDir).toHaveBeenCalled();
       const msgCall = vi.mocked(writeJsonAtomic).mock.calls.find(
-        (c) => c[0].includes('messages.json') && !c[0].includes('sessions'),
+        (c) => c[0].includes('messages.json'),
       );
       expect(msgCall).toBeDefined();
       expect(msgCall![1]).toEqual(mockMessages);
-
-      // Should update session metadata
-      const sessionCall = vi.mocked(writeJsonAtomic).mock.calls.find(
-        (c) => c[0].includes('sessions.json'),
-      );
-      expect(sessionCall).toBeDefined();
-      const written = sessionCall![1] as Array<{ preview: string }>;
-      expect(written[0].preview).toBe('Hi there!');
     });
   });
 
