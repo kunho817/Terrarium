@@ -1,5 +1,5 @@
 import type { SceneState } from '$lib/types';
-import { readJson, writeJson, ensureDir, existsPath } from './database';
+import { readJson, writeJsonAtomic, ensureDir, existsPath } from './database';
 import { PATHS } from './paths';
 import { listSessions, createSession, migrateLegacyChat } from './sessions';
 
@@ -19,7 +19,7 @@ export async function saveScene(
 	scene: SceneState,
 ): Promise<void> {
 	await ensureDir(PATHS.sessionDir(characterId, sessionId));
-	await writeJson(PATHS.sessionScene(characterId, sessionId), scene);
+	await writeJsonAtomic(PATHS.sessionScene(characterId, sessionId), scene);
 }
 
 export async function loadSceneLegacy(chatId: string): Promise<SceneState | null> {

@@ -1,6 +1,6 @@
 import type { ChatSession, Message, SceneState } from '$lib/types';
 import { makeSessionId, makeCharacterId } from '$lib/types/branded';
-import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from './database';
+import { readJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath } from './database';
 import { PATHS } from './paths';
 
 export async function migrateLegacyChat(characterId: string): Promise<void> {
@@ -36,11 +36,11 @@ export async function migrateLegacyChat(characterId: string): Promise<void> {
 	};
 
 	await ensureDir(PATHS.sessionDir(characterId, sessionId));
-	await writeJson(PATHS.sessionMessages(characterId, sessionId), messages);
+	await writeJsonAtomic(PATHS.sessionMessages(characterId, sessionId), messages);
 	if (scene) {
-		await writeJson(PATHS.sessionScene(characterId, sessionId), scene);
+		await writeJsonAtomic(PATHS.sessionScene(characterId, sessionId), scene);
 	}
-	await writeJson(PATHS.sessionsIndex(characterId), [session]);
+	await writeJsonAtomic(PATHS.sessionsIndex(characterId), [session]);
 
 	await removePath(legacyMsgPath);
 	const legacyScenePath = PATHS.chatScene(characterId);
@@ -79,7 +79,7 @@ export async function createSession(
 	sessions.push(session);
 	await ensureDir(PATHS.characterChatDir(characterId));
 	await ensureDir(PATHS.sessionDir(characterId, session.id));
-	await writeJson(PATHS.sessionsIndex(characterId), sessions);
+	await writeJsonAtomic(PATHS.sessionsIndex(characterId), sessions);
 	return session;
 }
 
@@ -92,7 +92,7 @@ export async function updateSession(
 	const idx = sessions.findIndex((s) => s.id === sessionId);
 	if (idx === -1) return;
 	sessions[idx] = { ...sessions[idx], ...patch };
-	await writeJson(PATHS.sessionsIndex(characterId), sessions);
+	await writeJsonAtomic(PATHS.sessionsIndex(characterId), sessions);
 }
 
 export async function deleteSession(
@@ -103,5 +103,5 @@ export async function deleteSession(
 
 	const sessions = await listSessions(characterId);
 	const filtered = sessions.filter((s) => s.id !== sessionId);
-	await writeJson(PATHS.sessionsIndex(characterId), filtered);
+	await writeJsonAtomic(PATHS.sessionsIndex(characterId), filtered);
 }

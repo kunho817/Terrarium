@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => import('../__mocks__/tauri-plugin-fs'));
 
-import { readTextFile, writeTextFile, mkdir, readDir, exists, remove } from '@tauri-apps/plugin-fs';
-import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from '$lib/storage/database';
+import { readTextFile, writeTextFile, mkdir, readDir, exists, remove, rename } from '@tauri-apps/plugin-fs';
+import { readJson, writeJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath } from '$lib/storage/database';
 
 describe('database', () => {
   beforeEach(() => {
@@ -112,6 +112,22 @@ describe('database', () => {
     it('returns false when path does not exist', async () => {
       vi.mocked(exists).mockResolvedValue(false);
       expect(await existsPath('nonexistent.json')).toBe(false);
+    });
+  });
+
+  describe('writeJsonAtomic', () => {
+    it('writes to temp file then renames', async () => {
+      vi.mocked(writeTextFile).mockResolvedValue(undefined);
+      vi.mocked(rename).mockResolvedValue(undefined);
+
+      await writeJsonAtomic('test/path.json', { hello: 'world' });
+
+      expect(writeTextFile).toHaveBeenCalledWith(
+        'test/path.json.tmp',
+        JSON.stringify({ hello: 'world' }, null, 2),
+        { baseDir: 1 },
+      );
+      expect(rename).toHaveBeenCalledWith('test/path.json.tmp', 'test/path.json', { baseDir: 1 });
     });
   });
 });

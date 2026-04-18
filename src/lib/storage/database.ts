@@ -10,6 +10,7 @@ import {
   readDir,
   exists,
   remove,
+  rename,
   BaseDirectory,
 } from '@tauri-apps/plugin-fs';
 
@@ -22,6 +23,12 @@ export async function readJson<T>(path: string): Promise<T> {
 
 export async function writeJson(path: string, data: unknown): Promise<void> {
   await writeTextFile(path, JSON.stringify(data, null, 2), BASE);
+}
+
+export async function writeJsonAtomic(path: string, data: unknown): Promise<void> {
+  const tmpPath = `${path}.tmp`;
+  await writeTextFile(tmpPath, JSON.stringify(data, null, 2), BASE);
+  await rename(tmpPath, path, BASE);
 }
 
 export async function ensureDir(path: string): Promise<void> {

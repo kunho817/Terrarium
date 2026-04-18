@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('$lib/storage/database', () => ({
   readJson: vi.fn(),
-  writeJson: vi.fn(),
+  writeJsonAtomic: vi.fn(),
   ensureDir: vi.fn(),
   listDirs: vi.fn(),
   removePath: vi.fn(),
   existsPath: vi.fn(),
 }));
 
-import { readJson, writeJson, ensureDir, listDirs, removePath, existsPath } from '$lib/storage/database';
+import { readJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath } from '$lib/storage/database';
 import {
   listSessions,
   createSession,
@@ -103,7 +103,7 @@ describe('chat session storage', () => {
     it('creates a new session and adds to index', async () => {
       mockSessionsIndex([]);
       vi.mocked(ensureDir).mockResolvedValue(undefined);
-      vi.mocked(writeJson).mockResolvedValue(undefined);
+      vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       const session = await createSession('char-1', 'Test Chat');
 
@@ -111,13 +111,13 @@ describe('chat session storage', () => {
       expect(session.name).toBe('Test Chat');
       expect(session.id).toBeTruthy();
       expect(ensureDir).toHaveBeenCalled();
-      expect(writeJson).toHaveBeenCalled();
+      expect(writeJsonAtomic).toHaveBeenCalled();
     });
 
     it('uses default name when not provided', async () => {
       mockSessionsIndex([]);
       vi.mocked(ensureDir).mockResolvedValue(undefined);
-      vi.mocked(writeJson).mockResolvedValue(undefined);
+      vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       const session = await createSession('char-1');
       expect(session.name).toBe('Chat 1');
@@ -130,12 +130,12 @@ describe('chat session storage', () => {
         { id: 's1', characterId: 'char-1', name: 'Old', createdAt: 1000, lastMessageAt: 2000, preview: '' },
       ];
       mockSessionsIndex(sessions);
-      vi.mocked(writeJson).mockResolvedValue(undefined);
+      vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       await updateSession('char-1', 's1', { name: 'Updated' });
 
-      // writeJson is called with updated sessions array
-      const writeCall = vi.mocked(writeJson).mock.calls.find(
+      // writeJsonAtomic is called with updated sessions array
+      const writeCall = vi.mocked(writeJsonAtomic).mock.calls.find(
         (c) => c[0].includes('sessions.json'),
       );
       expect(writeCall).toBeDefined();
@@ -152,12 +152,12 @@ describe('chat session storage', () => {
       ];
       mockSessionsIndex(sessions);
       vi.mocked(removePath).mockResolvedValue(undefined);
-      vi.mocked(writeJson).mockResolvedValue(undefined);
+      vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       await deleteSession('char-1', 's1');
 
       expect(removePath).toHaveBeenCalled();
-      const writeCall = vi.mocked(writeJson).mock.calls.find(
+      const writeCall = vi.mocked(writeJsonAtomic).mock.calls.find(
         (c) => c[0].includes('sessions.json'),
       );
       expect(writeCall).toBeDefined();
@@ -191,19 +191,19 @@ describe('chat session storage', () => {
       ];
       mockSessionsIndex(sessions);
       vi.mocked(ensureDir).mockResolvedValue(undefined);
-      vi.mocked(writeJson).mockResolvedValue(undefined);
+      vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       await saveMessages('char-1', 's1', mockMessages);
 
       // Should save messages file
-      const msgCall = vi.mocked(writeJson).mock.calls.find(
+      const msgCall = vi.mocked(writeJsonAtomic).mock.calls.find(
         (c) => c[0].includes('messages.json') && !c[0].includes('sessions'),
       );
       expect(msgCall).toBeDefined();
       expect(msgCall![1]).toEqual(mockMessages);
 
       // Should update session metadata
-      const sessionCall = vi.mocked(writeJson).mock.calls.find(
+      const sessionCall = vi.mocked(writeJsonAtomic).mock.calls.find(
         (c) => c[0].includes('sessions.json'),
       );
       expect(sessionCall).toBeDefined();
@@ -231,11 +231,11 @@ describe('chat session storage', () => {
   describe('saveScene', () => {
     it('saves scene state', async () => {
       vi.mocked(ensureDir).mockResolvedValue(undefined);
-      vi.mocked(writeJson).mockResolvedValue(undefined);
+      vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
 
       await saveScene('char-1', 's1', mockScene);
 
-      expect(writeJson).toHaveBeenCalledWith('chats/char-1/s1/scene.json', mockScene);
+      expect(writeJsonAtomic).toHaveBeenCalledWith('chats/char-1/s1/scene.json', mockScene);
     });
   });
 
