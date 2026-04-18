@@ -28,6 +28,11 @@ import { executeScript } from '$lib/core/scripting/bridge';
 import type { ScriptMutation } from '$lib/core/scripting/api';
 import { EventEmitter } from '$lib/core/events';
 import { AgentRunner } from '../agents/agent-runner';
+import {
+	startPipeline,
+	updateStep,
+	resetPipeline,
+} from '$lib/stores/agent-progress';
 import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
@@ -172,15 +177,25 @@ export class ChatEngine {
     }
 
     // 6b. Run agent runner (memory, future agents)
-    const agentResult = await this.agentRunner.onBeforeSend({
-      sessionId: makeSessionId(options.characterId || ''),
-      cardId: makeCharacterId(options.characterId || ''),
-      cardType: options.worldCard ? 'world' : 'character',
-      messages: allMessages,
-      scene: triggerScene,
-      turnNumber: allMessages.filter(m => m.role === 'user').length,
-      config: options.config,
-    });
+    const pipelineAgents = this.agentRunner.getAgentsByPriority().map((a) => ({
+      id: a.id,
+      label: a.name,
+    }));
+    pipelineAgents.push({ id: 'llm-generation', label: 'Generating' });
+    startPipeline(pipelineAgents);
+
+    const agentResult = await this.agentRunner.onBeforeSend(
+      {
+        sessionId: makeSessionId(options.characterId || ''),
+        cardId: makeCharacterId(options.characterId || ''),
+        cardType: options.worldCard ? 'world' : 'character',
+        messages: allMessages,
+        scene: triggerScene,
+        turnNumber: allMessages.filter(m => m.role === 'user').length,
+        config: options.config,
+      },
+      (agentId, status) => updateStep(agentId, status),
+    );
     if (agentResult.agentOutputs) {
       ctx.agentOutputs = agentResult.agentOutputs;
     }
@@ -243,6 +258,7 @@ export class ChatEngine {
       const metadata: ChatMetadata = {};
       let providerError: unknown = null;
 
+      updateStep('llm-generation', 'running');
       try {
         for await (const token of provider.chat(assembled, capturedConfig, metadata)) {
           if (self.aborted) break;
@@ -335,6 +351,8 @@ export class ChatEngine {
       };
 
       resolveComplete(assistantMessage);
+      updateStep('llm-generation', 'done');
+      setTimeout(resetPipeline, 300);
 
       // Propagate provider error after resolving onComplete
       if (providerError) {
@@ -347,6 +365,7 @@ export class ChatEngine {
       stream: tokenStream(),
       abort: () => {
         self.aborted = true;
+        resetPipeline();
       },
       onComplete,
     };
