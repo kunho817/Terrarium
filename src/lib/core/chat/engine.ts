@@ -19,6 +19,7 @@ import type { PluginRegistry } from '$lib/plugins/registry';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 import type { UserPersona } from '$lib/types/persona';
 import { applyRegexScripts } from './regex';
+import { TriggerExecutor } from '../lua/trigger-executor';
 import { matchLorebook } from './lorebook';
 import { assemblePromptMessages } from './pipeline';
 import { assembleWithPreset } from './prompt-assembler';
@@ -112,6 +113,14 @@ export class ChatEngine {
 
     // 2b. Fire on_user_message triggers
     let triggerScene = options.scene;
+    if (options.card.triggers?.length > 0) {
+      try {
+        const executor = new TriggerExecutor(options.card.triggers, triggerScene.variables);
+        const result = await executor.execute('on_user_message');
+        triggerScene = { ...triggerScene, variables: result.variables };
+      } catch {
+      }
+    }
     const userTriggers = matchTriggers(options.card.triggers, 'on_user_message', {
       message: processedInput,
       isUserMessage: true,
@@ -304,6 +313,13 @@ export class ChatEngine {
         // Agent runner failed — non-blocking
       }
 
+      if (capturedCtx.card.triggers?.length > 0) {
+        try {
+          const executor = new TriggerExecutor(capturedCtx.card.triggers, capturedCtx.scene.variables);
+          await executor.execute('on_ai_message');
+        } catch {
+        }
+      }
       // 11b. Fire on_ai_message triggers
       const aiTriggers = matchTriggers(capturedCtx.card.triggers, 'on_ai_message', {
         message: processed,
