@@ -5,6 +5,7 @@
 
   let {
     sessions,
+    archivedSessions = [],
     activeSessionId,
     personas,
     onselect,
@@ -13,17 +14,52 @@
     oncreate,
     onclose,
     onsetpersona,
+    onpin,
+    onexport,
+    onarchive,
+    onrestore,
+    onpermanentlyDelete,
+    memoryCounts = new Map<string, number>(),
   }: {
     sessions: ChatSession[];
+    archivedSessions?: ChatSession[];
     activeSessionId: string | null;
     personas: { id: string; name: string }[];
+    memoryCounts?: Map<string, number>;
     onselect: (id: string) => void;
     onrename: (id: string, name: string) => void;
     ondelete: (id: string) => void;
-    oncreate: () => void;
+    oncreate: (name?: string) => void;
     onclose: () => void;
     onsetpersona: (id: string, personaId: string | undefined) => void;
+    onpin: (id: string, pinned: boolean) => void;
+    onexport: (id: string) => void;
+    onarchive: (id: string) => void;
+    onrestore: (id: string) => void;
+    onpermanentlyDelete: (id: string) => void;
   } = $props();
+
+  let searchQuery = $state('');
+  let showArchive = $state(false);
+  let showNewSessionInput = $state(false);
+  let newSessionName = $state('');
+
+  const filteredSessions = $derived.by(() => {
+    let result = sessions;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s => s.name.toLowerCase().includes(q));
+    }
+    const pinned = result.filter(s => s.pinnedAt).sort((a, b) => (b.pinnedAt ?? 0) - (a.pinnedAt ?? 0));
+    const unpinned = result.filter(s => !s.pinnedAt).sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+    return [...pinned, ...unpinned];
+  });
+
+  const filteredArchived = $derived.by(() => {
+    if (!searchQuery.trim()) return archivedSessions;
+    const q = searchQuery.toLowerCase();
+    return archivedSessions.filter(s => s.name.toLowerCase().includes(q));
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -38,7 +74,6 @@
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
   >
-    <!-- Header -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-surface0">
       <h2 class="text-text text-sm font-semibold">Sessions</h2>
       <button
@@ -52,29 +87,82 @@
       </button>
     </div>
 
-    <!-- Session list -->
+    <div class="px-4 pb-2">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Search sessions..."
+        class="w-full bg-surface0 text-text text-sm px-3 py-1.5 rounded-lg border border-surface1 focus:outline-none focus:border-mauve placeholder:text-subtext0"
+      />
+    </div>
+
     <div class="flex-1 overflow-y-auto p-2 space-y-1">
-      {#if sessions.length === 0}
-        <div class="text-center text-subtext0 text-sm py-8">No sessions yet</div>
+      {#if showNewSessionInput}
+        <div class="flex gap-1 p-2">
+          <input
+            type="text"
+            bind:value={newSessionName}
+            placeholder="Session name..."
+            class="flex-1 bg-surface0 text-text text-sm px-2 py-1 rounded border border-surface1 focus:outline-none focus:border-mauve"
+            onkeydown={(e) => {
+              if (e.key === 'Enter') { oncreate(newSessionName.trim() || undefined); showNewSessionInput = false; newSessionName = ''; }
+              if (e.key === 'Escape') { showNewSessionInput = false; newSessionName = ''; }
+            }}
+          />
+          <button onclick={() => { oncreate(newSessionName.trim() || undefined); showNewSessionInput = false; newSessionName = ''; }} class="text-xs text-green bg-transparent border-none cursor-pointer">✓</button>
+        </div>
+      {/if}
+
+      {#if filteredSessions.length === 0}
+        <div class="text-center text-subtext0 text-sm py-8">No sessions found</div>
       {:else}
-        {#each sessions as session}
+        {#each filteredSessions as session}
           <SessionItem
             {session}
             isActive={session.id === activeSessionId}
             {personas}
+            memoryCount={memoryCounts.get(session.id) ?? 0}
             {onselect}
             {onrename}
-            {ondelete}
-            onsetpersona={onsetpersona}
+            ondelete={onarchive}
+            {onsetpersona}
+            {onpin}
+            {onexport}
           />
         {/each}
       {/if}
+
+      {#if archivedSessions.length > 0}
+        <div class="mt-4 border-t border-surface1 pt-2">
+          <button
+            onclick={() => showArchive = !showArchive}
+            class="w-full text-left text-xs text-subtext0 hover:text-text bg-transparent border-none cursor-pointer px-2 py-1"
+          >
+            Archived ({archivedSessions.length}) {showArchive ? '▲' : '▼'}
+          </button>
+          {#if showArchive}
+            {#each filteredArchived as session}
+              <SessionItem
+                {session}
+                isActive={false}
+                {personas}
+                memoryCount={memoryCounts.get(session.id) ?? 0}
+                onselect={onrestore}
+                {onrename}
+                ondelete={onpermanentlyDelete}
+                {onsetpersona}
+                {onpin}
+                {onexport}
+              />
+            {/each}
+          {/if}
+        </div>
+      {/if}
     </div>
 
-    <!-- New session button -->
     <div class="p-3 border-t border-surface0">
       <button
-        onclick={oncreate}
+        onclick={() => showNewSessionInput = true}
         class="w-full text-sm text-green hover:text-lavender bg-transparent border border-surface1 rounded-lg px-3 py-2 cursor-pointer hover:bg-surface0 transition-colors"
       >
         + New Session

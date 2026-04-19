@@ -100,7 +100,7 @@ describe('chatRepo', () => {
       expect(saveMessages).toHaveBeenCalledWith('char-1', 'session-1', [mockMessage]);
       expect(updateSession).toHaveBeenCalledWith('char-1', 'session-1', {
         lastMessageAt: mockMessage.timestamp,
-        preview: mockMessage.content.slice(0, 80),
+        preview: 'You: Hello',
       });
     });
 
@@ -110,6 +110,63 @@ describe('chatRepo', () => {
       await chatRepo.saveMessages();
       
       expect(saveMessages).not.toHaveBeenCalled();
+    });
+
+    it('adds "You: " prefix for user messages', async () => {
+      chatStore.set({
+        characterId: 'char-1',
+        sessionId: 'session-1',
+        messages: [{ role: 'user', content: 'Hello world', type: 'dialogue', timestamp: 1234 }],
+        isLoading: false,
+        streamingMessage: null,
+        isStreaming: false,
+      });
+
+      await chatRepo.saveMessages();
+
+      expect(updateSession).toHaveBeenCalledWith('char-1', 'session-1', {
+        lastMessageAt: 1234,
+        preview: 'You: Hello world',
+      });
+    });
+
+    it('no prefix for assistant messages', async () => {
+      chatStore.set({
+        characterId: 'char-1',
+        sessionId: 'session-1',
+        messages: [{ role: 'assistant', content: 'Hi there', type: 'dialogue', timestamp: 5678 }],
+        isLoading: false,
+        streamingMessage: null,
+        isStreaming: false,
+      });
+
+      await chatRepo.saveMessages();
+
+      expect(updateSession).toHaveBeenCalledWith('char-1', 'session-1', {
+        lastMessageAt: 5678,
+        preview: 'Hi there',
+      });
+    });
+
+    it('truncates preview to 120 chars', async () => {
+      const longContent = 'x'.repeat(200);
+      chatStore.set({
+        characterId: 'char-1',
+        sessionId: 'session-1',
+        messages: [{ role: 'user', content: longContent, type: 'dialogue', timestamp: 9999 }],
+        isLoading: false,
+        streamingMessage: null,
+        isStreaming: false,
+      });
+
+      await chatRepo.saveMessages();
+
+      const expectedPreview = `You: ${longContent}`.slice(0, 120);
+      expect(updateSession).toHaveBeenCalledWith('char-1', 'session-1', {
+        lastMessageAt: 9999,
+        preview: expectedPreview,
+      });
+      expect(expectedPreview.length).toBe(120);
     });
   });
 

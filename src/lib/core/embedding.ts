@@ -17,7 +17,16 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 	return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
+async function getFetch() {
+	try {
+		const http = await import('@tauri-apps/plugin-http');
+		if (http.fetch) return http.fetch;
+	} catch {}
+	return globalThis.fetch;
+}
+
 export async function callVoyageApi(texts: string[], config: EmbeddingConfig): Promise<number[][]> {
+	const fetch = await getFetch();
 	const res = await fetch('https://api.voyageai.com/v1/embeddings', {
 		method: 'POST',
 		headers: {
@@ -38,6 +47,7 @@ export async function callVoyageApi(texts: string[], config: EmbeddingConfig): P
 }
 
 export async function callOpenAICompatibleApi(texts: string[], config: EmbeddingConfig): Promise<number[][]> {
+	const fetch = await getFetch();
 	const res = await fetch(`${config.baseUrl}/embeddings`, {
 		method: 'POST',
 		headers: {

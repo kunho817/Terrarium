@@ -54,7 +54,7 @@ describe('SceneStateAgent', () => {
 	});
 
 	it('has correct id and priority', () => {
-		expect(agent.id).toBe('scene');
+		expect(agent.id).toBe('scene-state');
 		expect(agent.priority).toBe(30);
 	});
 

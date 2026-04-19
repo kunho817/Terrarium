@@ -97,9 +97,11 @@ export const chatRepo = {
 
         const lastMsg = state.messages.length > 0 ? state.messages[state.messages.length - 1] : null;
         if (lastMsg) {
+          const prefix = lastMsg.role === 'user' ? 'You: ' : '';
+          const preview = `${prefix}${lastMsg.content}`.slice(0, 120);
           await chatStorage.updateSession(characterId, sessionId, {
             lastMessageAt: lastMsg.timestamp,
-            preview: lastMsg.content.slice(0, 80),
+            preview,
           });
         }
 

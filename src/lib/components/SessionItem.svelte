@@ -6,18 +6,24 @@
     session,
     isActive,
     personas,
+    memoryCount = 0,
     onselect,
     onrename,
     ondelete,
     onsetpersona,
+    onpin,
+    onexport,
   }: {
     session: ChatSession;
     isActive: boolean;
     personas: { id: string; name: string }[];
+    memoryCount?: number;
     onselect: (id: string) => void;
     onrename: (id: string, name: string) => void;
     ondelete: (id: string) => void;
     onsetpersona: (id: string, personaId: string | undefined) => void;
+    onpin: (id: string, pinned: boolean) => void;
+    onexport: (id: string) => void;
   } = $props();
 
   let editing = $state(false);
@@ -81,6 +87,11 @@
         {/if}
         <div class="flex items-center gap-2 mt-1">
           <span class="text-[10px] text-subtext0">{dateStr}</span>
+          {#if memoryCount > 0}
+            <span class="text-[10px] text-lavender bg-surface0 rounded px-1 py-0.5 cursor-default" title="View memories (coming soon)">
+              {memoryCount} memories
+            </span>
+          {/if}
           <button
             onclick={(e) => { e.stopPropagation(); showPersonaSelect = !showPersonaSelect; }}
             class="text-[11px] text-lavender hover:text-text bg-surface0 hover:bg-surface1 border border-surface1 hover:border-surface2 rounded px-1.5 py-0.5 cursor-pointer transition-colors"
@@ -91,8 +102,12 @@
       </div>
 
       <div class="flex gap-1 shrink-0" onclick={(e) => e.stopPropagation()}>
+        <button onclick={() => onpin(session.id, !session.pinnedAt)} class="text-subtext0 hover:text-text bg-transparent border-none cursor-pointer p-0.5" title={session.pinnedAt ? 'Unpin' : 'Pin'}>
+          {session.pinnedAt ? '📌' : '📍'}
+        </button>
         <button onclick={startRename} class="text-subtext0 hover:text-text bg-transparent border-none cursor-pointer p-0.5" title="Rename">✎</button>
-        <button onclick={handleDelete} class="text-subtext0 hover:text-red bg-transparent border-none cursor-pointer p-0.5" title="Delete">✕</button>
+        <button onclick={() => onexport(session.id)} class="text-subtext0 hover:text-text bg-transparent border-none cursor-pointer p-0.5" title="Export">↓</button>
+        <button onclick={handleDelete} class="text-subtext0 hover:text-red bg-transparent border-none cursor-pointer p-0.5" title="Archive">✕</button>
       </div>
     {/if}
   </div>

@@ -67,8 +67,8 @@ export async function updateSceneState(
 			]
 		);
 	}
-}
 	try { await persist(); } catch {}
+}
 
 export async function deleteSceneState(sessionId: string): Promise<void> {
 	const db = await getDb();

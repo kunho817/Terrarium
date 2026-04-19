@@ -78,7 +78,7 @@ describe('CharacterStateAgent', () => {
 	});
 
 	it('has correct id and priority', () => {
-		expect(agent.id).toBe('character');
+		expect(agent.id).toBe('character-state');
 		expect(agent.priority).toBe(40);
 	});
 

@@ -61,6 +61,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_character_states_session_name ON character
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let db: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let dbPromise: Promise<any> | null = null;
 
 async function loadSqlJs() {
   const initSqlJs = (await import('sql.js')).default;
@@ -72,18 +74,21 @@ async function loadSqlJs() {
 
 export async function getDb() {
   if (db) return db;
-
-  const SQL = await loadSqlJs();
-
-  try {
-    const data = await readFile(DB_FILENAME, BASE);
-    db = new SQL.Database(new Uint8Array(data));
-  } catch {
-    db = new SQL.Database();
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const SQL = await loadSqlJs();
+      try {
+        const data = await readFile(DB_FILENAME, BASE);
+        db = new SQL.Database(new Uint8Array(data));
+      } catch {
+        db = new SQL.Database();
+      }
+      db.run(SCHEMA_SQL);
+      dbPromise = null;
+      return db;
+    })();
   }
-
-  db.run(SCHEMA_SQL);
-  return db;
+  return dbPromise;
 }
 
 export async function persist() {

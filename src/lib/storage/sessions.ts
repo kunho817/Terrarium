@@ -2,6 +2,8 @@ import type { ChatSession, Message, SceneState, SessionsFile } from '$lib/types'
 import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { readJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath } from './database';
 import { PATHS } from './paths';
+import { deleteMemoriesForSession } from './memories';
+import { deleteSceneState } from './agent-states';
 
 async function readSessionsFile(characterId: string): Promise<SessionsFile> {
 	const indexPath = PATHS.sessionsIndex(characterId);
@@ -120,6 +122,10 @@ export async function deleteSession(
 	sessionId: string,
 ): Promise<void> {
 	await removePath(PATHS.sessionDir(characterId, sessionId));
+	await Promise.all([
+		deleteMemoriesForSession(sessionId),
+		deleteSceneState(sessionId),
+	]);
 
 	const file = await readSessionsFile(characterId);
 	file.sessions = file.sessions.filter((s) => s.id !== sessionId);
@@ -143,7 +149,7 @@ export async function archiveSession(characterId: string, sessionId: string): Pr
 	const srcDir = PATHS.sessionDir(characterId, sessionId);
 	const destDir = PATHS.sessionArchiveDir(characterId, sessionId);
 	if (await existsPath(srcDir)) {
-		await ensureDir(PATHS.sessionArchive(characterId));
+		await ensureDir(destDir);
 		const { readDir, readTextFile, writeTextFile, remove, BaseDirectory } = await import('@tauri-apps/plugin-fs');
 		const BASE = { baseDir: BaseDirectory.AppData };
 		const entries = await readDir(srcDir, BASE);
@@ -191,5 +197,9 @@ export async function permanentDeleteSession(characterId: string, sessionId: str
 	file.archivedSessions = archived.filter((s) => s.id !== sessionId);
 	if (file.archivedSessions.length === 0) file.archivedSessions = undefined;
 	await writeSessionsFile(characterId, file);
-	await removePath(PATHS.sessionArchiveDir(characterId, sessionId));
+	await Promise.all([
+		removePath(PATHS.sessionArchiveDir(characterId, sessionId)),
+		deleteMemoriesForSession(sessionId),
+		deleteSceneState(sessionId),
+	]);
 }

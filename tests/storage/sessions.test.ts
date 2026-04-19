@@ -17,6 +17,14 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
   BaseDirectory: { AppData: 1 },
 }));
 
+vi.mock('$lib/storage/memories', () => ({
+  deleteMemoriesForSession: vi.fn(),
+}));
+
+vi.mock('$lib/storage/agent-states', () => ({
+  deleteSceneState: vi.fn(),
+}));
+
 import { readJson, writeJsonAtomic, ensureDir, removePath, existsPath } from '$lib/storage/database';
 import { readDir, readTextFile, writeTextFile, remove } from '@tauri-apps/plugin-fs';
 import {

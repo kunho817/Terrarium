@@ -11,6 +11,8 @@ export {
 } from './sessions';
 export { loadMessages, saveMessages, loadMessagesLegacy, saveMessagesLegacy } from './messages';
 export { loadScene, saveScene, loadSceneLegacy, saveSceneLegacy } from './scene-storage';
+export { buildSessionExport, serializeExport } from './export-session';
+export type { SessionExport } from './export-session';
 
 import { listDirs, removePath } from './database';
 import { PATHS } from './paths';

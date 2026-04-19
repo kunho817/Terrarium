@@ -42,7 +42,6 @@ export const sceneRepo = {
    */
   async loadSceneLegacy(chatId: string): Promise<void> {
     try {
-      await chatStorage.listSessions(chatId); // triggers migration
       const sessions = await chatStorage.listSessions(chatId);
       if (sessions.length > 0) {
         sessions.sort((a, b) => b.lastMessageAt - a.lastMessageAt);

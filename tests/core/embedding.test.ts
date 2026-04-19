@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('@tauri-apps/plugin-http', () => ({
+  fetch: undefined,
+}));
+
 import {
 	getEmbedding,
 	getEmbeddings,

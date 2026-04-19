@@ -126,7 +126,7 @@ export function formatCharacterPrompt(states: CharacterState[]): string | undefi
 }
 
 export class CharacterStateAgent implements Agent {
-	readonly id = 'character';
+	readonly id = 'character-state';
 	readonly name = 'Character State Agent';
 	readonly priority = 40;
 

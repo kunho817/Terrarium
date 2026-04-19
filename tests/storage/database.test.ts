@@ -127,7 +127,7 @@ describe('database', () => {
         JSON.stringify({ hello: 'world' }, null, 2),
         { baseDir: 1 },
       );
-      expect(rename).toHaveBeenCalledWith('test/path.json.tmp', 'test/path.json', { baseDir: 1 });
+      expect(rename).toHaveBeenCalledWith('test/path.json.tmp', 'test/path.json', { oldPathBaseDir: 1, newPathBaseDir: 1 });
     });
   });
 });

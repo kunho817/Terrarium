@@ -28,7 +28,12 @@ export async function writeJson(path: string, data: unknown): Promise<void> {
 export async function writeJsonAtomic(path: string, data: unknown): Promise<void> {
   const tmpPath = `${path}.tmp`;
   await writeTextFile(tmpPath, JSON.stringify(data, null, 2), BASE);
-  await rename(tmpPath, path, BASE);
+  try {
+    await rename(tmpPath, path, { oldPathBaseDir: BaseDirectory.AppData, newPathBaseDir: BaseDirectory.AppData });
+  } catch (err) {
+    try { await remove(tmpPath, { ...BASE }); } catch {}
+    throw err;
+  }
 }
 
 export async function ensureDir(path: string): Promise<void> {
