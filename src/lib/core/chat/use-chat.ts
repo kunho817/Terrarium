@@ -7,6 +7,7 @@ import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
 import { getEngine } from '$lib/core/bootstrap';
 import { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
+import { resolveEffectiveSettings } from './world-settings';
 import { streamAndFinalize } from './use-chat-streaming';
 export { generateIllustration } from './use-chat-illustration';
 export { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
@@ -30,14 +31,16 @@ export async function initChat(characterId: string, sessionId?: string): Promise
 	await injectFirstMessage();
 }
 
-export async function injectFirstMessage(): Promise<void> {
+export async function injectFirstMessage(greetingContent?: string): Promise<void> {
 	const state = get(chatStore);
 	if (state.messages.length === 0) {
-		let firstMsg: string | undefined;
+		let firstMsg: string | undefined = greetingContent;
 
-		const charState = get(charactersStore);
-		if (charState.current?.firstMessage) {
-			firstMsg = charState.current.firstMessage;
+		if (!firstMsg) {
+			const charState = get(charactersStore);
+			if (charState.current?.firstMessage) {
+				firstMsg = charState.current.firstMessage;
+			}
 		}
 
 		if (!firstMsg) {
@@ -76,7 +79,7 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 	const engine = getEngine();
 
 	const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
-	const config = {
+	const baseConfig = {
 		providerId: settings.defaultProvider,
 		model: (providerConfig?.model as string) || undefined,
 		apiKey: (providerConfig?.apiKey as string) || undefined,
@@ -84,6 +87,8 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 		temperature: (providerConfig?.temperature as number) || undefined,
 		maxTokens: (providerConfig?.maxTokens as number) || undefined,
 	};
+
+	const config = resolveEffectiveSettings(baseConfig, resolved.worldCard?.worldSettings);
 
 	const presetSettings = settings.promptPresets;
 	let activePreset: PromptPreset | undefined;
@@ -141,7 +146,7 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 	const engine = getEngine();
 
 	const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
-	const config = {
+	const baseConfig = {
 		providerId: settings.defaultProvider,
 		model: (providerConfig?.model as string) || undefined,
 		apiKey: (providerConfig?.apiKey as string) || undefined,
@@ -149,6 +154,8 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 		temperature: (providerConfig?.temperature as number) || undefined,
 		maxTokens: (providerConfig?.maxTokens as number) || undefined,
 	};
+
+	const config = resolveEffectiveSettings(baseConfig, resolved.worldCard?.worldSettings);
 
 	const presetSettings = settings.promptPresets;
 	let activePreset: PromptPreset | undefined;
