@@ -112,6 +112,110 @@ describe('exportWorldCard', () => {
     expect(reimported.name).toBe('Roundtrip');
     expect(reimported.description).toBe('Test roundtrip');
     expect(reimported.tags).toEqual(['tag1', 'tag2']);
-    expect(reimported.characters).toEqual([{ id: 'c1', name: 'Char', description: 'A character' }]);
+    expect(reimported.characters).toEqual([{ id: 'c1', name: 'Char', description: 'A character', personality: '', exampleMessages: '', avatar: null, lorebookEntryIds: [], trackState: false, tags: [] }]);
   });
+});
+
+describe('alternateGreetings migration', () => {
+	it('migrates string[] alternateGreetings to AlternateGreeting[]', () => {
+		const data = {
+			spec: 'tcworld',
+			specVersion: '1.0',
+			data: {
+				name: 'Migration Test',
+				description: 'Test',
+				scenario: '',
+				firstMessage: '',
+				alternateGreetings: ['Greeting one', 'Greeting two'],
+				systemPrompt: '',
+				postHistoryInstructions: '',
+				lorebook: [],
+				loreSettings: { tokenBudget: 2048, scanDepth: 5, recursiveScanning: false, fullWordMatching: false },
+				characters: [],
+				regexScripts: [],
+				triggers: [],
+				scriptState: {},
+				creator: '',
+				tags: [],
+				creatorNotes: '',
+				metadata: {},
+			},
+		};
+		const result = parseWorldCard(toBuffer(data));
+		expect(result.alternateGreetings).toHaveLength(2);
+		expect(result.alternateGreetings[0]).toEqual({
+			id: expect.any(String),
+			name: 'Greeting 1',
+			content: 'Greeting one',
+		});
+		expect(result.alternateGreetings[1]).toEqual({
+			id: expect.any(String),
+			name: 'Greeting 2',
+			content: 'Greeting two',
+		});
+	});
+
+	it('preserves existing AlternateGreeting[] format', () => {
+		const greetings = [
+			{ id: 'g1', name: 'Tavern', content: 'The door opens...' },
+		];
+		const data = {
+			spec: 'tcworld',
+			specVersion: '1.0',
+			data: {
+				name: 'Preserve Test',
+				description: 'Test',
+				alternateGreetings: greetings,
+				lorebook: [],
+				loreSettings: { tokenBudget: 2048, scanDepth: 5, recursiveScanning: false, fullWordMatching: false },
+				characters: [],
+				regexScripts: [],
+				triggers: [],
+				scriptState: {},
+				creator: '',
+				tags: [],
+				creatorNotes: '',
+				metadata: {},
+			},
+		};
+		const result = parseWorldCard(toBuffer(data));
+		expect(result.alternateGreetings).toEqual(greetings);
+	});
+});
+
+describe('WorldCharacter migration', () => {
+	it('fills defaults for legacy WorldCharacter fields', () => {
+		const data = {
+			spec: 'tcworld',
+			specVersion: '1.0',
+			data: {
+				name: 'Char Migration',
+				description: 'Test',
+				characters: [
+					{ id: 'c1', name: 'Legacy', description: 'Old format' },
+				],
+				lorebook: [],
+				loreSettings: { tokenBudget: 2048, scanDepth: 5, recursiveScanning: false, fullWordMatching: false },
+				regexScripts: [],
+				triggers: [],
+				scriptState: {},
+				creator: '',
+				tags: [],
+				creatorNotes: '',
+				metadata: {},
+			},
+		};
+		const result = parseWorldCard(toBuffer(data));
+		expect(result.characters[0]).toEqual({
+			id: 'c1',
+			name: 'Legacy',
+			description: 'Old format',
+			personality: '',
+			exampleMessages: '',
+			avatar: null,
+			lorebookEntryIds: [],
+			trackState: false,
+			tags: [],
+		});
+	});
 });

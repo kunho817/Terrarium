@@ -53,6 +53,7 @@ describe('Character Lifecycle Integration', () => {
     regexScripts: [],
     triggers: [],
     scriptState: {},
+    scenarios: [],
     creator: 'Test',
     tags: [],
     creatorNotes: '',
