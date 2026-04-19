@@ -351,6 +351,17 @@
 						triggers={card.triggers}
 						onchange={(triggers) => { card.triggers = triggers; }}
 					/>
+					<div class="border-t border-surface0 pt-4">
+						<h3 class="text-sm font-medium text-text mb-2">Lua Script</h3>
+						<p class="text-xs text-subtext0 mb-2">Main Lua script executed for this world. Runs before triggers.</p>
+						<textarea
+							bind:value={card.virtualScript}
+							rows={8}
+							class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1
+										 focus:outline-none focus:border-mauve resize-y font-mono"
+							placeholder="-- Write your world's Lua script here"
+						></textarea>
+					</div>
 				</div>
 
 			{:else if tab === 'settings'}
