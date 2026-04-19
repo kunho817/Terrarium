@@ -67,7 +67,7 @@ export type {
 export type { DepthPrompt, CharacterCard } from './character';
 
 // World
-export type { WorldCard, WorldCharacter } from './world';
+export type { WorldCard, WorldCharacter, AlternateGreeting, WorldScenario, WorldSettings } from './world';
 export { createDefaultWorldCard } from './world';
 
 // Persona
