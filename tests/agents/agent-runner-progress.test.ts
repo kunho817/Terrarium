@@ -33,8 +33,9 @@ describe('AgentRunner progress callback', () => {
     const runner = new AgentRunner();
     runner.unregisterAgent('memory');
     runner.unregisterAgent('director');
-    runner.unregisterAgent('scene');
-    runner.unregisterAgent('character');
+    runner.unregisterAgent('scene-state');
+    runner.unregisterAgent('character-state');
+    runner.unregisterAgent('narrative-consistency');
     return runner;
   }
 

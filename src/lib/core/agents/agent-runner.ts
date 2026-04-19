@@ -3,6 +3,7 @@ import { MemoryAgent } from './memory-agent';
 import { DirectorAgent } from './director-agent';
 import { SceneStateAgent } from './scene-state-agent';
 import { CharacterStateAgent } from './character-state-agent';
+import { NarrativeConsistencyAgent } from './narrative-consistency-agent';
 
 export class AgentRunner {
 	private agents: Map<string, Agent> = new Map();
@@ -11,6 +12,7 @@ export class AgentRunner {
 		this.registerAgent(new MemoryAgent());
 		this.registerAgent(new DirectorAgent());
 		this.registerAgent(new SceneStateAgent());
+		this.registerAgent(new NarrativeConsistencyAgent());
 		this.registerAgent(new CharacterStateAgent());
 	}
 

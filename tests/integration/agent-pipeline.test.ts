@@ -167,8 +167,8 @@ describe('Agent Pipeline Integration', () => {
 		await runner.initAll(context);
 		expect(runner.hasAgent('memory')).toBe(true);
 		expect(runner.hasAgent('director')).toBe(true);
-		expect(runner.hasAgent('scene')).toBe(true);
-		expect(runner.hasAgent('character')).toBe(true);
+		expect(runner.hasAgent('scene-state')).toBe(true);
+		expect(runner.hasAgent('character-state')).toBe(true);
 	});
 
 	it('runs full pipeline onBeforeSend', async () => {
@@ -203,14 +203,17 @@ describe('Agent Pipeline Integration', () => {
 		expect(agents[0].id).toBe('memory');
 		expect(agents[0].priority).toBe(10);
 		
-		expect(agents[1].id).toBe('director');
-		expect(agents[1].priority).toBe(20);
+		expect(agents[1].id).toBe('narrative-consistency');
+		expect(agents[1].priority).toBe(15);
 		
-		expect(agents[2].id).toBe('scene');
-		expect(agents[2].priority).toBe(30);
+		expect(agents[2].id).toBe('director');
+		expect(agents[2].priority).toBe(20);
 		
-		expect(agents[3].id).toBe('character');
-		expect(agents[3].priority).toBe(40);
+		expect(agents[3].id).toBe('scene-state');
+		expect(agents[3].priority).toBe(30);
+		
+		expect(agents[4].id).toBe('character-state');
+		expect(agents[4].priority).toBe(40);
 	});
 
 	it('scene state agent initializes empty state', async () => {
