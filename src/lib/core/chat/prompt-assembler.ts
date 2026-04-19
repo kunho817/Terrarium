@@ -56,7 +56,12 @@ function sysMsg(content: string): Message {
  */
 function buildFallbackSystemPrompt(card: CharacterCard, scene: SceneState, persona?: UserPersona, worldCard?: WorldCard): string {
   const parts: string[] = [];
-  parts.push(`You are ${card.name}.`);
+
+  if (worldCard) {
+    parts.push('You are a skilled novelist narrating an immersive story set in the world described below. Write in third person, describing events, dialogue, and the environment vividly. Respond to the user\'s actions by continuing the narrative naturally.');
+  } else {
+    parts.push(`You are ${card.name}.`);
+  }
 
   if (scene.location || scene.time || scene.mood) {
     const sceneParts: string[] = [];
@@ -66,7 +71,7 @@ function buildFallbackSystemPrompt(card: CharacterCard, scene: SceneState, perso
     parts.push(sceneParts.join('. ') + '.');
   }
 
-  return substituteVariables(parts.join('\n\n'), buildTemplateVars(card, scene, '', persona, worldCard));
+  return parts.join('\n\n');
 }
 
 /**
@@ -100,6 +105,13 @@ export function resolveItem(
       if (!card.description) return null;
       const raw = resolveSlotContent(item.content, card.description);
       return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, card.description, ctx.persona, ctx.worldCard)));
+    }
+
+    case 'worldDescription': {
+      if (!ctx.worldCard?.description) return null;
+      const defaultFormat = 'World: {{slot}}';
+      const raw = resolveSlotContent(item.content || defaultFormat, ctx.worldCard.description);
+      return sysMsg(substituteVariables(raw, buildTemplateVars(card, scene, ctx.worldCard.description, ctx.persona, ctx.worldCard)));
     }
 
     case 'persona': {
