@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
-import { getSceneState, updateSceneState } from '$lib/storage/agent-states';
+import { getSceneState, updateSceneState, updateCharacterState } from '$lib/storage/agent-states';
 import { callAgentLLM } from './agent-llm';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 import type { SceneState } from '$lib/types/scene';
@@ -120,7 +120,7 @@ export function formatScenePrompt(state: SceneState): string | undefined {
 }
 
 export class SceneStateAgent implements Agent {
-	readonly id = 'scene';
+	readonly id = 'scene-state';
 	readonly name = 'Scene State Agent';
 	readonly priority = 30;
 
@@ -166,6 +166,19 @@ export class SceneStateAgent implements Agent {
 		};
 
 		await updateSceneState(ctx.sessionId, mapped);
+
+		if (ctx.cardType === 'world' && extraction.characters.length > 0) {
+			for (const charName of extraction.characters) {
+				try {
+					await updateCharacterState(ctx.sessionId, charName, {
+						location: extraction.location,
+						emotion: extraction.atmosphere,
+					});
+				} catch {
+					// Non-blocking
+				}
+			}
+		}
 
 		const stateUpdate: StateUpdate = {
 			scene: mapped
