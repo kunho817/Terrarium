@@ -1,4 +1,4 @@
-export type MemoryType = 'event' | 'trait' | 'relationship' | 'location' | 'state';
+export type MemoryType = 'event' | 'trait' | 'relationship' | 'location' | 'state' | 'world_fact' | 'personal_event' | 'general';
 
 export type WriteMode = 'append' | 'overwrite';
 
@@ -8,6 +8,9 @@ export const MEMORY_WRITE_MODES: Record<MemoryType, WriteMode> = {
   relationship: 'overwrite',
   location: 'overwrite',
   state: 'overwrite',
+  world_fact: 'overwrite',
+  personal_event: 'append',
+  general: 'append',
 };
 
 import type { SessionId } from './branded';
@@ -45,7 +48,7 @@ export const DEFAULT_EXTRACTION_PROMPT = `You are a memory extraction system. An
 
 For each fact, provide:
 - content: A concise statement of the fact
-- type: One of "event" (things that happened), "trait" (character qualities), "relationship" (how characters relate), "location" (place knowledge), "state" (current situation)
+- type: One of "event" (things that happened), "trait" (character qualities), "relationship" (how characters relate), "location" (place knowledge), "state" (current situation), "world_fact" (permanent world knowledge), "personal_event" (events involving the user), "general" (anything else)
 - importance: A number from 0 to 1 indicating how important this fact is to remember (1 = critical, 0 = trivial)
 
 Focus on facts that would be important for continuity in a long roleplay session: character details, plot events, relationship changes, world knowledge, and current states.
