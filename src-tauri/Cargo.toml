@@ -29,3 +29,8 @@ tauri-plugin-http = "2"
 mlua = { version = "0.11", features = ["lua54", "serialize", "vendored"] }
 rand = "0.8"
 regex = "1"
+
+tauri-plugin-process = "2"
+
+[target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
+tauri-plugin-updater = "2.10.1"

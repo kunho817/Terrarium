@@ -21,6 +21,7 @@
         { "url": "https://image.novelai.net/**" },
         { "url": "http://**" }
       ]
-    }
+    },
+    "updater:default"
   ]
 }
