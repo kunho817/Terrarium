@@ -4,7 +4,7 @@ export type PromptItemType =
   | 'system' | 'description' | 'persona' | 'personality' | 'scenario'
   | 'exampleMessages' | 'chatHistory' | 'lorebook' | 'authornote'
   | 'postHistoryInstructions' | 'depthPrompt' | 'jailbreak' | 'prefill' | 'plain'
-  | 'memory' | 'director' | 'sceneState' | 'characterState';
+  | 'memory' | 'director' | 'sceneState' | 'characterState' | 'worldDescription';
 
 export type PromptItemRole = 'system' | 'user' | 'assistant';
 
