@@ -195,6 +195,22 @@
         </p>
       </section>
 
+      <!-- Agent Settings -->
+      <section>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-medium text-text">Agent Settings</h2>
+          <a
+            href="/settings/agents"
+            class="text-mauve hover:text-lavender text-sm"
+          >
+            Configure Agents &rarr;
+          </a>
+        </div>
+        <p class="text-xs text-subtext0">
+          Enable/disable agents, set guidance modes, and configure token budgets for Director, Scene State, and Character State agents.
+        </p>
+      </section>
+
       <!-- Memory -->
       <section>
         <div class="flex items-center justify-between mb-4">

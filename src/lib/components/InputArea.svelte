@@ -10,6 +10,16 @@
 
   let text = $state('');
   let mode: MessageType = $state('dialogue');
+  let textareaEl: HTMLTextAreaElement | undefined = $state();
+
+  function autoResize() {
+    if (!textareaEl) return;
+    textareaEl.style.height = 'auto';
+    const lineHeight = parseFloat(getComputedStyle(textareaEl).lineHeight) || 20;
+    const maxRows = 5;
+    const maxHeight = lineHeight * maxRows;
+    textareaEl.style.height = Math.min(textareaEl.scrollHeight, maxHeight) + 'px';
+  }
 
   const modes: { value: MessageType; label: string }[] = [
     { value: 'dialogue', label: 'Dialogue' },
@@ -30,6 +40,7 @@
     if (!trimmed || disabled) return;
     onSend(trimmed, mode);
     text = '';
+    if (textareaEl) textareaEl.style.height = 'auto';
   }
 </script>
 
@@ -49,14 +60,17 @@
 
       <!-- Text input -->
       <textarea
+        bind:this={textareaEl}
         bind:value={text}
         onkeydown={handleKeydown}
+        oninput={autoResize}
         placeholder="Type a message..."
         rows="1"
         disabled={disabled}
         class="flex-1 bg-surface0 text-text text-sm rounded-md px-3 py-1.5 border border-surface1
                focus:outline-none focus:border-mauve resize-none placeholder:text-subtext0
-               disabled:opacity-50"
+               disabled:opacity-50 overflow-y-auto"
+        style="max-height: calc(1lh * 5 + 0.75rem); min-height: calc(1lh + 0.75rem);"
       ></textarea>
 
       <!-- Generate image button -->

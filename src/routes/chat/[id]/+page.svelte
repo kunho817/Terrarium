@@ -305,6 +305,7 @@
       onopenmemory={() => showMemoryPanel = true}
     />
     <MessageList streamingMessage={$chatStore.streamingMessage} />
+    <AgentPipelineIndicator />
     <InputArea
       onSend={handleSend}
       onGenerateImage={handleGenerateImage}
@@ -333,7 +334,6 @@
       {memoryCounts}
     />
   {/if}
-  <AgentPipelineIndicator />
   {#if showMemoryPanel}
     <MemoryPanel
       sessionId={currentSessionId ?? ''}
