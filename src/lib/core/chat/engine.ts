@@ -38,21 +38,29 @@ import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
 
 function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
-  return worldCard.characters.map(char => ({
-    id: `__world_char_${char.id}`,
-    name: char.name,
-    keywords: [char.name.toLowerCase()],
-    caseSensitive: false,
-    content: [char.name, char.description, char.personality].filter(Boolean).join('\n'),
-    position: 'before_char' as const,
-    priority: 0,
-    enabled: true,
-    scanDepth: worldCard.loreSettings.scanDepth,
-    scope: 'global' as const,
-    mode: 'normal' as const,
-    constant: true,
-    category: 'character' as const,
-  }));
+  return worldCard.characters.map(char => {
+    const parts: string[] = [];
+    parts.push(`[Character: ${char.name}]`);
+    if (char.description) parts.push(char.description);
+    if (char.personality) parts.push(`Personality: ${char.personality}`);
+    parts.push('');
+
+    return {
+      id: `__world_char_${char.id}`,
+      name: char.name,
+      keywords: [char.name.toLowerCase()],
+      caseSensitive: false,
+      content: parts.join('\n'),
+      position: 'before_char' as const,
+      priority: 0,
+      enabled: true,
+      scanDepth: worldCard.loreSettings.scanDepth,
+      scope: 'global' as const,
+      mode: 'normal' as const,
+      constant: true,
+      category: 'character' as const,
+    };
+  });
 }
 
 export interface SendMessageOptions {
