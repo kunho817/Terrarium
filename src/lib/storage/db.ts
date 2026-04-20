@@ -1,3 +1,4 @@
+import type { Database } from 'sql.js';
 import { readFile, writeFile, BaseDirectory } from '@tauri-apps/plugin-fs';
 
 const DB_FILENAME = 'terrarium.db';
@@ -59,10 +60,8 @@ CREATE INDEX IF NOT EXISTS idx_character_states_session ON character_states(sess
 CREATE UNIQUE INDEX IF NOT EXISTS idx_character_states_session_name ON character_states(session_id, character_name);
 `;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let db: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let dbPromise: Promise<any> | null = null;
+let db: Database | null = null;
+let dbPromise: Promise<Database> | null = null;
 
 async function loadSqlJs() {
   const initSqlJs = (await import('sql.js')).default;
