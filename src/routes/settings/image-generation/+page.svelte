@@ -1,659 +1,227 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { settingsStore } from '$lib/stores/settings';
-  import { settingsRepo } from '$lib/repositories/settings-repo';
-  import { DEFAULT_ART_PRESETS } from '$lib/types';
-  import type { ImageGenerationConfig } from '$lib/types';
-  import { DEFAULT_IMAGE_CONFIG } from '$lib/types';
-  import {
-    NOVELAI_MODELS,
-    NOVELAI_SAMPLERS,
-    getCompatibleNoiseSchedules,
-  } from '$lib/core/image-gen/novelai-constants';
-  import type { ArtStylePreset } from '$lib/types/art-style';
-  import { getRegistry } from '$lib/core/bootstrap';
-  import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
+	import { onMount } from 'svelte';
+	import { settingsStore } from '$lib/stores/settings';
+	import { settingsRepo } from '$lib/repositories/settings-repo';
+	import { DEFAULT_ART_PRESETS } from '$lib/types';
+	import type { ImageGenerationConfig } from '$lib/types';
+	import { DEFAULT_IMAGE_CONFIG } from '$lib/types';
+	import { NOVELAI_MODELS, getCompatibleNoiseSchedules } from '$lib/core/image-gen/novelai-constants';
+	import type { ArtStylePreset } from '$lib/types/art-style';
+	import { getRegistry } from '$lib/core/bootstrap';
+	import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
 
-  let loaded = $state(false);
+	import ImageProviderConfig from '$lib/components/editors/ImageProviderConfig.svelte';
+	import ImagePromptConfig from '$lib/components/editors/ImagePromptConfig.svelte';
+	import ImagePresetManager from '$lib/components/editors/ImagePresetManager.svelte';
+	import ImageTestPanel from '$lib/components/editors/ImageTestPanel.svelte';
 
-  let provider = $state<string>('none');
-  let autoGenerate = $state(false);
-  let artStylePresetId = $state('anime');
-  let imagePromptInstructions = $state('');
-  let positivePrompt = $state('');
-  let negativePrompt = $state('');
+	let loaded = $state(false);
 
-  let novelaiApiKey = $state('');
-  let novelaiModel = $state('');
-  let novelaiWidth = $state(832);
-  let novelaiHeight = $state(1216);
-  let novelaiSteps = $state(28);
-  let novelaiScale = $state(5);
-  let novelaiSampler = $state('');
-  let novelaiNoiseSchedule = $state('karras');
+	let provider = $state<string>('none');
+	let autoGenerate = $state(false);
+	let artStylePresetId = $state('anime');
+	let imagePromptInstructions = $state('');
+	let positivePrompt = $state('');
+	let negativePrompt = $state('');
 
-  let comfyuiUrl = $state('');
-  let comfyuiWorkflow = $state('');
-  let comfyuiTimeout = $state(60);
+	let novelaiApiKey = $state('');
+	let novelaiModel = $state('');
+	let novelaiWidth = $state(832);
+	let novelaiHeight = $state(1216);
+	let novelaiSteps = $state(28);
+	let novelaiScale = $state(5);
+	let novelaiSampler = $state('');
+	let novelaiNoiseSchedule = $state('karras');
 
-  let customPresets = $state<ArtStylePreset[]>([]);
-  let editingPreset: ArtStylePreset | null = $state(null);
-  let showPresetEditor = $state(false);
-  let newPresetName = $state('');
-  let newPresetPositive = $state('');
-  let newPresetNegative = $state('');
+	let comfyuiUrl = $state('');
+	let comfyuiWorkflow = $state('');
+	let comfyuiTimeout = $state(60);
 
-  let testPrompt = $state('1girl, smile, beautiful scenery, detailed');
-  let testGenerating = $state(false);
-  let testResult: string | null = $state(null);
-  let testError: string | null = $state(null);
-  let testFullPrompt: string | null = $state(null);
+	let customPresets = $state<ArtStylePreset[]>([]);
 
-  // Derived values
-  const allPresets = $derived([...DEFAULT_ART_PRESETS, ...customPresets]);
-  const compatibleSchedules = $derived(getCompatibleNoiseSchedules(novelaiModel, novelaiSampler));
+	let testPrompt = $state('1girl, smile, beautiful scenery, detailed');
+	let testGenerating = $state(false);
+	let testResult: string | null = $state(null);
+	let testError: string | null = $state(null);
+	let testFullPrompt: string | null = $state(null);
 
-  const modelGroups = $derived(() => {
-    const groups: Record<string, typeof NOVELAI_MODELS> = {};
-    for (const m of NOVELAI_MODELS) {
-      if (!groups[m.group]) groups[m.group] = [];
-      groups[m.group].push(m);
-    }
-    return Object.entries(groups);
-  });
+	const allPresets = $derived([...DEFAULT_ART_PRESETS, ...customPresets]);
+	const compatibleSchedules = $derived(getCompatibleNoiseSchedules(novelaiModel, novelaiSampler));
 
-  function loadFromStore() {
-    const ig = $settingsStore.imageGeneration ?? { ...DEFAULT_IMAGE_CONFIG };
-    provider = ig.provider ?? 'none';
-    autoGenerate = ig.autoGenerate ?? false;
-    artStylePresetId = ig.artStylePresetId ?? 'anime';
-    imagePromptInstructions = ig.imagePromptInstructions ?? DEFAULT_IMAGE_CONFIG.imagePromptInstructions;
+	const modelGroups = $derived(() => {
+		const groups: Record<string, typeof NOVELAI_MODELS> = {};
+		for (const m of NOVELAI_MODELS) {
+			if (!groups[m.group]) groups[m.group] = [];
+			groups[m.group].push(m);
+		}
+		return Object.entries(groups);
+	});
 
-    novelaiApiKey = ig.novelai?.apiKey ?? '';
-    novelaiModel = ig.novelai?.model ?? 'nai-diffusion-4-5-full';
-    novelaiWidth = ig.novelai?.width ?? 832;
-    novelaiHeight = ig.novelai?.height ?? 1216;
-    novelaiSteps = ig.novelai?.steps ?? 28;
-    novelaiScale = ig.novelai?.scale ?? 5;
-    novelaiSampler = ig.novelai?.sampler ?? 'k_euler_ancestral';
-    novelaiNoiseSchedule = ig.novelai?.noiseSchedule ?? 'karras';
+	function loadFromStore() {
+		const ig = $settingsStore.imageGeneration ?? { ...DEFAULT_IMAGE_CONFIG };
+		provider = ig.provider ?? 'none';
+		autoGenerate = ig.autoGenerate ?? false;
+		artStylePresetId = ig.artStylePresetId ?? 'anime';
+		imagePromptInstructions = ig.imagePromptInstructions ?? DEFAULT_IMAGE_CONFIG.imagePromptInstructions;
 
-    comfyuiUrl = ig.comfyui?.url ?? 'http://localhost:8188';
-    comfyuiWorkflow = ig.comfyui?.workflow ?? '';
-    comfyuiTimeout = ig.comfyui?.timeout ?? 60;
+		novelaiApiKey = ig.novelai?.apiKey ?? '';
+		novelaiModel = ig.novelai?.model ?? 'nai-diffusion-4-5-full';
+		novelaiWidth = ig.novelai?.width ?? 832;
+		novelaiHeight = ig.novelai?.height ?? 1216;
+		novelaiSteps = ig.novelai?.steps ?? 28;
+		novelaiScale = ig.novelai?.scale ?? 5;
+		novelaiSampler = ig.novelai?.sampler ?? 'k_euler_ancestral';
+		novelaiNoiseSchedule = ig.novelai?.noiseSchedule ?? 'karras';
 
-    // Load custom presets
-    const settings = $settingsStore;
-    customPresets = settings.customArtStylePresets ?? [];
+		comfyuiUrl = ig.comfyui?.url ?? 'http://localhost:8188';
+		comfyuiWorkflow = ig.comfyui?.workflow ?? '';
+		comfyuiTimeout = ig.comfyui?.timeout ?? 60;
 
-    // Load prompt values from the selected preset
-    const preset = allPresets.find((p) => p.id === artStylePresetId) ?? DEFAULT_ART_PRESETS[0];
-    positivePrompt = preset.positivePrompt;
-    negativePrompt = preset.negativePrompt;
-  }
+		const settings = $settingsStore;
+		customPresets = settings.customArtStylePresets ?? [];
 
-  function handlePresetChange(id: string) {
-    artStylePresetId = id;
-    const preset = allPresets.find((p) => p.id === id);
-    if (preset) {
-      positivePrompt = preset.positivePrompt;
-      negativePrompt = preset.negativePrompt;
-    }
-  }
+		const preset = allPresets.find((p) => p.id === artStylePresetId) ?? DEFAULT_ART_PRESETS[0];
+		positivePrompt = preset.positivePrompt;
+		negativePrompt = preset.negativePrompt;
+	}
 
-  function handleNewPreset() {
-    newPresetName = '';
-    newPresetPositive = positivePrompt;
-    newPresetNegative = negativePrompt;
-    editingPreset = null;
-    showPresetEditor = true;
-  }
+	function buildConfig(): ImageGenerationConfig {
+		return {
+			provider: provider as ImageGenerationConfig['provider'],
+			autoGenerate,
+			artStylePresetId,
+			imagePromptInstructions,
+			novelai: {
+				apiKey: novelaiApiKey,
+				model: novelaiModel,
+				width: novelaiWidth,
+				height: novelaiHeight,
+				steps: novelaiSteps,
+				scale: novelaiScale,
+				sampler: novelaiSampler,
+				noiseSchedule: novelaiNoiseSchedule,
+			},
+			comfyui: {
+				url: comfyuiUrl,
+				workflow: comfyuiWorkflow,
+				timeout: comfyuiTimeout,
+			},
+		};
+	}
 
-  function handleEditPreset(id: string) {
-    const preset = customPresets.find((p) => p.id === id);
-    if (!preset) return;
-    newPresetName = preset.name;
-    newPresetPositive = preset.positivePrompt;
-    newPresetNegative = preset.negativePrompt;
-    editingPreset = preset;
-    showPresetEditor = true;
-  }
+	async function handleSave() {
+		settingsStore.update({
+			imageGeneration: buildConfig(),
+			customArtStylePresets: customPresets,
+		});
+		await settingsRepo.save();
+	}
 
-  function handleSavePreset() {
-    if (!newPresetName.trim()) return;
-    if (editingPreset) {
-      // Update existing
-      const idx = customPresets.findIndex((p) => p.id === editingPreset!.id);
-      if (idx >= 0) {
-        customPresets[idx] = {
-          ...editingPreset,
-          name: newPresetName,
-          positivePrompt: newPresetPositive,
-          negativePrompt: newPresetNegative,
-        };
-        customPresets = [...customPresets];
-      }
-    } else {
-      // Create new
-      const newPreset: ArtStylePreset = {
-        id: crypto.randomUUID(),
-        name: newPresetName,
-        positivePrompt: newPresetPositive,
-        negativePrompt: newPresetNegative,
-      };
-      customPresets = [...customPresets, newPreset];
-      artStylePresetId = newPreset.id;
-      positivePrompt = newPreset.positivePrompt;
-      negativePrompt = newPreset.negativePrompt;
-    }
-    showPresetEditor = false;
-    editingPreset = null;
-  }
+	async function handleTestGenerate() {
+		testGenerating = true;
+		testResult = null;
+		testError = null;
+		testFullPrompt = null;
 
-  function handleDeletePreset(id: string) {
-    customPresets = customPresets.filter((p) => p.id !== id);
-    // If the deleted preset was selected, fall back to anime
-    if (artStylePresetId === id) {
-      handlePresetChange('anime');
-    }
-  }
+		try {
+			const imageConfig = buildConfig();
+			if (imageConfig.provider === 'none') {
+				testError = 'No image provider selected.';
+				return;
+			}
 
-  function buildConfig(): ImageGenerationConfig {
-    return {
-      provider: provider as ImageGenerationConfig['provider'],
-      autoGenerate,
-      artStylePresetId,
-      imagePromptInstructions,
-      novelai: {
-        apiKey: novelaiApiKey,
-        model: novelaiModel,
-        width: novelaiWidth,
-        height: novelaiHeight,
-        steps: novelaiSteps,
-        scale: novelaiScale,
-        sampler: novelaiSampler,
-        noiseSchedule: novelaiNoiseSchedule,
-      },
-      comfyui: {
-        url: comfyuiUrl,
-        workflow: comfyuiWorkflow,
-        timeout: comfyuiTimeout,
-      },
-    };
-  }
+			if (imageConfig.provider === 'novelai' && !imageConfig.novelai.apiKey) {
+				testError = 'NovelAI API key is required.';
+				return;
+			}
 
-  async function handleSave() {
-    settingsStore.update({
-      imageGeneration: buildConfig(),
-      customArtStylePresets: customPresets,
-    });
-    await settingsRepo.save();
-  }
+			const artStyle = resolveArtStyle(artStylePresetId, customPresets);
+			const generator = new ImageGenerator(getRegistry());
 
-  async function handleTestGenerate() {
-    testGenerating = true;
-    testResult = null;
-    testError = null;
-    testFullPrompt = null;
+			const result = await generator.generateDirect(testPrompt, imageConfig, artStyle);
+			testResult = result.dataUrl;
+			testFullPrompt = result.prompt;
+		} catch (e: any) {
+			testError = e?.message || String(e);
+		} finally {
+			testGenerating = false;
+		}
+	}
 
-    try {
-      const imageConfig = buildConfig();
-      if (imageConfig.provider === 'none') {
-        testError = 'No image provider selected.';
-        return;
-      }
-
-      if (imageConfig.provider === 'novelai' && !imageConfig.novelai.apiKey) {
-        testError = 'NovelAI API key is required.';
-        return;
-      }
-
-      const artStyle = resolveArtStyle(artStylePresetId, customPresets);
-      const generator = new ImageGenerator(getRegistry());
-
-      const result = await generator.generateDirect(testPrompt, imageConfig, artStyle);
-      testResult = result.dataUrl;
-      testFullPrompt = result.prompt;
-    } catch (e: any) {
-      testError = e?.message || String(e);
-    } finally {
-      testGenerating = false;
-    }
-  }
-
-  onMount(async () => {
-    await settingsRepo.load();
-    loadFromStore();
-    loaded = true;
-  });
+	onMount(async () => {
+		await settingsRepo.load();
+		loadFromStore();
+		loaded = true;
+	});
 </script>
 
 {#if !loaded}
-  <div class="flex-1 flex items-center justify-center text-subtext0">Loading...</div>
+	<div class="flex-1 flex items-center justify-center text-subtext0">Loading...</div>
 {:else}
-  <div class="flex-1 overflow-y-auto">
-    <div class="max-w-2xl mx-auto p-6 space-y-8">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <h1 class="text-lg font-semibold text-text">Image Generation</h1>
-        <a
-          href="/settings"
-          class="text-mauve hover:text-lavender text-sm"
-        >
-          &larr; Back to Settings
-        </a>
-      </div>
+	<div class="flex-1 overflow-y-auto">
+		<div class="max-w-2xl mx-auto p-6 space-y-8">
+			<div class="flex items-center justify-between">
+				<h1 class="text-lg font-semibold text-text">Image Generation</h1>
+				<a
+					href="/settings"
+					class="text-mauve hover:text-lavender text-sm"
+				>
+					&larr; Back to Settings
+				</a>
+			</div>
 
-      <!-- Section 1: Provider Selection -->
-      <section class="space-y-3">
-        <h2 class="text-sm font-medium text-text">Image Provider</h2>
-        <select
-          bind:value={provider}
-          class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                 focus:outline-none focus:border-mauve"
-        >
-          <option value="none">None</option>
-          <option value="novelai">NovelAI</option>
-          <option value="comfyui">ComfyUI</option>
-        </select>
-        <p class="text-xs text-subtext0">Select the image generation provider to use for illustrations.</p>
-      </section>
+			<ImageProviderConfig
+				bind:provider
+				bind:novelaiApiKey
+				bind:novelaiModel
+				bind:novelaiWidth
+				bind:novelaiHeight
+				bind:novelaiSteps
+				bind:novelaiScale
+				bind:novelaiSampler
+				bind:novelaiNoiseSchedule
+				bind:comfyuiUrl
+				bind:comfyuiWorkflow
+				bind:comfyuiTimeout
+				{modelGroups}
+				{compatibleSchedules}
+			/>
 
-      <!-- Section 2: Auto-Generate Toggle -->
-      <section class="space-y-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-medium text-text">Auto-generate Illustrations</h2>
-            <p class="text-xs text-subtext0">Automatically generate images during roleplay based on scene context.</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={autoGenerate}
-            onclick={() => { autoGenerate = !autoGenerate; }}
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-                   transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve focus:ring-offset-2 focus:ring-offset-base
-                   {autoGenerate ? 'bg-mauve' : 'bg-surface1'}"
-          >
-            <span
-              class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow ring-0
-                     transition-transform duration-200 ease-in-out
-                     {autoGenerate ? 'translate-x-5' : 'translate-x-0'}"
-            ></span>
-          </button>
-        </div>
-      </section>
+			<ImagePromptConfig
+				bind:autoGenerate
+				bind:imagePromptInstructions
+				bind:positivePrompt
+				bind:negativePrompt
+			/>
 
-      <!-- Section 3: Art Style Preset -->
-      <section class="space-y-3">
-        <h2 class="text-sm font-medium text-text">Art Style Preset</h2>
-        <select
-          value={artStylePresetId}
-          onchange={(e) => handlePresetChange((e.target as HTMLSelectElement).value)}
-          class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                 focus:outline-none focus:border-mauve"
-        >
-          <optgroup label="Built-in">
-            {#each DEFAULT_ART_PRESETS as preset}
-              <option value={preset.id}>{preset.name}</option>
-            {/each}
-          </optgroup>
-          {#if customPresets.length > 0}
-            <optgroup label="My Presets">
-              {#each customPresets as preset}
-                <option value={preset.id}>{preset.name}</option>
-              {/each}
-            </optgroup>
-          {/if}
-        </select>
+			<ImagePresetManager
+				bind:artStylePresetId
+				bind:customPresets
+				bind:positivePrompt
+				bind:negativePrompt
+			/>
 
-        <!-- Preset management buttons -->
-        <div class="flex gap-2">
-          <button
-            type="button"
-            onclick={handleNewPreset}
-            class="text-xs bg-surface1 text-text px-3 py-1 rounded hover:bg-surface2"
-          >
-            + New
-          </button>
-          {#if customPresets.find((p) => p.id === artStylePresetId)}
-            <button
-              type="button"
-              onclick={() => handleEditPreset(artStylePresetId)}
-              class="text-xs bg-surface1 text-text px-3 py-1 rounded hover:bg-surface2"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onclick={() => handleDeletePreset(artStylePresetId)}
-              class="text-xs bg-surface1 text-red px-3 py-1 rounded hover:bg-surface2"
-            >
-              Delete
-            </button>
-          {/if}
-        </div>
+			{#if provider !== 'none'}
+				<ImageTestPanel
+					bind:testPrompt
+					{testGenerating}
+					{testResult}
+					{testError}
+					{testFullPrompt}
+					ongenerate={handleTestGenerate}
+				/>
+			{/if}
 
-        <!-- Preset editor (collapsible) -->
-        {#if showPresetEditor}
-          <div class="space-y-2 p-3 bg-surface0 rounded-md border border-surface1">
-            <input
-              bind:value={newPresetName}
-              placeholder="Preset name"
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-            />
-            <textarea
-              bind:value={newPresetPositive}
-              rows={2}
-              placeholder="Positive prompt"
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve resize-y"
-            ></textarea>
-            <textarea
-              bind:value={newPresetNegative}
-              rows={2}
-              placeholder="Negative prompt"
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve resize-y"
-            ></textarea>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                onclick={handleSavePreset}
-                class="text-xs bg-mauve text-crust px-3 py-1 rounded hover:opacity-90"
-              >
-                Save Preset
-              </button>
-              <button
-                type="button"
-                onclick={() => { showPresetEditor = false; }}
-                class="text-xs bg-surface1 text-text px-3 py-1 rounded hover:bg-surface2"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        {/if}
-
-        <!-- Positive Prompt -->
-        <div class="space-y-1">
-          <label class="text-xs font-medium text-subtext0" for="positive-prompt">Positive Prompt</label>
-          <textarea
-            id="positive-prompt"
-            bind:value={positivePrompt}
-            rows={3}
-            class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                   focus:outline-none focus:border-mauve resize-y"
-            placeholder="Tags and phrases to include in generated images..."
-          ></textarea>
-        </div>
-
-        <!-- Negative Prompt -->
-        <div class="space-y-1">
-          <label class="text-xs font-medium text-subtext0" for="negative-prompt">Negative Prompt</label>
-          <textarea
-            id="negative-prompt"
-            bind:value={negativePrompt}
-            rows={3}
-            class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                   focus:outline-none focus:border-mauve resize-y"
-            placeholder="Tags and phrases to exclude from generated images..."
-          ></textarea>
-        </div>
-      </section>
-
-      <!-- Section 4: Image Prompt Instructions -->
-      <section class="space-y-3">
-        <div>
-          <h2 class="text-sm font-medium text-text">Image Prompt Instructions</h2>
-          <p class="text-xs text-subtext0">Instructions for the AI when generating image prompts from scene context.</p>
-        </div>
-        <textarea
-          bind:value={imagePromptInstructions}
-          rows={6}
-          class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                 focus:outline-none focus:border-mauve resize-y"
-          placeholder="Describe how the AI should generate image prompts..."
-        ></textarea>
-      </section>
-
-      <!-- Section 5: NovelAI Settings -->
-      {#if provider === 'novelai'}
-        <section class="space-y-3">
-          <h2 class="text-sm font-medium text-text">NovelAI Settings</h2>
-
-          <!-- API Key -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="nai-key">API Key</label>
-            <input
-              id="nai-key"
-              type="password"
-              bind:value={novelaiApiKey}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-              placeholder="Your NovelAI API key"
-            />
-          </div>
-
-          <!-- Model (dropdown with optgroups) -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="nai-model">Model</label>
-            <select
-              id="nai-model"
-              bind:value={novelaiModel}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-            >
-              {#each modelGroups() as [group, models]}
-                <optgroup label={group}>
-                  {#each models as model}
-                    <option value={model.value}>{model.label}</option>
-                  {/each}
-                </optgroup>
-              {/each}
-            </select>
-          </div>
-
-          <!-- Width & Height -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-subtext0" for="nai-width">Width</label>
-              <input
-                id="nai-width"
-                type="number"
-                bind:value={novelaiWidth}
-                class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                       focus:outline-none focus:border-mauve"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-subtext0" for="nai-height">Height</label>
-              <input
-                id="nai-height"
-                type="number"
-                bind:value={novelaiHeight}
-                class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                       focus:outline-none focus:border-mauve"
-              />
-            </div>
-          </div>
-
-          <!-- Steps & CFG Scale -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-subtext0" for="nai-steps">Steps</label>
-              <input
-                id="nai-steps"
-                type="number"
-                bind:value={novelaiSteps}
-                class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                       focus:outline-none focus:border-mauve"
-              />
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-medium text-subtext0" for="nai-scale">CFG Scale</label>
-              <input
-                id="nai-scale"
-                type="number"
-                bind:value={novelaiScale}
-                class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                       focus:outline-none focus:border-mauve"
-              />
-            </div>
-          </div>
-
-          <!-- Sampler (dropdown) -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="nai-sampler">Sampler</label>
-            <select
-              id="nai-sampler"
-              bind:value={novelaiSampler}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-            >
-              {#each NOVELAI_SAMPLERS as s}
-                <option value={s.value}>{s.label}</option>
-              {/each}
-            </select>
-          </div>
-
-          <!-- Noise Schedule (dropdown, reactive) -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="nai-noise-schedule">Noise Schedule</label>
-            <select
-              id="nai-noise-schedule"
-              bind:value={novelaiNoiseSchedule}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-            >
-              {#each compatibleSchedules as s}
-                <option value={s.value}>{s.label}</option>
-              {/each}
-            </select>
-          </div>
-        </section>
-      {/if}
-
-      <!-- Section 6: ComfyUI Settings -->
-      {#if provider === 'comfyui'}
-        <section class="space-y-3">
-          <h2 class="text-sm font-medium text-text">ComfyUI Settings</h2>
-
-          <!-- URL -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="cui-url">Server URL</label>
-            <input
-              id="cui-url"
-              type="text"
-              bind:value={comfyuiUrl}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-              placeholder="http://localhost:8188"
-            />
-          </div>
-
-          <!-- Workflow JSON -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="cui-workflow">Workflow JSON</label>
-            <textarea
-              id="cui-workflow"
-              bind:value={comfyuiWorkflow}
-              rows={8}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve resize-y font-mono"
-              placeholder="Paste your ComfyUI workflow JSON here..."
-            ></textarea>
-          </div>
-
-          <!-- Timeout -->
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="cui-timeout">Timeout (seconds)</label>
-            <input
-              id="cui-timeout"
-              type="number"
-              bind:value={comfyuiTimeout}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve"
-            />
-          </div>
-        </section>
-      {/if}
-
-      <!-- Test Generation -->
-      {#if provider !== 'none'}
-        <section class="space-y-3">
-          <div>
-            <h2 class="text-sm font-medium text-text">Test Image Generation</h2>
-            <p class="text-xs text-subtext0">Generate a test image with your current settings to verify everything works.</p>
-          </div>
-
-          <div class="space-y-1">
-            <label class="text-xs font-medium text-subtext0" for="test-prompt">Test Prompt</label>
-            <input
-              id="test-prompt"
-              type="text"
-              bind:value={testPrompt}
-              disabled={testGenerating}
-              class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
-                     focus:outline-none focus:border-mauve disabled:opacity-50"
-              placeholder="1girl, smile, beautiful scenery, detailed"
-            />
-          </div>
-
-          <button
-            type="button"
-            onclick={handleTestGenerate}
-            disabled={testGenerating || !testPrompt.trim()}
-            class="bg-surface1 text-text rounded-md px-4 py-2 text-sm font-medium
-                   hover:bg-surface2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {testGenerating ? 'Generating...' : 'Generate Test Image'}
-          </button>
-
-          {#if testGenerating}
-            <div class="flex items-center gap-2 text-xs text-subtext0">
-              <div class="w-3 h-3 border-2 border-mauve border-t-transparent rounded-full animate-spin"></div>
-              Generating image... This may take a moment.
-            </div>
-          {/if}
-
-          {#if testError}
-            <div class="p-3 bg-red/10 border border-red/30 rounded-md">
-              <p class="text-xs text-red font-medium">Error</p>
-              <p class="text-xs text-red mt-1">{testError}</p>
-            </div>
-          {/if}
-
-          {#if testFullPrompt}
-            <div class="p-2 bg-surface0 rounded-md border border-surface1">
-              <p class="text-xs text-subtext0 mb-1">Combined prompt sent to provider:</p>
-              <p class="text-xs text-text break-all">{testFullPrompt}</p>
-            </div>
-          {/if}
-
-          {#if testResult}
-            <div class="space-y-2">
-              <p class="text-xs text-green font-medium">Success!</p>
-              <div class="inline-block bg-surface0 rounded-lg border border-surface1 overflow-hidden">
-                <img src={testResult} alt="Test generated image" class="max-w-sm max-h-96" />
-              </div>
-            </div>
-          {/if}
-        </section>
-      {/if}
-
-      <!-- Save Button -->
-      <div class="pt-2 pb-6">
-        <button
-          type="button"
-          onclick={handleSave}
-          class="bg-mauve text-crust rounded-md px-4 py-2 text-sm font-medium
-                 hover:opacity-90 transition-opacity"
-        >
-          Save Settings
-        </button>
-      </div>
-    </div>
-  </div>
+			<div class="pt-2 pb-6">
+				<button
+					type="button"
+					onclick={handleSave}
+					class="bg-mauve text-crust rounded-md px-4 py-2 text-sm font-medium
+						   hover:opacity-90 transition-opacity"
+				>
+					Save Settings
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
