@@ -64,6 +64,43 @@ function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
   });
 }
 
+interface TriggerExecContext {
+  triggers: import('$lib/types/trigger').Trigger[];
+  event: string;
+  message: string;
+  isUserMessage: boolean;
+  scene: import('$lib/types/scene').SceneState;
+}
+
+async function executeTriggers(
+  ctx: TriggerExecContext,
+): Promise<{ scene: import('$lib/types/scene').SceneState }> {
+  let currentScene = ctx.scene;
+
+  const triggers = matchTriggers(ctx.triggers, ctx.event, {
+    message: ctx.message,
+    isUserMessage: ctx.isUserMessage,
+  });
+
+  for (const trigger of triggers) {
+    try {
+      const scriptResult = await executeScript(trigger.script, {
+        variables: currentScene.variables,
+        scene: { location: currentScene.location, time: currentScene.time, mood: currentScene.mood },
+        message: ctx.message,
+        isUserMessage: ctx.isUserMessage,
+      });
+      if (scriptResult.success) {
+        const { scene: newScene } = applyMutations(currentScene, scriptResult.mutations as ScriptMutation[]);
+        currentScene = newScene;
+      }
+    } catch {
+    }
+  }
+
+  return { scene: currentScene };
+}
+
 export interface SendMessageOptions {
   input: string;
   type: MessageType;
@@ -122,48 +159,23 @@ export class ChatEngine {
       } catch {
       }
     }
-    const userTriggers = matchTriggers(options.card.triggers, 'on_user_message', {
+    const userTrigResult = await executeTriggers({
+      triggers: options.card.triggers,
+      event: 'on_user_message',
       message: processedInput,
       isUserMessage: true,
+      scene: triggerScene,
     });
-    for (const trigger of userTriggers) {
-      try {
-        const scriptResult = await executeScript(trigger.script, {
-          variables: triggerScene.variables,
-          scene: { location: triggerScene.location, time: triggerScene.time, mood: triggerScene.mood },
-          message: processedInput,
-          isUserMessage: true,
-        });
-        if (scriptResult.success) {
-          const { scene: newScene } = applyMutations(triggerScene, scriptResult.mutations as ScriptMutation[]);
-          triggerScene = newScene;
-        }
-      } catch {
-        // Script execution failed — skip this trigger
-      }
-    }
+    triggerScene = userTrigResult.scene;
 
-    // Fire on_message triggers for user messages
-    const onMessageUserTriggers = matchTriggers(options.card.triggers, 'on_message', {
+    const onMsgUserResult = await executeTriggers({
+      triggers: options.card.triggers,
+      event: 'on_message',
       message: processedInput,
       isUserMessage: true,
+      scene: triggerScene,
     });
-    for (const trigger of onMessageUserTriggers) {
-      try {
-        const scriptResult = await executeScript(trigger.script, {
-          variables: triggerScene.variables,
-          scene: { location: triggerScene.location, time: triggerScene.time, mood: triggerScene.mood },
-          message: processedInput,
-          isUserMessage: true,
-        });
-        if (scriptResult.success) {
-          const { scene: newScene } = applyMutations(triggerScene, scriptResult.mutations as ScriptMutation[]);
-          triggerScene = newScene;
-        }
-      } catch {
-        // Script execution failed — skip this trigger
-      }
-    }
+    triggerScene = onMsgUserResult.scene;
 
     this.events.emit('on_user_message', { message: processedInput });
 
@@ -322,45 +334,21 @@ export class ChatEngine {
         } catch {
         }
       }
-      // 11b. Fire on_ai_message triggers
-      const aiTriggers = matchTriggers(capturedCtx.card.triggers, 'on_ai_message', {
+      const aiTrigResult = await executeTriggers({
+        triggers: capturedCtx.card.triggers,
+        event: 'on_ai_message',
         message: processed,
         isUserMessage: false,
+        scene: capturedCtx.scene,
       });
-      for (const trigger of aiTriggers) {
-        try {
-          const scriptResult = await executeScript(trigger.script, {
-            variables: capturedCtx.scene.variables,
-            scene: { location: capturedCtx.scene.location, time: capturedCtx.scene.time, mood: capturedCtx.scene.mood },
-            message: processed,
-            isUserMessage: false,
-          });
-          if (scriptResult.success) {
-            // AI-trigger mutations are collected but don't change the current response
-            applyMutations(capturedCtx.scene, scriptResult.mutations as ScriptMutation[]);
-          }
-        } catch {
-          // Script execution failed — skip
-        }
-      }
 
-      // Fire on_message triggers for AI messages
-      const onMessageAiTriggers = matchTriggers(capturedCtx.card.triggers, 'on_message', {
+      const onMsgAiResult = await executeTriggers({
+        triggers: capturedCtx.card.triggers,
+        event: 'on_message',
         message: processed,
         isUserMessage: false,
+        scene: aiTrigResult.scene,
       });
-      for (const trigger of onMessageAiTriggers) {
-        try {
-          await executeScript(trigger.script, {
-            variables: capturedCtx.scene.variables,
-            scene: { location: capturedCtx.scene.location, time: capturedCtx.scene.time, mood: capturedCtx.scene.mood },
-            message: processed,
-            isUserMessage: false,
-          });
-        } catch {
-          // Script execution failed — skip
-        }
-      }
 
       // 12. Build final assistant message
       const assistantMessage: Message = {
