@@ -21,8 +21,8 @@ vi.mock('$lib/storage/memories', () => ({
   deleteMemoriesForSession: vi.fn(),
 }));
 
-vi.mock('$lib/storage/agent-states', () => ({
-  deleteSceneState: vi.fn(),
+vi.mock('$lib/storage/session-agent-state', () => ({
+  deleteSessionState: vi.fn(),
 }));
 
 import { readJson, writeJsonAtomic, ensureDir, removePath, existsPath } from '$lib/storage/database';

@@ -5,18 +5,31 @@ import { PluginRegistry } from '$lib/plugins/registry';
 import { registerBuiltinPromptBuilders } from '$lib/plugins/prompt-builder/builtin';
 import type { ProviderPlugin, Message, UserConfig, CharacterCard, SceneState, WorldCard } from '$lib/types';
 
-const agentRunnerMocks = vi.hoisted(() => ({
-  getAgentsByPriority: vi.fn(),
-  onBeforeSend: vi.fn(),
-  onAfterReceive: vi.fn(),
+const pipelineMocks = vi.hoisted(() => ({
+  getSteps: vi.fn(),
+  runBeforeGeneration: vi.fn(),
+  runAfterGeneration: vi.fn(),
 }));
 
-vi.mock('$lib/core/agents/agent-runner', () => ({
-  AgentRunner: vi.fn().mockImplementation(() => ({
-    getAgentsByPriority: agentRunnerMocks.getAgentsByPriority,
-    onBeforeSend: agentRunnerMocks.onBeforeSend,
-    onAfterReceive: agentRunnerMocks.onAfterReceive,
+vi.mock('$lib/core/agents/agent-pipeline', () => ({
+  AgentPipeline: vi.fn().mockImplementation(() => ({
+    getSteps: pipelineMocks.getSteps,
+    runBeforeGeneration: pipelineMocks.runBeforeGeneration,
+    runAfterGeneration: pipelineMocks.runAfterGeneration,
   })),
+}));
+
+vi.mock('$lib/storage/session-agent-state', () => ({
+  loadSessionState: vi.fn(() => Promise.resolve(null)),
+  saveSessionState: vi.fn(),
+}));
+
+vi.mock('$lib/core/embedding', () => ({
+  getEmbedding: vi.fn(() => Promise.resolve(new Array(128).fill(0.1))),
+}));
+
+vi.mock('$lib/storage/memories', () => ({
+  findSimilarMemories: vi.fn(() => Promise.resolve([])),
 }));
 
 // Mock script bridge
@@ -99,9 +112,16 @@ function createEngine(provider?: ProviderPlugin): { engine: ChatEngine; registry
 
 describe('ChatEngine', () => {
   beforeEach(() => {
-    agentRunnerMocks.getAgentsByPriority.mockReturnValue([]);
-    agentRunnerMocks.onBeforeSend.mockResolvedValue({});
-    agentRunnerMocks.onAfterReceive.mockResolvedValue({});
+    pipelineMocks.getSteps.mockReturnValue([
+      { id: 'memory-retrieval', label: 'Memory' },
+      { id: 'turn-maintenance', label: 'Planning' },
+      { id: 'generation', label: 'Generating' },
+      { id: 'extraction', label: 'Extracting' },
+    ]);
+    pipelineMocks.runBeforeGeneration.mockClear();
+    pipelineMocks.runBeforeGeneration.mockResolvedValue({ injection: '', reliabilityGuard: false });
+    pipelineMocks.runAfterGeneration.mockClear();
+    pipelineMocks.runAfterGeneration.mockResolvedValue({ extraction: null });
   });
 
   describe('send', () => {
@@ -213,23 +233,8 @@ describe('ChatEngine', () => {
       expect(message.content).toBe('Hello earth!');
     });
 
-    it('calls agent onBeforeSend hooks', async () => {
-      const { engine, registry } = createEngine();
-      let beforeSendCalled = false;
-
-      registry.registerAgent({
-        id: 'test-agent',
-        name: 'Test Agent',
-        async onBeforeSend(ctx) {
-          beforeSendCalled = true;
-          return ctx;
-        },
-        async onAfterReceive(_ctx, response) {
-          return response;
-        },
-        async runBackground() {},
-      });
-
+    it('calls pipeline runBeforeGeneration', async () => {
+      const { engine } = createEngine();
       const result = await engine.send({
         input: 'Hi',
         type: 'dialogue',
@@ -240,26 +245,11 @@ describe('ChatEngine', () => {
       });
       await consumeStream(result);
 
-      expect(beforeSendCalled).toBe(true);
+      expect(pipelineMocks.runBeforeGeneration).toHaveBeenCalledTimes(1);
     });
 
-    it('calls agent onAfterReceive hooks', async () => {
-      const { engine, registry } = createEngine();
-      let afterReceiveInput = '';
-
-      registry.registerAgent({
-        id: 'test-agent',
-        name: 'Test Agent',
-        async onBeforeSend(ctx) {
-          return ctx;
-        },
-        async onAfterReceive(_ctx, response) {
-          afterReceiveInput = response;
-          return response.toUpperCase();
-        },
-        async runBackground() {},
-      });
-
+    it('calls pipeline runAfterGeneration', async () => {
+      const { engine } = createEngine();
       const result = await engine.send({
         input: 'Hi',
         type: 'dialogue',
@@ -268,10 +258,28 @@ describe('ChatEngine', () => {
         config: baseConfig,
         messages: [],
       });
+      await consumeStream(result);
 
-      const { message } = await consumeStream(result);
-      expect(afterReceiveInput).toBe('Hello world!');
-      expect(message.content).toBe('HELLO WORLD!');
+      expect(pipelineMocks.runAfterGeneration).toHaveBeenCalledTimes(1);
+    });
+
+    it('injects pipeline result into additionalPrompt', async () => {
+      pipelineMocks.runBeforeGeneration.mockResolvedValueOnce({
+        injection: '[Director] Advance the plot',
+        reliabilityGuard: false,
+      });
+      const { engine } = createEngine();
+      const result = await engine.send({
+        input: 'Continue',
+        type: 'dialogue',
+        card: baseCard,
+        scene: baseScene,
+        config: baseConfig,
+        messages: [],
+      });
+      await consumeStream(result);
+
+      expect(pipelineMocks.runBeforeGeneration).toHaveBeenCalledTimes(1);
     });
 
     it('integrates lorebook matching into pipeline', async () => {
@@ -415,58 +423,6 @@ describe('ChatEngine', () => {
       expect(message.content).toBe('ok');
     });
 
-    it('keeps agent image context updated through after-receive agents', async () => {
-      agentRunnerMocks.onBeforeSend.mockResolvedValueOnce({
-        updatedState: {
-          directorGuidance: {
-            sceneMandate: 'Keep the lantern in frame',
-            requiredOutcomes: [],
-            forbiddenMoves: [],
-            emphasis: ['lantern', 'rain'],
-            targetPacing: 'normal',
-            pressureLevel: 'medium',
-          },
-        },
-      });
-      agentRunnerMocks.onAfterReceive.mockResolvedValueOnce({
-        updatedState: {
-          scene: {
-            location: 'Old bridge',
-            time: 'Midnight',
-            mood: 'Tense',
-          },
-          characters: [
-            { characterName: 'Alice', emotion: 'worried' },
-            { characterName: 'Kai', emotion: 'focused' },
-          ],
-        },
-      });
-
-      const { engine } = createEngine(createMockProvider(['Rain falls.']));
-      const result = await engine.send({
-        input: 'Continue',
-        type: 'dialogue',
-        card: baseCard,
-        scene: baseScene,
-        config: baseConfig,
-        messages: [],
-        imageAutoGenerate: true,
-      });
-
-      await consumeStream(result);
-
-      expect(result.agentContext).toMatchObject({
-        directorMandate: 'Keep the lantern in frame',
-        directorEmphasis: ['lantern', 'rain'],
-        sceneLocation: 'Old bridge',
-        sceneTime: 'Midnight',
-        sceneMood: 'Tense',
-        characterEmotions: {
-          Alice: 'worried',
-          Kai: 'focused',
-        },
-      });
-    });
   });
 
   describe('trigger integration', () => {

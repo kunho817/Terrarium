@@ -3,7 +3,6 @@ import { PluginRegistry } from '$lib/plugins/registry';
 import type {
   ProviderPlugin,
   CardFormatPlugin,
-  AgentPlugin,
   ImageProviderPlugin,
   PromptBuilderPlugin,
   ChatContext,
@@ -42,21 +41,6 @@ function createMockCardFormat(overrides?: Partial<CardFormatPlugin>): CardFormat
     validate() {
       return true;
     },
-    ...overrides,
-  };
-}
-
-function createMockAgent(overrides?: Partial<AgentPlugin>): AgentPlugin {
-  return {
-    id: 'test-agent',
-    name: 'Test Agent',
-    async onBeforeSend(ctx: ChatContext) {
-      return ctx;
-    },
-    async onAfterReceive(_ctx: ChatContext, response: string) {
-      return response;
-    },
-    async runBackground() {},
     ...overrides,
   };
 }
@@ -160,38 +144,6 @@ describe('PluginRegistry', () => {
       registry.registerCardFormat(f1);
       registry.registerCardFormat(f2);
       expect(registry.listCardFormats()).toHaveLength(2);
-    });
-  });
-
-  // === AgentPlugin ===
-  describe('agents', () => {
-    it('registers and retrieves an agent', () => {
-      const registry = new PluginRegistry();
-      const agent = createMockAgent();
-      registry.registerAgent(agent);
-      expect(registry.getAgent('test-agent')).toBe(agent);
-    });
-
-    it('throws when retrieving a non-existent agent', () => {
-      const registry = new PluginRegistry();
-      expect(() => registry.getAgent('nonexistent')).toThrow('not found');
-    });
-
-    it('throws when registering a duplicate agent', () => {
-      const registry = new PluginRegistry();
-      registry.registerAgent(createMockAgent());
-      expect(() => registry.registerAgent(createMockAgent())).toThrow(
-        'already registered'
-      );
-    });
-
-    it('lists all registered agents', () => {
-      const registry = new PluginRegistry();
-      const a1 = createMockAgent({ id: 'a1', name: 'A1' });
-      const a2 = createMockAgent({ id: 'a2', name: 'A2' });
-      registry.registerAgent(a1);
-      registry.registerAgent(a2);
-      expect(registry.listAgents()).toHaveLength(2);
     });
   });
 
