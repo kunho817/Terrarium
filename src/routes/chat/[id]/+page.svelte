@@ -7,6 +7,7 @@
   import { charactersStore } from '$lib/stores/characters';
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { worldsStore } from '$lib/stores/worlds';
+  import { worldsRepo } from '$lib/repositories/worlds-repo';
   import { sceneStore } from '$lib/stores/scene';
   import { sceneRepo } from '$lib/repositories/scene-repo';
   import { settingsStore } from '$lib/stores/settings';
@@ -66,7 +67,7 @@
     try {
       if (cardType === 'world') {
         charactersStore.clearSelection();
-        await worldsStore.selectWorld(characterId);
+        await worldsRepo.selectWorld(characterId);
       } else {
         worldsStore.clearSelection();
         await charactersRepo.selectCharacter(characterId);
@@ -97,7 +98,7 @@
       }
     } catch (e) {
       console.error('[ChatPage] Failed to load:', e);
-      error = 'Failed to load character';
+      error = `Failed to load ${cardType}`;
     }
   });
 
