@@ -30,7 +30,7 @@ export interface AgentOutputs {
   characterState?: string;
 }
 
-export type ProgressCallback = (agentId: string, status: 'running' | 'done' | 'failed') => void;
+export type ProgressCallback = (agentId: string, status: 'running' | 'done' | 'failed' | 'skipped') => void;
 
 export interface AgentResult {
   injectPrompt?: string;
@@ -38,6 +38,7 @@ export interface AgentResult {
   summaries?: SessionSummary[];
   updatedState?: StateUpdate;
   agentOutputs?: AgentOutputs;
+  skipped?: boolean;
 }
 
 export interface Agent {

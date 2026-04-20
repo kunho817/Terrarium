@@ -128,7 +128,7 @@ export class DirectorAgent implements Agent {
 	async onBeforeSend(ctx: AgentContext): Promise<AgentResult> {
 		const config = getDirectorConfig();
 		if (!config.enabled) {
-			return {};
+			return { skipped: true };
 		}
 
 		const recentMessages = ctx.messages.slice(-6);

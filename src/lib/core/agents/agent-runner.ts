@@ -52,7 +52,11 @@ export class AgentRunner {
 			onProgress?.(agent.id, 'running');
 			try {
 				const result = await agent.onBeforeSend(ctx);
-				onProgress?.(agent.id, 'done');
+				if (result.skipped) {
+					onProgress?.(agent.id, 'skipped');
+				} else {
+					onProgress?.(agent.id, 'done');
+				}
 				if (result.injectPrompt) {
 					injectParts.push(result.injectPrompt);
 					switch (agent.id) {

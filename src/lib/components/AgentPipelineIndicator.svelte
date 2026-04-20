@@ -6,6 +6,7 @@
     running: '●',
     done: '✓',
     failed: '✗',
+    skipped: '—',
   };
 
   let state = $derived($agentProgress);

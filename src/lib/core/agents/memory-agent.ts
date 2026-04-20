@@ -86,7 +86,7 @@ export class MemoryAgent implements Agent {
 		const settings = get(settingsStore);
 		const memSettings = settings.memorySettings;
 		if (!memSettings?.embeddingProvider || !memSettings?.embeddingApiKey) {
-			return {};
+			return { skipped: true };
 		}
 
 		const recentMessages = ctx.messages.slice(-4);
@@ -128,11 +128,8 @@ export class MemoryAgent implements Agent {
 	async onAfterReceive(ctx: AgentContext, _response: string): Promise<AgentResult> {
 		const settings = get(settingsStore);
 		const memSettings = settings.memorySettings;
-		if (!memSettings?.embeddingProvider || !memSettings?.embeddingApiKey) {
-			return {};
-		}
 
-		const batchSize = memSettings.extractionBatchSize ?? 5;
+		const batchSize = memSettings?.extractionBatchSize ?? 5;
 		if (ctx.turnNumber - this.lastExtractionTurn < batchSize) {
 			return {};
 		}
@@ -163,11 +160,16 @@ export class MemoryAgent implements Agent {
 
 		for (const fact of result.facts) {
 			try {
-				const embedding = await getEmbedding(fact.content, {
-					provider: memSettings.embeddingProvider as 'voyage' | 'openai-compatible',
-					apiKey: memSettings.embeddingApiKey,
-					model: memSettings.embeddingModel,
-				});
+				let embedding: number[];
+				if (memSettings?.embeddingProvider && memSettings?.embeddingApiKey) {
+					embedding = await getEmbedding(fact.content, {
+						provider: memSettings.embeddingProvider as 'voyage' | 'openai-compatible',
+						apiKey: memSettings.embeddingApiKey,
+						model: memSettings.embeddingModel,
+					});
+				} else {
+					embedding = new Array(128).fill(0);
+				}
 
 				const writeMode = MEMORY_WRITE_MODES[fact.type as MemoryType];
 				if (writeMode === 'overwrite') {

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 
-export type PipelineStepStatus = 'pending' | 'running' | 'done' | 'failed';
+export type PipelineStepStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
 
 export interface PipelineStep {
   agentId: string;

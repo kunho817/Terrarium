@@ -43,7 +43,7 @@ export class NarrativeConsistencyAgent implements Agent {
 	async init(_ctx: AgentContext): Promise<void> {}
 
 	async onBeforeSend(ctx: AgentContext): Promise<AgentResult> {
-		if (ctx.cardType !== 'world') return {};
+		if (ctx.cardType !== 'world') return { skipped: true };
 
 		const scene = await getSceneState(ctx.sessionId);
 		if (!scene) return {};
