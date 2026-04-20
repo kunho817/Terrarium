@@ -1,16 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		getMemoriesForSession,
-		getSummariesForSession,
-		updateMemory,
-		deleteMemory,
-		insertMemory,
-		updateSummary,
-		deleteSummary,
-	} from '$lib/storage/memories';
-	import type { MemoryType, MemoryRecord, SessionSummary } from '$lib/types/memory';
-	import { makeSessionId } from '$lib/types/branded';
+	import { memoryRepo, type MemoryView } from '$lib/repositories/memory-repo';
+	import type { MemoryType, SessionSummary } from '$lib/types/memory';
 	import MemoryCard from './MemoryCard.svelte';
 	import SummaryList from './SummaryList.svelte';
 
@@ -22,7 +13,6 @@
 		onclose: () => void;
 	} = $props();
 
-	type MemoryView = { id: string; type: MemoryType; content: string; importance: number; turnNumber: number; createdAt: number };
 
 	let tab = $state<'memories' | 'summaries'>('memories');
 	let memories = $state<MemoryView[]>([]);
@@ -39,10 +29,8 @@
 
 	async function load() {
 		try {
-			const mems = await getMemoriesForSession(sessionId);
-			const sums = await getSummariesForSession(sessionId);
-			memories = mems.map(m => ({ id: m.id, type: m.type, content: m.content, importance: m.importance, turnNumber: m.turnNumber, createdAt: m.createdAt }));
-			summaries = sums;
+			memories = await memoryRepo.getForSession(sessionId);
+			summaries = await memoryRepo.getSummaries(sessionId);
 		} catch {
 			memories = [];
 			summaries = [];
@@ -75,28 +63,18 @@
 	});
 
 	async function handleUpdate(id: string, patch: { content?: string; importance?: number; type?: MemoryType }) {
-		await updateMemory(id, patch);
+		await memoryRepo.updateMemory(id, patch);
 		await load();
 	}
 
 	async function handleDelete(id: string) {
-		await deleteMemory(id);
+		await memoryRepo.deleteMemory(id);
 		await load();
 	}
 
 	async function handleAddMemory() {
 		if (!newContent.trim()) return;
-		await insertMemory({
-			id: crypto.randomUUID(),
-			sessionId: makeSessionId(sessionId),
-			type: newType,
-			content: newContent.trim(),
-			importance: newImportance,
-			sourceMessageIds: [],
-			turnNumber: 0,
-			createdAt: Date.now(),
-			embedding: new Array(128).fill(0),
-		});
+		await memoryRepo.addMemory(sessionId, newType, newContent.trim(), newImportance);
 		newContent = '';
 		newType = 'event';
 		newImportance = 0.7;
@@ -105,12 +83,12 @@
 	}
 
 	async function handleUpdateSummary(id: string, patch: { summary: string }) {
-		await updateSummary(id, patch);
+		await memoryRepo.updateSummary(id, patch);
 		await load();
 	}
 
 	async function handleDeleteSummary(id: string) {
-		await deleteSummary(id);
+		await memoryRepo.deleteSummary(id);
 		await load();
 	}
 </script>
