@@ -12,34 +12,12 @@ export async function generateAndInsertIllustrations(
 	config: Record<string, unknown>,
 	imageConfig: NonNullable<import('$lib/types/image-config').ImageGenerationConfig>,
 	customPresets: import('$lib/types/art-style').ArtStylePreset[] | undefined,
-	agentContext?: import('$lib/core/image/generator').AgentImageContext,
 ): Promise<void> {
 	try {
 		const artStyle = resolveArtStyle(imageConfig.artStylePresetId, customPresets);
 		const generator = new ImageGenerator(getRegistry());
 
-		let plannerContent = assistantMessage.content;
-		if (agentContext) {
-			const contextLines: string[] = [];
-			if (agentContext.directorMandate) {
-				contextLines.push(`Director emphasis: ${agentContext.directorMandate}`);
-			}
-			if (agentContext.directorEmphasis?.length) {
-				contextLines.push(`Focus areas: ${agentContext.directorEmphasis.join(', ')}`);
-			}
-			if (agentContext.sceneLocation) {
-				contextLines.push(`Scene: ${agentContext.sceneLocation}, ${agentContext.sceneMood || ''} ${agentContext.sceneTime || ''}`.trim());
-			}
-			if (agentContext.characterEmotions && Object.keys(agentContext.characterEmotions).length > 0) {
-				const emotions = Object.entries(agentContext.characterEmotions)
-					.map(([name, emotion]) => `${name} (${emotion})`)
-					.join(', ');
-				contextLines.push(`Character emotions: ${emotions}`);
-			}
-			if (contextLines.length) {
-				plannerContent = `[Scene Context: ${contextLines.join('; ')}]\n\n${plannerContent}`;
-			}
-		}
+		const plannerContent = assistantMessage.content;
 
 		const plans = await generator.planIllustrations(plannerContent, config as UserConfig);
 		if (plans.length === 0) return;

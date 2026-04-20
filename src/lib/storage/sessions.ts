@@ -3,7 +3,7 @@ import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { readJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath } from './database';
 import { PATHS } from './paths';
 import { deleteMemoriesForSession } from './memories';
-import { deleteSceneState } from './agent-states';
+import { deleteSessionState } from './session-agent-state';
 
 async function readSessionsFile(characterId: string): Promise<SessionsFile> {
 	const indexPath = PATHS.sessionsIndex(characterId);
@@ -124,7 +124,7 @@ export async function deleteSession(
 	await removePath(PATHS.sessionDir(characterId, sessionId));
 	await Promise.all([
 		deleteMemoriesForSession(sessionId),
-		deleteSceneState(sessionId),
+		deleteSessionState(sessionId),
 	]);
 
 	const file = await readSessionsFile(characterId);
@@ -200,6 +200,6 @@ export async function permanentDeleteSession(characterId: string, sessionId: str
 	await Promise.all([
 		removePath(PATHS.sessionArchiveDir(characterId, sessionId)),
 		deleteMemoriesForSession(sessionId),
-		deleteSceneState(sessionId),
+		deleteSessionState(sessionId),
 	]);
 }

@@ -14,8 +14,6 @@ import type {
   LorebookEntry,
   TriggerEvent,
 } from '$lib/types';
-import type { AgentImageContext } from '../image/generator';
-import type { StateUpdate } from '$lib/types/agent-state';
 import type { WorldCard } from '$lib/types/world';
 import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
@@ -31,7 +29,7 @@ import { applyMutations } from '$lib/core/scripting/mutations';
 import { executeScript } from '$lib/core/scripting/bridge';
 import type { ScriptMutation } from '$lib/core/scripting/api';
 import { EventEmitter } from '$lib/core/events';
-import { AgentRunner } from '../agents/agent-runner';
+import { AgentPipeline } from '../agents/agent-pipeline';
 import {
 	startPipeline,
 	updateStep,
@@ -77,30 +75,7 @@ interface TriggerExecContext {
   scene: import('$lib/types/scene').SceneState;
 }
 
-function mergeAgentImageState(target: AgentImageContext, update?: StateUpdate): void {
-  if (!update) return;
 
-  if (update.scene) {
-    const scene = update.scene;
-    if (scene.location) target.sceneLocation = scene.location;
-    if (scene.time) target.sceneTime = scene.time;
-    if (scene.mood) target.sceneMood = scene.mood;
-  }
-
-  if (update.directorGuidance) {
-    target.directorMandate = update.directorGuidance.sceneMandate;
-    target.directorEmphasis = update.directorGuidance.emphasis;
-  }
-
-  if (update.characters?.length) {
-    target.characterEmotions = target.characterEmotions ?? {};
-    for (const character of update.characters) {
-      if (character.characterName && character.emotion) {
-        target.characterEmotions[character.characterName] = character.emotion;
-      }
-    }
-  }
-}
 
 async function executeTriggers(
   ctx: TriggerExecContext,
@@ -151,27 +126,24 @@ export interface SendResult {
   stream: AsyncGenerator<string>;
   onComplete: Promise<Message>;
   abort: () => void;
-  agentContext?: AgentImageContext;
 }
 
 export class ChatEngine {
   private aborted = false;
   readonly events = new EventEmitter();
-  private agentRunner = new AgentRunner();
+  private pipeline = new AgentPipeline();
 
   constructor(private registry: PluginRegistry) {}
 
   async send(options: SendMessageOptions): Promise<SendResult> {
     this.aborted = false;
 
-    // 1. Apply modify_input regex to user input
     const processedInput = applyRegexScripts(
       options.input,
       options.card.regexScripts,
       'modify_input',
     );
 
-    // 2. Create user message
     const userMessage: Message = {
       role: 'user',
       content: processedInput,
@@ -180,7 +152,6 @@ export class ChatEngine {
       timestamp: Date.now(),
     };
 
-    // 2b. Fire on_user_message triggers
     let triggerScene = options.scene;
     if (options.card.triggers?.length > 0) {
       try {
@@ -210,10 +181,8 @@ export class ChatEngine {
 
     this.events.emit('on_user_message', { message: processedInput });
 
-    // 3. Build message list with new user message
     const allMessages = [...options.messages, userMessage];
 
-    // 4. Match lorebook
     const mergedLorebook = options.worldCard
       ? [...options.card.lorebook, ...buildWorldCharacterLore(options.worldCard)]
       : options.card.lorebook;
@@ -223,7 +192,6 @@ export class ChatEngine {
       options.card.loreSettings,
     );
 
-    // 5. Build ChatContext
     let ctx: ChatContext = {
       messages: allMessages,
       card: options.card,
@@ -232,20 +200,10 @@ export class ChatEngine {
       lorebookMatches: loreMatches,
     };
 
-    // 6. Run agent onBeforeSend hooks
-    for (const agent of this.registry.listAgents()) {
-      ctx = await agent.onBeforeSend(ctx);
-    }
+    const pipelineSteps = this.pipeline.getSteps();
+    startPipeline(pipelineSteps);
 
-    // 6b. Run agent runner (memory, future agents)
-    const pipelineAgents = this.agentRunner.getAgentsByPriority().map((a) => ({
-      id: a.id,
-      label: a.name,
-    }));
-    pipelineAgents.push({ id: 'llm-generation', label: 'Generating' });
-    startPipeline(pipelineAgents);
-
-    const agentResult = await this.agentRunner.onBeforeSend(
+    const pipelineResult = await this.pipeline.runBeforeGeneration(
       {
         sessionId: makeSessionId(options.sessionId || options.characterId || ''),
         cardId: makeCharacterId(options.characterId || ''),
@@ -255,19 +213,13 @@ export class ChatEngine {
         turnNumber: allMessages.filter(m => m.role === 'user').length,
         config: options.config,
       },
-      (agentId, status) => updateStep(agentId, status),
+      (step, status) => updateStep(step, status),
     );
-    if (agentResult.agentOutputs) {
-      ctx.agentOutputs = agentResult.agentOutputs;
-    }
-    if (agentResult.injectPrompt) {
-      ctx.additionalPrompt = (ctx.additionalPrompt || '') + '\n\n' + agentResult.injectPrompt;
+
+    if (pipelineResult.injection) {
+      ctx.additionalPrompt = (ctx.additionalPrompt || '') + '\n\n' + pipelineResult.injection;
     }
 
-    const agentImgContext: AgentImageContext = {};
-    mergeAgentImageState(agentImgContext, agentResult.updatedState);
-
-    // 7-8. Assemble prompt messages (preset-driven or legacy)
     let assembled: Message[];
     let prefillText: string | null = null;
 
@@ -281,7 +233,6 @@ export class ChatEngine {
         worldCard: options.worldCard,
         additionalPrompt: ctx.additionalPrompt,
         outputLanguage: get(settingsStore).outputLanguage || '',
-        agentOutputs: ctx.agentOutputs,
       });
       assembled = result.messages;
       prefillText = result.prefill;
@@ -305,7 +256,6 @@ export class ChatEngine {
       });
     }
 
-    // 9. Set up streaming with completion promise
     let resolveComplete!: (msg: Message) => void;
     const onComplete = new Promise<Message>((resolve) => {
       resolveComplete = resolve;
@@ -324,7 +274,7 @@ export class ChatEngine {
       const metadata: ChatMetadata = {};
       let providerError: unknown = null;
 
-      updateStep('llm-generation', 'running');
+      updateStep('generation', 'running');
       try {
         for await (const token of provider.chat(assembled, capturedConfig, metadata)) {
           if (self.aborted) break;
@@ -335,21 +285,14 @@ export class ChatEngine {
         providerError = err;
       }
 
-      // 10. Apply modify_output regex
       let processed = applyRegexScripts(
         fullResponse,
         capturedCtx.card.regexScripts,
         'modify_output',
       );
 
-      // 11. Run agent onAfterReceive hooks
-      for (const agent of self.registry.listAgents()) {
-        processed = await agent.onAfterReceive(capturedCtx, processed);
-      }
-
-      // 11b. Run agent runner onAfterReceive
       try {
-        const afterAgentResult = await self.agentRunner.onAfterReceive({
+        await self.pipeline.runAfterGeneration({
           sessionId: makeSessionId(capturedSessionId || capturedCharacterId || ''),
           cardId: makeCharacterId(capturedCharacterId || ''),
           cardType: capturedCardType,
@@ -357,10 +300,8 @@ export class ChatEngine {
           scene: capturedCtx.scene,
           turnNumber: capturedCtx.messages.filter(m => m.role === 'user').length,
           config: capturedConfig,
-        }, processed);
-        mergeAgentImageState(agentImgContext, afterAgentResult.updatedState);
+        }, processed, (step, status) => updateStep(step, status));
       } catch {
-        // Agent runner failed — non-blocking
       }
 
       if (capturedCtx.card.triggers?.length > 0) {
@@ -386,7 +327,6 @@ export class ChatEngine {
         scene: aiTrigResult.scene,
       });
 
-      // 12. Build final assistant message
       const assistantMessage: Message = {
         role: 'assistant',
         content: processed,
@@ -401,10 +341,9 @@ export class ChatEngine {
       };
 
       resolveComplete(assistantMessage);
-      updateStep('llm-generation', 'done');
+      updateStep('generation', 'done');
       setTimeout(resetPipeline, 300);
 
-      // Propagate provider error after resolving onComplete
       if (providerError) {
         throw providerError;
       }
@@ -418,7 +357,6 @@ export class ChatEngine {
         resetPipeline();
       },
       onComplete,
-      agentContext: agentImgContext,
     };
   }
 }
