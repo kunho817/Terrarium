@@ -16,6 +16,8 @@
   import { listPersonas } from '$lib/storage/personas';
   import { makePersonaId } from '$lib/types/branded';
   import { countMemories } from '$lib/storage/memories';
+  import { existsPath } from '$lib/storage/database';
+  import { PATHS } from '$lib/storage/paths';
   import GreetingPicker from '$lib/components/GreetingPicker.svelte';
   import type { ChatSession, WorldCard, AlternateGreeting } from '$lib/types';
   import TopBar from '$lib/components/TopBar.svelte';
@@ -62,7 +64,22 @@
   onMount(async () => {
     const characterId = $page.params.id!;
     const type = $page.url.searchParams.get('cardType');
-    cardType = type === 'world' ? 'world' : 'character';
+    if (type === 'world') {
+      cardType = 'world';
+    } else if (type === 'character') {
+      cardType = 'character';
+    } else {
+      const sessions = await chatStorage.listSessions(characterId);
+      const latest = sessions.sort((a, b) => b.lastMessageAt - a.lastMessageAt)[0];
+      if (latest?.cardType === 'world') {
+        cardType = 'world';
+      } else if (latest?.cardType === 'character') {
+        cardType = 'character';
+      } else {
+        const worldExists = await existsPath(PATHS.worldFile(characterId));
+        cardType = worldExists ? 'world' : 'character';
+      }
+    }
 
     try {
       if (cardType === 'world') {

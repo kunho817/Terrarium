@@ -14,8 +14,8 @@
   }: {
     message: Message;
     index: number;
-    onedit: (index: number, newContent: string) => void;
-    onreroll: (userMessageIndex: number) => void;
+    onedit: (index: number, newContent: string) => Promise<void>;
+    onreroll: (userMessageIndex: number) => Promise<void>;
   } = $props();
 
   let showPanel = $state(false);
@@ -39,9 +39,9 @@
     editing = true;
   }
 
-  function saveEdit() {
+  async function saveEdit() {
     if (editContent.trim() && editContent !== message.content) {
-      onedit(index, editContent.trim());
+      await onedit(index, editContent.trim());
     }
     editing = false;
   }
@@ -119,7 +119,7 @@
           Cancel
         </button>
         <button
-          onclick={() => { saveEdit(); handleReroll(); }}
+          onclick={async () => { await saveEdit(); await handleReroll(); }}
           class="text-xs bg-surface1 text-lavender px-3 py-1 rounded hover:bg-surface2 cursor-pointer border-none"
           title="Save edit and regenerate response"
         >

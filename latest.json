@@ -1,11 +1,11 @@
 {
   "version": "0.1.1",
-  "notes": "Terrarium v0.1.0-alpha — User feedback fixes: world selection bug, image prompt improvements, settings redesign.",
-  "pub_date": "2026-04-20T03:42:00Z",
+  "notes": "Terrarium v0.1.1 — Memory agent fix, image generation improvements.",
+  "pub_date": "2026-04-20T04:21:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZ0Jsb0ZTUjh0alZTVldnRmZNQzVkMzUrKzZZZmpnZlhVSE9WZXdmb1Z5cUpIZzRMQjdpSDFqSTRHRlhIdzF1VjEzMUN2NXF0eGZEMFF6VmtzdXZHL0RnNjE4YUJoamdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2NjU2NzI5CWZpbGU6VGVycmFyaXVtXzAuMS4wX3g2NC1zZXR1cC5leGUKczFHNVVTOU9aVHlvTEFiWnk3aDVidmEzRVpMSFNOREJPRjRCVjRZRWFqclRPZXQrYS9Fb0hKNUZNYVUxa2NOSWt5cVFZQTFuTGNXT3dWcHN5bUxwQkE9PQo=",
-      "url": "https://github.com/kunho817/Terrarium/releases/latest/download/Terrarium_0.1.0_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZ0Jsb0ZTUjh0alZyZDBuZVNtOGZPcG5peE9iL3luRjh6Znh0Z1B3bzJtZ2JsaVJNeXh2Vkh3cFo3QnlDVTZYWDA1MEdYcWtsb2gxbUIxVFNRR21RR2EyVElPV3VDMndvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2NjU5MDYxCWZpbGU6VGVycmFyaXVtXzAuMS4xX3g2NC1zZXR1cC5leGUKTDVSd2drdkRyTVp0eFI1MWpUeEpINXh0anNzUDk1c0RrVTBEU1ZoTjhWbWVTNnA5YWs1dUQzLzlvOTZwaGJOUlgwL000cHo5VmVFd2tEdnJ2anY2RHc9PQo=",
+      "url": "https://github.com/kunho817/Terrarium/releases/latest/download/Terrarium_0.1.1_x64-setup.exe"
     }
   }
 }
