@@ -91,7 +91,7 @@ export class ImageGenerator {
     const combinedPrompt = positiveParts.join(', ');
 
     const imageProvider = this.registry.getImageProvider(imageConfig.provider);
-    const providerConfig = this.buildDirectProviderConfig(imageConfig, artStyle);
+    const providerConfig = this.buildImageProviderConfig(imageConfig, artStyle.negativePrompt);
     const imageData = await imageProvider.generateImage(combinedPrompt, providerConfig);
 
     const dataUrl = this.arrayBufferToDataUrl(imageData);
@@ -147,7 +147,7 @@ export class ImageGenerator {
     const combinedPrompt = positiveParts.join(', ');
 
     const imageProvider = this.registry.getImageProvider(ctx.imageConfig.provider);
-    const providerConfig = this.buildProviderConfig(ctx);
+    const providerConfig = this.buildImageProviderConfig(ctx.imageConfig, ctx.artStyle.negativePrompt);
     const imageData = await imageProvider.generateImage(combinedPrompt, providerConfig);
 
     const dataUrl = this.arrayBufferToDataUrl(imageData);
@@ -224,36 +224,10 @@ export class ImageGenerator {
     return `data:image/png;base64,${base64}`;
   }
 
-  private buildProviderConfig(ctx: ImageGenContext): UserConfig {
-    if (ctx.imageConfig.provider === 'novelai') {
-      return {
-        providerId: 'novelai',
-        apiKey: ctx.imageConfig.novelai.apiKey,
-        model: ctx.imageConfig.novelai.model,
-        width: ctx.imageConfig.novelai.width,
-        height: ctx.imageConfig.novelai.height,
-        steps: ctx.imageConfig.novelai.steps,
-        scale: ctx.imageConfig.novelai.scale,
-        sampler: ctx.imageConfig.novelai.sampler,
-        noiseSchedule: ctx.imageConfig.novelai.noiseSchedule,
-        negativePrompt: ctx.artStyle.negativePrompt,
-      } as UserConfig;
-    }
-
-    if (ctx.imageConfig.provider === 'comfyui') {
-      return {
-        providerId: 'comfyui',
-        comfyuiUrl: ctx.imageConfig.comfyui.url,
-        comfyuiWorkflow: ctx.imageConfig.comfyui.workflow,
-        comfyuiTimeout: ctx.imageConfig.comfyui.timeout,
-        negativePrompt: ctx.artStyle.negativePrompt,
-      } as UserConfig;
-    }
-
-    return { providerId: 'none' } as UserConfig;
-  }
-
-  private buildDirectProviderConfig(imageConfig: ImageGenerationConfig, artStyle: ArtStylePreset): UserConfig {
+  private buildImageProviderConfig(
+    imageConfig: ImageGenerationConfig,
+    negativePrompt: string,
+  ): UserConfig {
     if (imageConfig.provider === 'novelai') {
       return {
         providerId: 'novelai',
@@ -265,7 +239,7 @@ export class ImageGenerator {
         scale: imageConfig.novelai.scale,
         sampler: imageConfig.novelai.sampler,
         noiseSchedule: imageConfig.novelai.noiseSchedule,
-        negativePrompt: artStyle.negativePrompt,
+        negativePrompt,
       } as UserConfig;
     }
 
@@ -275,7 +249,7 @@ export class ImageGenerator {
         comfyuiUrl: imageConfig.comfyui.url,
         comfyuiWorkflow: imageConfig.comfyui.workflow,
         comfyuiTimeout: imageConfig.comfyui.timeout,
-        negativePrompt: artStyle.negativePrompt,
+        negativePrompt,
       } as UserConfig;
     }
 
