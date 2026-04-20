@@ -14,7 +14,6 @@ describe('Character Lifecycle Integration', () => {
   let worldStorage: typeof import('$lib/storage/worlds');
 
   const mockCharacter: CharacterCard = {
-    id: 'char-1',
     name: 'Test Character',
     description: 'A test character',
     personality: 'Friendly',
@@ -39,7 +38,6 @@ describe('Character Lifecycle Integration', () => {
   };
 
   const mockWorld: WorldCard = {
-    id: 'world-1',
     name: 'Test World',
     description: 'A test world',
     scenario: 'World scenario',

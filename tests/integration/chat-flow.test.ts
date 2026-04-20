@@ -8,7 +8,8 @@ import { chatStore } from '$lib/stores/chat';
 import { sceneStore } from '$lib/stores/scene';
 import { settingsRepo } from '$lib/repositories/settings-repo';
 import { settingsStore } from '$lib/stores/settings';
-import type { CharacterCard, WorldCard } from '$lib/types';
+import { makeCharacterId, makeSessionId } from '$lib/types';
+import type { CharacterCard, ChatSession, Message, SceneState } from '$lib/types';
 
 // Mock all storage modules
 vi.mock('$lib/storage/characters');
@@ -31,7 +32,6 @@ describe('Chat Flow Integration', () => {
   let settingsStorage: typeof import('$lib/storage/settings');
 
   const mockCharacter: CharacterCard = {
-    id: 'char-1',
     name: 'Test Character',
     description: 'A test character',
     personality: 'Friendly',
@@ -54,6 +54,18 @@ describe('Chat Flow Integration', () => {
     additionalAssets: [],
     metadata: {},
   };
+
+  function makeSession(id: string, name = 'Chat'): ChatSession {
+    const now = Date.now();
+    return {
+      id: makeSessionId(id),
+      characterId: makeCharacterId('char-1'),
+      name,
+      createdAt: now,
+      lastMessageAt: now,
+      preview: '',
+    };
+  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -98,11 +110,7 @@ describe('Chat Flow Integration', () => {
     vi.mocked(chatStorage.loadMessages).mockResolvedValue([]);
     vi.mocked(chatStorage.saveMessages).mockResolvedValue(undefined);
     vi.mocked(chatStorage.listSessions).mockResolvedValue([]);
-    vi.mocked(chatStorage.createSession).mockResolvedValue({
-      id: 'session-1',
-      name: 'Chat',
-      lastMessageAt: Date.now(),
-    });
+    vi.mocked(chatStorage.createSession).mockResolvedValue(makeSession('session-1'));
     vi.mocked(chatStorage.loadScene).mockResolvedValue(null);
     vi.mocked(chatStorage.saveScene).mockResolvedValue(undefined);
 
@@ -137,10 +145,14 @@ describe('Chat Flow Integration', () => {
     });
 
     it('should load scene for character', async () => {
-      const mockScene = {
+      const mockScene: SceneState = {
         location: 'Test Location',
         time: 'Morning',
         mood: 'Happy',
+        participatingCharacters: [],
+        variables: {},
+        environmentalNotes: '',
+        lastUpdated: 0,
       };
       vi.mocked(chatStorage.loadScene).mockResolvedValue(mockScene);
 
@@ -182,11 +194,7 @@ describe('Chat Flow Integration', () => {
       expect(firstSession).toBeDefined();
       
       // Simulate creating a second session
-      vi.mocked(chatStorage.createSession).mockResolvedValue({
-        id: 'session-2',
-        name: 'Second Chat',
-        lastMessageAt: Date.now(),
-      });
+      vi.mocked(chatStorage.createSession).mockResolvedValue(makeSession('session-2', 'Second Chat'));
       
       const secondSessionId = await chatRepo.createSession('char-1');
       expect(secondSessionId).toBe('session-2');
@@ -199,7 +207,7 @@ describe('Chat Flow Integration', () => {
     });
 
     it('should persist messages across session switch', async () => {
-      const mockMessages = [
+      const mockMessages: Message[] = [
         { role: 'user', content: 'Hello', type: 'dialogue', timestamp: Date.now() },
         { role: 'assistant', content: 'Hi there!', type: 'dialogue', timestamp: Date.now() },
       ];

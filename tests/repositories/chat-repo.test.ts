@@ -12,7 +12,8 @@ vi.mock('$lib/storage/chats', () => ({
 import { chatRepo } from '$lib/repositories/chat-repo';
 import { chatStore } from '$lib/stores/chat';
 import { loadMessages, saveMessages, listSessions, createSession, updateSession } from '$lib/storage/chats';
-import type { Message } from '$lib/types';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
+import type { ChatSession, Message } from '$lib/types';
 
 const mockMessage: Message = {
   role: 'user',
@@ -20,6 +21,17 @@ const mockMessage: Message = {
   type: 'dialogue',
   timestamp: Date.now(),
 };
+
+function makeChatSession(id: string, lastMessageAt = Date.now()): ChatSession {
+  return {
+    id: makeSessionId(id),
+    characterId: makeCharacterId('char-1'),
+    name: 'Chat',
+    createdAt: lastMessageAt,
+    lastMessageAt,
+    preview: '',
+  };
+}
 
 describe('chatRepo', () => {
   beforeEach(() => {
@@ -56,8 +68,8 @@ describe('chatRepo', () => {
   describe('loadChat', () => {
     it('loads most recent session', async () => {
       const mockSessions = [
-        { id: 'session-1', name: 'First', lastMessageAt: 1000 },
-        { id: 'session-2', name: 'Second', lastMessageAt: 2000 },
+        { ...makeChatSession('session-1', 1000), name: 'First' },
+        { ...makeChatSession('session-2', 2000), name: 'Second' },
       ];
       vi.mocked(listSessions).mockResolvedValue(mockSessions);
       vi.mocked(loadMessages).mockResolvedValue([mockMessage]);
@@ -72,7 +84,7 @@ describe('chatRepo', () => {
 
     it('creates new session if none exist', async () => {
       vi.mocked(listSessions).mockResolvedValue([]);
-      vi.mocked(createSession).mockResolvedValue({ id: 'new-session', name: 'Chat', lastMessageAt: Date.now() });
+      vi.mocked(createSession).mockResolvedValue(makeChatSession('new-session'));
       vi.mocked(loadMessages).mockResolvedValue([]);
       
       await chatRepo.loadChat('char-1');
@@ -87,8 +99,8 @@ describe('chatRepo', () => {
   describe('saveMessages', () => {
     it('saves current messages', async () => {
       chatStore.set({
-        characterId: 'char-1',
-        sessionId: 'session-1',
+        characterId: makeCharacterId('char-1'),
+        sessionId: makeSessionId('session-1'),
         messages: [mockMessage],
         isLoading: false,
         streamingMessage: null,
@@ -114,8 +126,8 @@ describe('chatRepo', () => {
 
     it('adds "You: " prefix for user messages', async () => {
       chatStore.set({
-        characterId: 'char-1',
-        sessionId: 'session-1',
+        characterId: makeCharacterId('char-1'),
+        sessionId: makeSessionId('session-1'),
         messages: [{ role: 'user', content: 'Hello world', type: 'dialogue', timestamp: 1234 }],
         isLoading: false,
         streamingMessage: null,
@@ -132,8 +144,8 @@ describe('chatRepo', () => {
 
     it('no prefix for assistant messages', async () => {
       chatStore.set({
-        characterId: 'char-1',
-        sessionId: 'session-1',
+        characterId: makeCharacterId('char-1'),
+        sessionId: makeSessionId('session-1'),
         messages: [{ role: 'assistant', content: 'Hi there', type: 'dialogue', timestamp: 5678 }],
         isLoading: false,
         streamingMessage: null,
@@ -151,8 +163,8 @@ describe('chatRepo', () => {
     it('truncates preview to 120 chars', async () => {
       const longContent = 'x'.repeat(200);
       chatStore.set({
-        characterId: 'char-1',
-        sessionId: 'session-1',
+        characterId: makeCharacterId('char-1'),
+        sessionId: makeSessionId('session-1'),
         messages: [{ role: 'user', content: longContent, type: 'dialogue', timestamp: 9999 }],
         isLoading: false,
         streamingMessage: null,
@@ -172,7 +184,7 @@ describe('chatRepo', () => {
 
   describe('createSession', () => {
     it('creates and returns new session id', async () => {
-      vi.mocked(createSession).mockResolvedValue({ id: 'new-session', name: 'Chat', lastMessageAt: Date.now() });
+      vi.mocked(createSession).mockResolvedValue(makeChatSession('new-session'));
       
       const sessionId = await chatRepo.createSession('char-1');
       

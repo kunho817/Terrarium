@@ -53,6 +53,7 @@ describe('createNovelAIProvider', () => {
     mockFetch.mockResolvedValue(mockResponse);
 
     const config = {
+      providerId: 'novelai',
       apiKey: 'test-key',
       model: 'nai-diffusion-4-5-full',
       width: 832,

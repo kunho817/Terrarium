@@ -28,6 +28,10 @@
         <span class="text-sm text-text">🔘 {toggleNames.get(id) ?? 'Toggle'}</span>
         <div class="flex items-center gap-2">
           <button
+            type="button"
+            role="switch"
+            aria-label="Toggle {toggleNames.get(id) ?? 'Toggle'}"
+            aria-checked={value}
             class="w-9 h-5 rounded-full transition-colors"
             style="background: {value ? '#a6e3a1' : '#45475a'};"
             onclick={() => handleToggle(id, !value)}
@@ -47,6 +51,7 @@
   </div>
 
   <button
+    type="button"
     class="w-full mt-3 p-2 bg-surface2 rounded text-sm text-text hover:bg-surface0 transition-colors"
     onclick={handleAddToggle}
   >

@@ -48,6 +48,17 @@
     }
   }
 
+  function handleSelectKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onselect(session.id);
+    }
+  }
+
+  function stopInteraction(e: MouseEvent | KeyboardEvent) {
+    e.stopPropagation();
+  }
+
   const linkedPersonaName = $derived(
     session.personaId
       ? personas.find(p => p.id === session.personaId)?.name ?? '(unknown)'
@@ -62,10 +73,13 @@
 <div
   class="p-3 rounded-lg transition-colors cursor-pointer {isActive ? 'bg-surface2' : 'hover:bg-surface0'}"
   onclick={() => onselect(session.id)}
+  onkeydown={handleSelectKeydown}
+  role="button"
+  tabindex="0"
 >
   <div class="flex items-start justify-between gap-2">
     {#if editing}
-      <div class="flex-1 flex gap-1" onclick={(e) => e.stopPropagation()}>
+      <div class="flex-1 flex gap-1" onclick={stopInteraction} onkeydown={stopInteraction} role="presentation">
         <input
           type="text"
           bind:value={editName}
@@ -101,7 +115,7 @@
         </div>
       </div>
 
-      <div class="flex gap-1 shrink-0" onclick={(e) => e.stopPropagation()}>
+      <div class="flex gap-1 shrink-0" onclick={stopInteraction} onkeydown={stopInteraction} role="presentation">
         <button onclick={() => onpin(session.id, !session.pinnedAt)} class="text-subtext0 hover:text-text bg-transparent border-none cursor-pointer p-0.5" title={session.pinnedAt ? 'Unpin' : 'Pin'}>
           {session.pinnedAt ? '📌' : '📍'}
         </button>
@@ -113,7 +127,7 @@
   </div>
 
   {#if showPersonaSelect}
-    <div class="mt-2 pt-2 border-t border-surface1" onclick={(e) => e.stopPropagation()}>
+    <div class="mt-2 pt-2 border-t border-surface1" onclick={stopInteraction} onkeydown={stopInteraction} role="presentation">
       <select
         class="w-full bg-surface0 text-text text-xs rounded px-2 py-1 border border-surface1 focus:outline-none focus:border-mauve cursor-pointer"
         value={session.personaId ?? ''}

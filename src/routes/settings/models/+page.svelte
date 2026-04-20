@@ -119,8 +119,9 @@
           </p>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Provider</label>
+            <label for="memory-provider" class="text-sm text-text">Provider</label>
             <select
+              id="memory-provider"
               value={memorySlot.provider}
               onchange={(e) => { onMemoryProviderChange((e.target as HTMLSelectElement).value); }}
               class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
@@ -134,8 +135,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">API Key</label>
+            <label for="memory-api-key" class="text-sm text-text">API Key</label>
             <input
+              id="memory-api-key"
               type="password"
               value={memorySlot.apiKey}
               oninput={(e) => { memorySlot.apiKey = (e.target as HTMLInputElement).value; }}
@@ -147,8 +149,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Base URL</label>
+            <label for="memory-base-url" class="text-sm text-text">Base URL</label>
             <input
+              id="memory-base-url"
               type="text"
               value={memorySlot.baseUrl}
               oninput={(e) => { memorySlot.baseUrl = (e.target as HTMLInputElement).value; }}
@@ -160,8 +163,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Model</label>
+            <label for="memory-model" class="text-sm text-text">Model</label>
             <input
+              id="memory-model"
               type="text"
               value={memorySlot.model}
               oninput={(e) => { memorySlot.model = (e.target as HTMLInputElement).value; }}
@@ -173,8 +177,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Temperature: {memorySlot.temperature}</label>
+            <label for="memory-temperature" class="text-sm text-text">Temperature: {memorySlot.temperature}</label>
             <input
+              id="memory-temperature"
               type="range"
               min="0"
               max="1"
@@ -187,7 +192,7 @@
 
           <div class="space-y-1">
             <div class="flex items-center justify-between">
-              <label class="text-sm text-text">Custom Extraction Prompt</label>
+              <label for="memory-extraction-prompt" class="text-sm text-text">Custom Extraction Prompt</label>
               <button
                 type="button"
                 onclick={() => { memorySlot.customExtractionPrompt = DEFAULT_EXTRACTION_PROMPT; }}
@@ -197,6 +202,7 @@
               </button>
             </div>
             <textarea
+              id="memory-extraction-prompt"
               value={memorySlot.customExtractionPrompt}
               oninput={(e) => { memorySlot.customExtractionPrompt = (e.target as HTMLTextAreaElement).value; }}
               rows="4"
@@ -209,7 +215,7 @@
 
           <div class="space-y-1">
             <div class="flex items-center justify-between">
-              <label class="text-sm text-text">Custom Summary Prompt</label>
+              <label for="memory-summary-prompt" class="text-sm text-text">Custom Summary Prompt</label>
               <button
                 type="button"
                 onclick={() => { memorySlot.customSummaryPrompt = DEFAULT_SUMMARY_PROMPT; }}
@@ -219,6 +225,7 @@
               </button>
             </div>
             <textarea
+              id="memory-summary-prompt"
               value={memorySlot.customSummaryPrompt}
               oninput={(e) => { memorySlot.customSummaryPrompt = (e.target as HTMLTextAreaElement).value; }}
               rows="4"
@@ -237,8 +244,9 @@
           </p>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Provider</label>
+            <label for="illustration-provider" class="text-sm text-text">Provider</label>
             <select
+              id="illustration-provider"
               value={illustrationSlot.provider}
               onchange={(e) => { onIllustrationProviderChange((e.target as HTMLSelectElement).value); }}
               class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
@@ -252,8 +260,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">API Key</label>
+            <label for="illustration-api-key" class="text-sm text-text">API Key</label>
             <input
+              id="illustration-api-key"
               type="password"
               value={illustrationSlot.apiKey}
               oninput={(e) => { illustrationSlot.apiKey = (e.target as HTMLInputElement).value; }}
@@ -265,8 +274,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Base URL</label>
+            <label for="illustration-base-url" class="text-sm text-text">Base URL</label>
             <input
+              id="illustration-base-url"
               type="text"
               value={illustrationSlot.baseUrl}
               oninput={(e) => { illustrationSlot.baseUrl = (e.target as HTMLInputElement).value; }}
@@ -278,8 +288,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Model</label>
+            <label for="illustration-model" class="text-sm text-text">Model</label>
             <input
+              id="illustration-model"
               type="text"
               value={illustrationSlot.model}
               oninput={(e) => { illustrationSlot.model = (e.target as HTMLInputElement).value; }}
@@ -291,8 +302,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Temperature: {illustrationSlot.temperature}</label>
+            <label for="illustration-temperature" class="text-sm text-text">Temperature: {illustrationSlot.temperature}</label>
             <input
+              id="illustration-temperature"
               type="range"
               min="0"
               max="1"
@@ -304,8 +316,9 @@
           </div>
 
           <div class="space-y-1">
-            <label class="text-sm text-text">Custom Planning Prompt</label>
+            <label for="illustration-planning-prompt" class="text-sm text-text">Custom Planning Prompt</label>
             <textarea
+              id="illustration-planning-prompt"
               value={illustrationSlot.customPlanningPrompt}
               oninput={(e) => { illustrationSlot.customPlanningPrompt = (e.target as HTMLTextAreaElement).value; }}
               rows="4"

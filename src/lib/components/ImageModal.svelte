@@ -12,11 +12,11 @@
   onclick={onclose}
   onkeydown={(e) => { if (e.key === 'Escape') onclose(); }}
 >
-  <img
-    src={src}
-    alt="Full-size illustration"
-    class="max-w-[90vw] max-h-[85vh] rounded-lg shadow-2xl"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.stopPropagation()}
-  />
+  <div role="presentation" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+    <img
+      src={src}
+      alt="Full-size illustration"
+      class="max-w-[90vw] max-h-[85vh] rounded-lg shadow-2xl"
+    />
+  </div>
 </div>

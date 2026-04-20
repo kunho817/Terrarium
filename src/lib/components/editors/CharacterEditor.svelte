@@ -32,10 +32,11 @@
   let activeTab = $state<TabId>('basic');
 
   // Local tags string for comma-separated input
-  let tagsString = $state(card.tags.join(', '));
+  let tagsString = $state('');
 
   // Alternate greetings list
-  let alternateGreetings = $state<string[]>([...card.alternateGreetings]);
+  let alternateGreetings = $state<string[]>([]);
+  let syncedCard = $state<CharacterCard | null>(null);
 
   function update(patch: Partial<CharacterCard>) {
     onchange({ ...card, ...patch });
@@ -70,8 +71,18 @@
   }
 
   // Depth prompt helpers
-  let depthPromptContent = $state(card.depthPrompt?.prompt ?? '');
-  let depthPromptDepth = $state(card.depthPrompt?.depth ?? 4);
+  let depthPromptContent = $state('');
+  let depthPromptDepth = $state(4);
+
+  $effect(() => {
+    if (card !== syncedCard) {
+      tagsString = card.tags.join(', ');
+      alternateGreetings = [...card.alternateGreetings];
+      depthPromptContent = card.depthPrompt?.prompt ?? '';
+      depthPromptDepth = card.depthPrompt?.depth ?? 4;
+      syncedCard = card;
+    }
+  });
 
   function updateDepthPrompt() {
     if (depthPromptContent.trim() === '') {
@@ -184,7 +195,7 @@
         <!-- Alternate Greetings -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <label class="text-sm font-medium text-text">Alternate Greetings</label>
+            <span class="text-sm font-medium text-text">Alternate Greetings</span>
             <button
               type="button"
               onclick={addGreeting}
@@ -255,8 +266,9 @@
 
         <!-- Depth Prompt -->
         <div class="space-y-2">
-          <label class="text-sm font-medium text-text">Depth Prompt</label>
+          <label for="char-depth-prompt" class="text-sm font-medium text-text">Depth Prompt</label>
           <textarea
+            id="char-depth-prompt"
             value={depthPromptContent}
             oninput={(e) => { depthPromptContent = (e.target as HTMLTextAreaElement).value; updateDepthPrompt(); }}
             placeholder="Prompt injected at a specific depth in the chat history..."

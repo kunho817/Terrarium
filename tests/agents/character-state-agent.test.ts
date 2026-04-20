@@ -52,22 +52,31 @@ vi.mock('$lib/storage/agent-states', () => ({
 }));
 
 import { CharacterStateAgent, parseCharacterOutput, formatCharacterPrompt } from '$lib/core/agents/character-state-agent';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { AgentContext } from '$lib/types/agent';
 
 describe('CharacterStateAgent', () => {
 	let agent: CharacterStateAgent;
 	let mockContext: AgentContext;
-	const sessionId = 'test-session-char-state';
+	const sessionId = makeSessionId('test-session-char-state');
 
 	beforeEach(() => {
 		characterStatesStore.clear();
 		agent = new CharacterStateAgent();
 		mockContext = {
 			sessionId,
-			cardId: 'test-card',
+			cardId: makeCharacterId('test-card'),
 			cardType: 'character',
 			messages: [],
-			scene: {} as any,
+			scene: {
+				location: '',
+				time: '',
+				mood: '',
+				participatingCharacters: [],
+				variables: {},
+				environmentalNotes: '',
+				lastUpdated: 0
+			},
 			turnNumber: 1,
 			config: {} as any
 		};

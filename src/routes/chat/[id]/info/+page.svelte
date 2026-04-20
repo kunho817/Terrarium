@@ -139,21 +139,21 @@
         {#if infoExpanded}
           <div class="px-4 pb-4 border-t border-surface0 flex flex-col gap-3">
             <div>
-              <label class="block text-xs font-medium text-subtext0 mb-1">Name</label>
+              <span class="block text-xs font-medium text-subtext0 mb-1">Name</span>
               <p class="text-sm text-text">{cardName}</p>
             </div>
             <div>
-              <label class="block text-xs font-medium text-subtext0 mb-1">Description</label>
+              <span class="block text-xs font-medium text-subtext0 mb-1">Description</span>
               <p class="text-sm text-text whitespace-pre-wrap">{cardDescription || 'No description'}</p>
             </div>
             {#if cardType === 'character'}
               <div>
-                <label class="block text-xs font-medium text-subtext0 mb-1">Personality</label>
+                <span class="block text-xs font-medium text-subtext0 mb-1">Personality</span>
                 <p class="text-sm text-text whitespace-pre-wrap">{cardPersonality || 'No personality set'}</p>
               </div>
             {/if}
             <div>
-              <label class="block text-xs font-medium text-subtext0 mb-1">Scenario</label>
+              <span class="block text-xs font-medium text-subtext0 mb-1">Scenario</span>
               <p class="text-sm text-text whitespace-pre-wrap">{cardScenario || 'No scenario set'}</p>
             </div>
           </div>

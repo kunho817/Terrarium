@@ -69,6 +69,7 @@
             type="button"
             role="switch"
             aria-checked={directorEnabled}
+            aria-label="Director agent"
             onclick={() => directorEnabled = !directorEnabled}
             class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
@@ -127,6 +128,7 @@
             type="button"
             role="switch"
             aria-checked={sceneEnabled}
+            aria-label="Scene state agent"
             onclick={() => sceneEnabled = !sceneEnabled}
             class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
@@ -170,6 +172,7 @@
             type="button"
             role="switch"
             aria-checked={characterEnabled}
+            aria-label="Character state agent"
             onclick={() => characterEnabled = !characterEnabled}
             class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
@@ -184,13 +187,14 @@
         {#if characterEnabled}
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm text-text">Auto-Track Characters</label>
+              <span class="text-sm text-text">Auto-Track Characters</span>
               <p class="text-xs text-subtext0">Automatically detect and track character states in world chats.</p>
             </div>
             <button
               type="button"
               role="switch"
               aria-checked={characterAutoTrack}
+              aria-label="Auto-track characters"
               onclick={() => characterAutoTrack = !characterAutoTrack}
               class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                      transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve

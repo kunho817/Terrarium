@@ -7,11 +7,19 @@
 		oncancel: () => void;
 	}>();
 
-	let selectedId = $state<string | null>(greetings.length === 1 ? greetings[0].id : null);
+	let selectedId = $state<string | null>(null);
+
+	$effect(() => {
+		if (greetings.length === 1 && selectedId === null) {
+			selectedId = greetings[0].id;
+		} else if (selectedId && !greetings.some((greeting: AlternateGreeting) => greeting.id === selectedId)) {
+			selectedId = greetings.length === 1 ? greetings[0].id : null;
+		}
+	});
 
 	function handleStart() {
 		if (!selectedId) return;
-		const greeting = greetings.find((g) => g.id === selectedId);
+		const greeting = greetings.find((greeting: AlternateGreeting) => greeting.id === selectedId);
 		if (greeting) onselect(greeting);
 	}
 </script>
@@ -54,7 +62,7 @@
 								/>
 							</svg>
 						{:else}
-							<div class="w-4 h-4 shrink-0 rounded-full border border-surface1" />
+							<div class="w-4 h-4 shrink-0 rounded-full border border-surface1"></div>
 						{/if}
 						<span class="font-medium text-text">{greeting.name}</span>
 					</div>

@@ -60,8 +60,9 @@
 
   <!-- Event -->
   <div class="flex items-center gap-2">
-    <label class="text-xs text-subtext0 w-16 shrink-0">Event</label>
+    <label for="trigger-{trigger.id}-event" class="text-xs text-subtext0 w-16 shrink-0">Event</label>
     <select
+      id="trigger-{trigger.id}-event"
       value={trigger.event}
       onchange={(e) => update({ event: (e.target as HTMLSelectElement).value as TriggerEvent })}
       class="flex-1 bg-surface0 text-text px-2.5 py-1.5 rounded-md text-sm border border-surface1
@@ -75,8 +76,9 @@
 
   <!-- Pattern -->
   <div class="flex items-center gap-2">
-    <label class="text-xs text-subtext0 w-16 shrink-0">Pattern</label>
+    <label for="trigger-{trigger.id}-pattern" class="text-xs text-subtext0 w-16 shrink-0">Pattern</label>
     <input
+      id="trigger-{trigger.id}-pattern"
       type="text"
       value={trigger.pattern ?? ''}
       oninput={(e) => update({ pattern: (e.target as HTMLInputElement).value })}
@@ -88,8 +90,9 @@
 
   <!-- Match On -->
   <div class="flex items-center gap-2">
-    <label class="text-xs text-subtext0 w-16 shrink-0">Match On</label>
+    <label for="trigger-{trigger.id}-match-on" class="text-xs text-subtext0 w-16 shrink-0">Match On</label>
     <select
+      id="trigger-{trigger.id}-match-on"
       value={trigger.matchOn ?? 'user_input'}
       onchange={(e) => update({ matchOn: (e.target as HTMLSelectElement).value as TriggerMatchOn })}
       class="flex-1 bg-surface0 text-text px-2.5 py-1.5 rounded-md text-sm border border-surface1
@@ -103,8 +106,9 @@
 
   <!-- Script -->
   <div class="flex flex-col gap-1">
-    <label class="text-xs text-subtext0">Lua Script</label>
+    <label for="trigger-{trigger.id}-script" class="text-xs text-subtext0">Lua Script</label>
     <textarea
+      id="trigger-{trigger.id}-script"
       value={trigger.script}
       oninput={(e) => update({ script: (e.target as HTMLTextAreaElement).value })}
       placeholder="-- Lua script here"

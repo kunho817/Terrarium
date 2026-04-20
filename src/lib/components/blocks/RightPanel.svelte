@@ -98,11 +98,8 @@
     
     <div class="flex-1 p-4 overflow-y-auto">
       {#if EditorComponent()}
-        <svelte:component
-          this={EditorComponent()}
-          config={selectedBlock.config}
-          onChange={handleConfigChange}
-        />
+        {@const Component = EditorComponent()}
+        <Component config={selectedBlock.config} onChange={handleConfigChange} />
       {:else}
         <p class="text-sm text-subtext0">
           No editor available for {selectedBlock.type}

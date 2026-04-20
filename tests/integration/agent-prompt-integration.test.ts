@@ -19,7 +19,6 @@ function makeMinimalCard(): CharacterCard {
     exampleMessages: '',
     systemPrompt: 'You are TestChar.',
     postHistoryInstructions: '',
-    depthPrompt: null,
     defaultPersonaId: '',
     creator: '',
     characterVersion: '',
@@ -69,6 +68,8 @@ describe('Agent -> Prompt integration', () => {
         mood: '',
         participatingCharacters: [],
         variables: {},
+        environmentalNotes: '',
+        lastUpdated: 0,
       },
       messages: [
         { role: 'user', content: 'Hello', type: 'dialogue', timestamp: 1 },
@@ -128,7 +129,7 @@ describe('Agent -> Prompt integration', () => {
 
     const ctx: AssemblyContext = {
       card: makeMinimalCard(),
-      scene: { location: '', time: '', mood: '', participatingCharacters: [], variables: {} },
+      scene: { location: '', time: '', mood: '', participatingCharacters: [], variables: {}, environmentalNotes: '', lastUpdated: 0 },
       messages: [],
       lorebookMatches: [],
       agentOutputs,
@@ -151,7 +152,7 @@ describe('Agent -> Prompt integration', () => {
 
     const ctx: AssemblyContext = {
       card: makeMinimalCard(),
-      scene: { location: '', time: '', mood: '', participatingCharacters: [], variables: {} },
+      scene: { location: '', time: '', mood: '', participatingCharacters: [], variables: {}, environmentalNotes: '', lastUpdated: 0 },
       messages: [],
       lorebookMatches: [],
     };
@@ -177,7 +178,7 @@ describe('Agent -> Prompt integration', () => {
 
     const ctx: AssemblyContext = {
       card: makeMinimalCard(),
-      scene: { location: '', time: '', mood: '', participatingCharacters: [], variables: {} },
+      scene: { location: '', time: '', mood: '', participatingCharacters: [], variables: {}, environmentalNotes: '', lastUpdated: 0 },
       messages: [],
       lorebookMatches: [],
       agentOutputs,

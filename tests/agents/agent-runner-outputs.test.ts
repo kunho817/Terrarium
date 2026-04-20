@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AgentRunner } from '$lib/core/agents/agent-runner';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 
 function mockAgent(id: string, priority: number, result: AgentResult): Agent {
@@ -16,8 +17,8 @@ function mockAgent(id: string, priority: number, result: AgentResult): Agent {
 
 function mockContext(): AgentContext {
 	return {
-		sessionId: 'test-session',
-		cardId: 'test-card',
+		sessionId: makeSessionId('test-session'),
+		cardId: makeCharacterId('test-card'),
 		cardType: 'character',
 		messages: [],
 		scene: {
@@ -26,6 +27,8 @@ function mockContext(): AgentContext {
 			mood: '',
 			participatingCharacters: [],
 			variables: {},
+			environmentalNotes: '',
+			lastUpdated: 0,
 		},
 		turnNumber: 1,
 		config: {
@@ -42,6 +45,7 @@ describe('AgentRunner output collection', () => {
 		runner.unregisterAgent('director');
 		runner.unregisterAgent('scene-state');
 		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
 
 		runner.registerAgent(mockAgent('memory', 10, {
 			injectPrompt: '[Memory]\n- fact (trait)',
@@ -57,6 +61,7 @@ describe('AgentRunner output collection', () => {
 		runner.unregisterAgent('director');
 		runner.unregisterAgent('scene-state');
 		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
 
 		runner.registerAgent(mockAgent('director', 20, {
 			injectPrompt: '[Director]\nScene Mandate: test',
@@ -72,6 +77,7 @@ describe('AgentRunner output collection', () => {
 		runner.unregisterAgent('director');
 		runner.unregisterAgent('scene-state');
 		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
 
 		runner.registerAgent(mockAgent('scene-state', 30, {
 			injectPrompt: '[Scene]\nLocation: test',
@@ -87,6 +93,7 @@ describe('AgentRunner output collection', () => {
 		runner.unregisterAgent('director');
 		runner.unregisterAgent('scene-state');
 		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
 
 		runner.registerAgent(mockAgent('character-state', 40, {
 			injectPrompt: '[Character States]\nElara: alert',
@@ -96,12 +103,29 @@ describe('AgentRunner output collection', () => {
 		expect(result.agentOutputs?.characterState).toBe('[Character States]\nElara: alert');
 	});
 
+	it('maps narrative-consistency agent injectPrompt to agentOutputs.narrativeConsistency', async () => {
+		const runner = new AgentRunner();
+		runner.unregisterAgent('memory');
+		runner.unregisterAgent('director');
+		runner.unregisterAgent('scene-state');
+		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
+
+		runner.registerAgent(mockAgent('narrative-consistency', 15, {
+			injectPrompt: '[Consistency Check]\nKeep world facts stable',
+		}));
+
+		const result = await runner.onBeforeSend(mockContext());
+		expect(result.agentOutputs?.narrativeConsistency).toBe('[Consistency Check]\nKeep world facts stable');
+	});
+
 	it('collects outputs from multiple agents', async () => {
 		const runner = new AgentRunner();
 		runner.unregisterAgent('memory');
 		runner.unregisterAgent('director');
 		runner.unregisterAgent('scene-state');
 		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
 
 		runner.registerAgent(mockAgent('memory', 10, {
 			injectPrompt: '[Memory]\n- fact',
@@ -121,6 +145,7 @@ describe('AgentRunner output collection', () => {
 		runner.unregisterAgent('director');
 		runner.unregisterAgent('scene-state');
 		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
 
 		runner.registerAgent(mockAgent('memory', 10, {}));
 

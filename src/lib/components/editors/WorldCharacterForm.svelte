@@ -9,9 +9,13 @@
 		onremove: () => void;
 	}>();
 
-	let tagsText = $state(character.tags.join(', '));
+	let tagsText = $state('');
 
 	const examplePlaceholder = '{' + '{char}}: Hello there!\n{' + '{user}}: *waves* Hi!';
+
+	$effect(() => {
+		tagsText = character.tags.join(', ');
+	});
 
 	function update(partial: Partial<WorldCharacter>) {
 		onchange({ ...character, ...partial });

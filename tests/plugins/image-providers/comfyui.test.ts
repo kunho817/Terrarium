@@ -72,8 +72,9 @@ describe('ComfyUI image provider', () => {
 
   describe('validateConfig', () => {
     it('always returns true', async () => {
-      expect(await provider.validateConfig({ providerId: 'comfyui' })).toBe(true);
-      expect(await provider.validateConfig(mockConfig)).toBe(true);
+      expect(provider.validateConfig).toBeDefined();
+      expect(await provider.validateConfig!({ providerId: 'comfyui' })).toBe(true);
+      expect(await provider.validateConfig!(mockConfig)).toBe(true);
     });
   });
 

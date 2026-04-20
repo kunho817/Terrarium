@@ -37,7 +37,8 @@ import {
   restoreSession,
   permanentDeleteSession,
 } from '$lib/storage/chats';
-import type { SessionsFile } from '$lib/types';
+import { makeCharacterId, makeSessionId } from '$lib/types';
+import type { ChatSession, SessionsFile } from '$lib/types';
 
 function mockSessionsIndex(data: SessionsFile | unknown[]) {
   vi.mocked(existsPath).mockImplementation(async (path: string) => {
@@ -55,18 +56,18 @@ function mockNoSessionsIndex() {
   vi.mocked(readJson).mockRejectedValue(new Error('file not found'));
 }
 
-const s1 = {
-  id: 's1',
-  characterId: 'char-1',
+const s1: ChatSession = {
+  id: makeSessionId('s1'),
+  characterId: makeCharacterId('char-1'),
   name: 'Chat 1',
   createdAt: 1000,
   lastMessageAt: 2000,
   preview: 'Hello',
 };
 
-const s2 = {
-  id: 's2',
-  characterId: 'char-1',
+const s2: ChatSession = {
+  id: makeSessionId('s2'),
+  characterId: makeCharacterId('char-1'),
   name: 'Chat 2',
   createdAt: 3000,
   lastMessageAt: 4000,
@@ -254,8 +255,8 @@ describe('archive operations', () => {
       });
       vi.mocked(ensureDir).mockResolvedValue(undefined);
       vi.mocked(readDir).mockResolvedValue([
-        { name: 'messages.json', isDirectory: false },
-        { name: 'scene.json', isDirectory: false },
+        { name: 'messages.json', isDirectory: false, isFile: true, isSymlink: false },
+        { name: 'scene.json', isDirectory: false, isFile: true, isSymlink: false },
       ]);
       vi.mocked(readTextFile).mockResolvedValue('{}');
       vi.mocked(writeTextFile).mockResolvedValue(undefined);
@@ -314,7 +315,7 @@ describe('archive operations', () => {
       });
       vi.mocked(ensureDir).mockResolvedValue(undefined);
       vi.mocked(readDir).mockResolvedValue([
-        { name: 'messages.json', isDirectory: false },
+        { name: 'messages.json', isDirectory: false, isFile: true, isSymlink: false },
       ]);
       vi.mocked(readTextFile).mockResolvedValue('[]');
       vi.mocked(writeTextFile).mockResolvedValue(undefined);
@@ -346,7 +347,14 @@ describe('archive operations', () => {
     });
 
     it('removes only the targeted session when multiple archived', async () => {
-      const s3 = { id: 's3', characterId: 'char-1', name: 'Chat 3', createdAt: 5000, lastMessageAt: 6000, preview: '!' };
+      const s3: ChatSession = {
+        id: makeSessionId('s3'),
+        characterId: makeCharacterId('char-1'),
+        name: 'Chat 3',
+        createdAt: 5000,
+        lastMessageAt: 6000,
+        preview: '!',
+      };
       mockSessionsIndex({ sessions: [], archivedSessions: [s1, s3] });
       vi.mocked(writeJsonAtomic).mockResolvedValue(undefined);
       vi.mocked(removePath).mockResolvedValue(undefined);

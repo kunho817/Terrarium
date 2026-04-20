@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { AgentRunner } from '$lib/core/agents/agent-runner';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 
 function createMockAgent(id: string, priority: number): Agent {
@@ -22,14 +23,31 @@ describe('AgentRunner', () => {
 	let runner: AgentRunner;
 	let mockContext: AgentContext;
 
+	function removeDefaultAgents(): void {
+		runner.unregisterAgent('memory');
+		runner.unregisterAgent('director');
+		runner.unregisterAgent('scene-state');
+		runner.unregisterAgent('character-state');
+		runner.unregisterAgent('narrative-consistency');
+	}
+
 	beforeEach(() => {
 		runner = new AgentRunner();
+		removeDefaultAgents();
 		mockContext = {
-			sessionId: 'test-session',
-			cardId: 'test-card',
+			sessionId: makeSessionId('test-session'),
+			cardId: makeCharacterId('test-card'),
 			cardType: 'character',
 			messages: [],
-			scene: {} as any,
+			scene: {
+				location: '',
+				time: '',
+				mood: '',
+				participatingCharacters: [],
+				variables: {},
+				environmentalNotes: '',
+				lastUpdated: 0
+			},
 			turnNumber: 1,
 			config: {} as any
 		};

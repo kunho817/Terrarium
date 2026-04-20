@@ -7,8 +7,13 @@
     onremove: () => void;
   }>();
 
-  let keywordsText = $state(entry.keywords.join(', '));
-  let secondaryKeywordsText = $state((entry.secondaryKeywords ?? []).join(', '));
+  let keywordsText = $state('');
+  let secondaryKeywordsText = $state('');
+
+  $effect(() => {
+    keywordsText = entry.keywords.join(', ');
+    secondaryKeywordsText = (entry.secondaryKeywords ?? []).join(', ');
+  });
 
   function update(partial: Partial<LorebookEntry>) {
     onchange({ ...entry, ...partial });

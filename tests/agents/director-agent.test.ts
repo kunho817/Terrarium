@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DirectorAgent, parseDirectorOutput, formatDirectorPrompt } from '$lib/core/agents/director-agent';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { AgentContext } from '$lib/types/agent';
 import type { DirectorGuidance } from '$lib/types/agent-state';
 
@@ -10,8 +11,8 @@ describe('DirectorAgent', () => {
 	beforeEach(() => {
 		agent = new DirectorAgent();
 		mockContext = {
-			sessionId: 'test-session',
-			cardId: 'test-card',
+			sessionId: makeSessionId('test-session'),
+			cardId: makeCharacterId('test-card'),
 			cardType: 'character',
 			messages: [
 				{ id: '1', role: 'user', content: 'Hello' } as any,

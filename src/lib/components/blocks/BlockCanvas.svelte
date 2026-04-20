@@ -236,15 +236,21 @@
   onmouseup={() => { handleMouseUp(); handleConnectionDragEnd(); }}
 />
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
 <div 
   class="canvas-area relative w-full h-full bg-mantle rounded-lg overflow-hidden border-2 border-surface2"
+  class:panning={isPanning}
   onmousedown={handleCanvasMouseDown}
   onclick={handleCanvasClick}
   oncontextmenu={handleContextMenu}
   onmousemove={handleCanvasMouseMove}
   onwheel={handleWheel}
+  onkeydown={(e) => {
+    if (e.key === 'Escape') onBlockSelect?.(null);
+  }}
   role="application"
   aria-label="Block canvas"
+  tabindex="0"
 >
   <div 
     class="transform-layer absolute origin-top-left"

@@ -6,8 +6,13 @@
 
   let { config, onChange }: Props = $props();
 
-  let content = $state((config.content as string) || '');
-  let enabled = $state((config.enabled as boolean) ?? true);
+  let content = $state('');
+  let enabled = $state(true);
+
+  $effect(() => {
+    content = (config.content as string) || '';
+    enabled = (config.enabled as boolean) ?? true;
+  });
 
   // Auto-save on change (immediate)
   function handleContentChange(e: Event) {

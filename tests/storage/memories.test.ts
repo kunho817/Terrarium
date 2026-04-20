@@ -10,7 +10,7 @@ vi.mock('$lib/storage/db', () => ({
 				if (sql.startsWith('INSERT INTO memories')) {
 					const [id, sessionId, type, content, importance, sourceMessageIdsJson, turnNumber, createdAt] = params as [string, string, string, string, number, string, number, number];
 					memoriesStore.set(id, {
-						memory: { id, sessionId, type: type as any, content, importance, sourceMessageIds: JSON.parse(sourceMessageIdsJson), turnNumber, createdAt },
+						memory: { id, sessionId: sessionId as import('$lib/types/branded').SessionId, type: type as any, content, importance, sourceMessageIds: JSON.parse(sourceMessageIdsJson), turnNumber, createdAt },
 						embedding: [],
 					});
 				} else if (sql.startsWith('INSERT INTO embeddings')) {
@@ -28,7 +28,7 @@ vi.mock('$lib/storage/db', () => ({
 					}
 				} else if (sql.startsWith('INSERT INTO summaries')) {
 					const [id, sessionId, startTurn, endTurn, summary, createdAt] = params as [string, string, number, number, string, number];
-					summariesStore.set(id, { id, sessionId, startTurn, endTurn, summary, createdAt });
+					summariesStore.set(id, { id, sessionId: sessionId as import('$lib/types/branded').SessionId, startTurn, endTurn, summary, createdAt });
 				} else if (sql.startsWith('DELETE FROM summaries WHERE id')) {
 					summariesStore.delete(params[0] as string);
 				} else if (sql.startsWith('DELETE FROM summaries')) {
@@ -141,12 +141,16 @@ import {
 	deleteSummary,
 	updateSummary,
 } from '$lib/storage/memories';
+import { makeSessionId } from '$lib/types/branded';
 import type { MemoryRecord, SessionSummary } from '$lib/types/memory';
+
+const SESSION_ID = makeSessionId('sess-1');
+const OTHER_SESSION_ID = makeSessionId('sess-other');
 
 function makeMemory(overrides: Partial<MemoryRecord> = {}): MemoryRecord {
 	return {
 		id: 'mem-1',
-		sessionId: 'sess-1',
+		sessionId: SESSION_ID,
 		type: 'event',
 		content: 'Something happened',
 		importance: 0.7,
@@ -161,7 +165,7 @@ function makeMemory(overrides: Partial<MemoryRecord> = {}): MemoryRecord {
 function makeSummary(overrides: Partial<SessionSummary> = {}): SessionSummary {
 	return {
 		id: 'sum-1',
-		sessionId: 'sess-1',
+		sessionId: SESSION_ID,
 		startTurn: 1,
 		endTurn: 5,
 		summary: 'A summary',
@@ -257,7 +261,7 @@ describe('memories storage', () => {
 	it('countMemories returns count for a session', async () => {
 		await insertMemory(makeMemory({ id: 'm1' }));
 		await insertMemory(makeMemory({ id: 'm2' }));
-		await insertMemory(makeMemory({ id: 'm3', sessionId: 'sess-other' }));
+		await insertMemory(makeMemory({ id: 'm3', sessionId: OTHER_SESSION_ID }));
 		const count = await countMemories('sess-1');
 		expect(count).toBe(2);
 	});

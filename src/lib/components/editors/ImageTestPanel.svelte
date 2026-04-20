@@ -70,7 +70,7 @@
 		<div class="space-y-2">
 			<p class="text-xs text-green font-medium">Success!</p>
 			<div class="inline-block bg-surface0 rounded-lg border border-surface1 overflow-hidden">
-				<img src={testResult} alt="Test generated image" class="max-w-sm max-h-96" />
+				<img src={testResult} alt="Generated preview" class="max-w-sm max-h-96" />
 			</div>
 		</div>
 	{/if}

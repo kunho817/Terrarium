@@ -114,8 +114,9 @@
           </h2>
 
           <div>
-            <label class="block text-xs text-subtext0 mb-1">Name</label>
+            <label for="persona-name" class="block text-xs text-subtext0 mb-1">Name</label>
             <input
+              id="persona-name"
               type="text"
               bind:value={editorName}
               placeholder="Persona name"
@@ -125,8 +126,9 @@
           </div>
 
           <div>
-            <label class="block text-xs text-subtext0 mb-1">Short Description</label>
+            <label for="persona-short-desc" class="block text-xs text-subtext0 mb-1">Short Description</label>
             <input
+              id="persona-short-desc"
               type="text"
               bind:value={editorShortDesc}
               placeholder="Brief persona description"
@@ -136,8 +138,9 @@
           </div>
 
           <div>
-            <label class="block text-xs text-subtext0 mb-1">Detailed Settings</label>
+            <label for="persona-detailed" class="block text-xs text-subtext0 mb-1">Detailed Settings</label>
             <textarea
+              id="persona-detailed"
               bind:value={editorDetailed}
               placeholder="Detailed persona description, traits, background..."
               rows="4"
@@ -147,8 +150,9 @@
           </div>
 
           <div>
-            <label class="block text-xs text-subtext0 mb-1">Example Dialogue</label>
+            <label for="persona-dialogue" class="block text-xs text-subtext0 mb-1">Example Dialogue</label>
             <textarea
+              id="persona-dialogue"
               bind:value={editorDialogue}
               placeholder="Example dialogue lines for this persona..."
               rows="4"

@@ -1,4 +1,15 @@
-export type MemoryType = 'event' | 'trait' | 'relationship' | 'location' | 'state' | 'world_fact' | 'personal_event' | 'general';
+export const MEMORY_TYPES = [
+  'event',
+  'trait',
+  'relationship',
+  'location',
+  'state',
+  'world_fact',
+  'personal_event',
+  'general',
+] as const;
+
+export type MemoryType = (typeof MEMORY_TYPES)[number];
 
 export type WriteMode = 'append' | 'overwrite';
 

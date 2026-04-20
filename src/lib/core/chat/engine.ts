@@ -12,8 +12,10 @@ import type {
   UserConfig,
   ChatContext,
   LorebookEntry,
+  TriggerEvent,
 } from '$lib/types';
 import type { AgentImageContext } from '../image/generator';
+import type { StateUpdate } from '$lib/types/agent-state';
 import type { WorldCard } from '$lib/types/world';
 import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
@@ -45,6 +47,8 @@ function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
     parts.push(`[Character: ${char.name}]`);
     if (char.description) parts.push(char.description);
     if (char.personality) parts.push(`Personality: ${char.personality}`);
+    if (char.exampleMessages) parts.push(`Example Messages:\n${char.exampleMessages}`);
+    if (char.avatar) parts.push(`Avatar: ${char.avatar}`);
     parts.push('');
 
     return {
@@ -67,10 +71,35 @@ function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
 
 interface TriggerExecContext {
   triggers: import('$lib/types/trigger').Trigger[];
-  event: string;
+  event: TriggerEvent;
   message: string;
   isUserMessage: boolean;
   scene: import('$lib/types/scene').SceneState;
+}
+
+function mergeAgentImageState(target: AgentImageContext, update?: StateUpdate): void {
+  if (!update) return;
+
+  if (update.scene) {
+    const scene = update.scene;
+    if (scene.location) target.sceneLocation = scene.location;
+    if (scene.time) target.sceneTime = scene.time;
+    if (scene.mood) target.sceneMood = scene.mood;
+  }
+
+  if (update.directorGuidance) {
+    target.directorMandate = update.directorGuidance.sceneMandate;
+    target.directorEmphasis = update.directorGuidance.emphasis;
+  }
+
+  if (update.characters?.length) {
+    target.characterEmotions = target.characterEmotions ?? {};
+    for (const character of update.characters) {
+      if (character.characterName && character.emotion) {
+        target.characterEmotions[character.characterName] = character.emotion;
+      }
+    }
+  }
 }
 
 async function executeTriggers(
@@ -236,17 +265,7 @@ export class ChatEngine {
     }
 
     const agentImgContext: AgentImageContext = {};
-    if (agentResult.updatedState?.scene) {
-      const s = agentResult.updatedState.scene;
-      agentImgContext.sceneLocation = s.location;
-      agentImgContext.sceneTime = s.time;
-      agentImgContext.sceneMood = s.mood;
-    }
-    if (agentResult.updatedState?.directorGuidance) {
-      const dg = agentResult.updatedState.directorGuidance;
-      agentImgContext.directorMandate = dg.sceneMandate;
-      agentImgContext.directorEmphasis = dg.emphasis;
-    }
+    mergeAgentImageState(agentImgContext, agentResult.updatedState);
 
     // 7-8. Assemble prompt messages (preset-driven or legacy)
     let assembled: Message[];
@@ -297,6 +316,7 @@ export class ChatEngine {
     const capturedConfig = options.config;
     const capturedCharacterId = options.characterId;
     const capturedSessionId = options.sessionId;
+    const capturedCardType = options.worldCard ? 'world' : 'character';
 
     async function* tokenStream(): AsyncGenerator<string> {
       const provider = self.registry.getProvider(capturedConfig.providerId);
@@ -329,15 +349,16 @@ export class ChatEngine {
 
       // 11b. Run agent runner onAfterReceive
       try {
-        await self.agentRunner.onAfterReceive({
+        const afterAgentResult = await self.agentRunner.onAfterReceive({
           sessionId: makeSessionId(capturedSessionId || capturedCharacterId || ''),
           cardId: makeCharacterId(capturedCharacterId || ''),
-          cardType: 'character',
+          cardType: capturedCardType,
           messages: capturedCtx.messages,
           scene: capturedCtx.scene,
           turnNumber: capturedCtx.messages.filter(m => m.role === 'user').length,
           config: capturedConfig,
         }, processed);
+        mergeAgentImageState(agentImgContext, afterAgentResult.updatedState);
       } catch {
         // Agent runner failed — non-blocking
       }
@@ -397,7 +418,7 @@ export class ChatEngine {
         resetPipeline();
       },
       onComplete,
-      agentContext: Object.keys(agentImgContext).length > 0 ? agentImgContext : undefined,
+      agentContext: agentImgContext,
     };
   }
 }

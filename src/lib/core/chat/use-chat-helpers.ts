@@ -16,7 +16,7 @@ export function worldCardToCharacterCard(world: WorldCard): CharacterCard {
 		personality: '',
 		scenario: world.scenario,
 		firstMessage: world.firstMessage,
-		alternateGreetings: world.alternateGreetings,
+		alternateGreetings: world.alternateGreetings.map((greeting) => greeting.content),
 		exampleMessages: '',
 		systemPrompt: world.systemPrompt,
 		postHistoryInstructions: world.postHistoryInstructions,

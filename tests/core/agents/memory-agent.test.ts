@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryAgent } from '$lib/core/agents/memory-agent';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { AgentContext } from '$lib/types/agent';
 import type { Message } from '$lib/types/message';
 
@@ -60,10 +61,19 @@ vi.mock('$lib/stores/settings', () => {
 
 function makeContext(overrides: Partial<AgentContext> = {}): AgentContext {
 	return {
-		sessionId: 'test-session',
-		cardId: 'test-card',
+		sessionId: makeSessionId('test-session'),
+		cardId: makeCharacterId('test-card'),
 		cardType: 'character',
 		messages: [],
+		scene: {
+			location: '',
+			time: '',
+			mood: '',
+			participatingCharacters: [],
+			variables: {},
+			environmentalNotes: '',
+			lastUpdated: 0
+		},
 		turnNumber: 1,
 		config: { providerId: 'test' },
 		...overrides,

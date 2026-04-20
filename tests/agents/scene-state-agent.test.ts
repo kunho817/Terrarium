@@ -32,22 +32,31 @@ vi.mock('$lib/storage/agent-states', () => ({
 }));
 
 import { SceneStateAgent, parseSceneOutput, formatScenePrompt } from '$lib/core/agents/scene-state-agent';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { AgentContext } from '$lib/types/agent';
 
 describe('SceneStateAgent', () => {
 	let agent: SceneStateAgent;
 	let mockContext: AgentContext;
-	const sessionId = 'test-session-scene-state';
+	const sessionId = makeSessionId('test-session-scene-state');
 
 	beforeEach(() => {
 		sceneStatesStore.clear();
 		agent = new SceneStateAgent();
 		mockContext = {
 			sessionId,
-			cardId: 'test-card',
+			cardId: makeCharacterId('test-card'),
 			cardType: 'character',
 			messages: [],
-			scene: {} as any,
+			scene: {
+				location: '',
+				time: '',
+				mood: '',
+				participatingCharacters: [],
+				variables: {},
+				environmentalNotes: '',
+				lastUpdated: 0
+			},
 			turnNumber: 1,
 			config: {} as any
 		};

@@ -91,11 +91,12 @@
 
         <!-- HTML Template -->
         <div class="space-y-1.5">
-          <label class="text-sm font-medium text-subtext1">HTML Template</label>
+          <label for="theme-html-template" class="text-sm font-medium text-subtext1">HTML Template</label>
           <p class="text-xs text-overlay0">
             Available variables: {`{{name}}, {{content}}, {{type}}, {{role}}, {{timestamp}}, {{charName}}`}
           </p>
           <textarea
+            id="theme-html-template"
             bind:value={htmlTemplate}
             rows="10"
             class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
@@ -106,11 +107,12 @@
 
         <!-- CSS Template -->
         <div class="space-y-1.5">
-          <label class="text-sm font-medium text-subtext1">CSS Template</label>
+          <label for="theme-css-template" class="text-sm font-medium text-subtext1">CSS Template</label>
           <p class="text-xs text-overlay0">
             Styles apply inside the preview container. Classes: .message, .user, .assistant, .narrator, .name, .content
           </p>
           <textarea
+            id="theme-css-template"
             bind:value={cssTemplate}
             rows="10"
             class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1

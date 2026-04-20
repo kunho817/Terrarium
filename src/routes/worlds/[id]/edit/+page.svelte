@@ -187,20 +187,20 @@
 			{#if tab === 'overview'}
 				<div class="max-w-2xl space-y-4">
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Name</label>
-						<input type="text" bind:value={card.name} class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve" />
+						<label for="world-name" class="block text-xs text-subtext0 mb-1">Name</label>
+						<input id="world-name" type="text" bind:value={card.name} class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve" />
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Description</label>
-						<textarea bind:value={card.description} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
+						<label for="world-description" class="block text-xs text-subtext0 mb-1">Description</label>
+						<textarea id="world-description" bind:value={card.description} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Scenario</label>
-						<textarea bind:value={card.scenario} rows="3" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
+						<label for="world-scenario" class="block text-xs text-subtext0 mb-1">Scenario</label>
+						<textarea id="world-scenario" bind:value={card.scenario} rows="3" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">First Message</label>
-						<textarea bind:value={card.firstMessage} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
+						<label for="world-first-message" class="block text-xs text-subtext0 mb-1">First Message</label>
+						<textarea id="world-first-message" bind:value={card.firstMessage} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
 					</div>
 
 					<hr class="border-surface1" />
@@ -213,28 +213,29 @@
 					<hr class="border-surface1" />
 
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Tags</label>
-						<input type="text" bind:value={tagsText} placeholder="tag1, tag2, ..." class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve" />
+						<label for="world-tags" class="block text-xs text-subtext0 mb-1">Tags</label>
+						<input id="world-tags" type="text" bind:value={tagsText} placeholder="tag1, tag2, ..." class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve" />
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Creator Notes</label>
-						<textarea bind:value={card.creatorNotes} rows="2" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
+						<label for="world-creator-notes" class="block text-xs text-subtext0 mb-1">Creator Notes</label>
+						<textarea id="world-creator-notes" bind:value={card.creatorNotes} rows="2" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y"></textarea>
 					</div>
 				</div>
 
 			{:else if tab === 'system'}
 				<div class="max-w-2xl space-y-4">
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">System Prompt</label>
-						<textarea bind:value={card.systemPrompt} rows="8" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
+						<label for="world-system-prompt" class="block text-xs text-subtext0 mb-1">System Prompt</label>
+						<textarea id="world-system-prompt" bind:value={card.systemPrompt} rows="8" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Post History Instructions</label>
-						<textarea bind:value={card.postHistoryInstructions} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
+						<label for="world-post-history" class="block text-xs text-subtext0 mb-1">Post History Instructions</label>
+						<textarea id="world-post-history" bind:value={card.postHistoryInstructions} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Depth Prompt</label>
+						<label for="world-depth-prompt" class="block text-xs text-subtext0 mb-1">Depth Prompt</label>
 						<textarea
+							id="world-depth-prompt"
 							value={card.depthPrompt?.prompt ?? ''}
 							oninput={(e) => {
 								const val = (e.target as HTMLTextAreaElement).value;
@@ -249,8 +250,9 @@
 						></textarea>
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Depth Position</label>
+						<label for="world-depth-position" class="block text-xs text-subtext0 mb-1">Depth Position</label>
 						<input
+							id="world-depth-position"
 							type="number"
 							value={card.depthPrompt?.depth ?? 4}
 							oninput={(e) => {
@@ -376,12 +378,12 @@
 			{:else if tab === 'theme'}
 				<div class="max-w-2xl space-y-4">
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Background HTML</label>
-						<textarea bind:value={card.backgroundHTML} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
+						<label for="world-background-html" class="block text-xs text-subtext0 mb-1">Background HTML</label>
+						<textarea id="world-background-html" bind:value={card.backgroundHTML} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
 					</div>
 					<div>
-						<label class="block text-xs text-subtext0 mb-1">Background CSS</label>
-						<textarea bind:value={card.backgroundCSS} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
+						<label for="world-background-css" class="block text-xs text-subtext0 mb-1">Background CSS</label>
+						<textarea id="world-background-css" bind:value={card.backgroundCSS} rows="4" class="w-full bg-surface0 text-text text-sm px-3 py-2 rounded-lg border border-surface1 focus:outline-none focus:border-mauve resize-y font-mono"></textarea>
 					</div>
 				</div>
 			{/if}

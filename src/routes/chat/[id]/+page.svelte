@@ -93,8 +93,12 @@
       await loadArchivedSessions();
       personas = await listPersonas();
 
+      let firstMessageOverride: string | undefined;
       if (cardType === 'world' && !$page.url.searchParams.get('session')) {
-        if ($worldsStore.current?.alternateGreetings?.length) {
+        const greetings = $worldsStore.current?.alternateGreetings ?? [];
+        if (greetings.length === 1) {
+          firstMessageOverride = greetings[0].content;
+        } else if (greetings.length > 1) {
           showGreetingPicker = true;
         }
       }
@@ -104,7 +108,7 @@
         if (querySession && sessions.some((s) => s.id === querySession)) {
           await initChat(characterId, querySession);
         } else {
-          await initChat(characterId);
+          await initChat(characterId, undefined, firstMessageOverride);
           const resolved = $chatStore.sessionId;
           if (resolved && resolved !== querySession) {
             const typeParam = cardType === 'world' ? 'cardType=world&' : '';
@@ -146,9 +150,7 @@
   async function handleGreetingSelect(greeting: AlternateGreeting) {
     showGreetingPicker = false;
     const characterId = $page.params.id!;
-    await initChat(characterId);
-    const { injectFirstMessage } = await import('$lib/core/chat/use-chat');
-    await injectFirstMessage(greeting.content);
+    await initChat(characterId, undefined, greeting.content);
     await loadSessions();
     const chatState = $chatStore;
     if (chatState.sessionId) {

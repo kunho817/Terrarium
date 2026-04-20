@@ -119,8 +119,9 @@
 			{#if isExpanded}
 				<div class="px-3 pb-3 border-t border-surface1 flex flex-col gap-2">
 					<div class="flex items-center gap-2 pt-2">
-						<label class="text-xs text-subtext0 w-14 shrink-0">Name</label>
+						<label for="greeting-{greeting.id}-name" class="text-xs text-subtext0 w-14 shrink-0">Name</label>
 						<input
+							id="greeting-{greeting.id}-name"
 							type="text"
 							value={greeting.name}
 							oninput={(e) => updateGreeting(index, 'name', e.currentTarget.value)}

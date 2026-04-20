@@ -84,6 +84,7 @@ export interface ImageProviderPlugin {
   name: string;
   generateImage(prompt: string, config: UserConfig): Promise<ArrayBuffer>;
   requiredConfig: ConfigField[];
+  validateConfig?(config: UserConfig): Promise<boolean>;
 }
 
 // === Prompt Builder Plugin (v1 built-in) ===

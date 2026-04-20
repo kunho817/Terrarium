@@ -19,11 +19,11 @@ interface RawWorldCharacter {
 	tags?: string[];
 }
 
-interface RawWorldData extends Partial<WorldCard> {
+type RawWorldData = Omit<Partial<WorldCard>, 'alternateGreetings' | 'characters' | 'scenarios'> & {
 	alternateGreetings?: (RawAlternateGreeting | string)[];
 	characters?: RawWorldCharacter[];
 	scenarios?: unknown;
-}
+};
 
 const TCWORLD_SPEC = 'tcworld';
 const TCWORLD_VERSION = '1.0';
@@ -33,13 +33,10 @@ const REQUIRED_DATA_FIELDS: (keyof WorldCard)[] = ['name', 'description'];
 function migrateAlternateGreetings(raw: (RawAlternateGreeting | string)[] | undefined): AlternateGreeting[] {
 	if (!Array.isArray(raw)) return [];
 	if (raw.length === 0) return [];
-	if (typeof raw[0] === 'object' && raw[0] !== null && 'id' in raw[0]) {
-		return raw as AlternateGreeting[];
-	}
-	return raw.map((content: string, i: number) => ({
-		id: crypto.randomUUID(),
-		name: `Greeting ${i + 1}`,
-		content,
+	return raw.map((greeting, i) => ({
+		id: typeof greeting === 'object' && greeting?.id ? greeting.id : crypto.randomUUID(),
+		name: typeof greeting === 'object' && greeting?.name ? greeting.name : `Greeting ${i + 1}`,
+		content: typeof greeting === 'string' ? greeting : greeting?.content ?? '',
 	}));
 }
 

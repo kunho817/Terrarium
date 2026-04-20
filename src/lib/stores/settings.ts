@@ -2,7 +2,7 @@
  * Settings store — reactive state for app settings.
  */
 
-import { writable, get } from 'svelte/store';
+import { writable, get, type Updater } from 'svelte/store';
 import type { AppSettings } from '$lib/storage/settings';
 import type { AgentSettings } from '$lib/types/config';
 import * as settingsStorage from '$lib/storage/settings';
@@ -27,7 +27,7 @@ const DEFAULT_AGENT_SETTINGS: AgentSettings = {
 };
 
 function createSettingsStore() {
-  const { subscribe, set, update } = writable<AppSettings>({
+  const { subscribe, set, update: storeUpdate } = writable<AppSettings>({
     defaultProvider: '',
     theme: 'default',
     providers: {},
@@ -50,7 +50,13 @@ function createSettingsStore() {
   return {
     subscribe,
     set,
-    update,
+    update(partialOrUpdater: Partial<AppSettings> | Updater<AppSettings>) {
+      if (typeof partialOrUpdater === 'function') {
+        storeUpdate(partialOrUpdater);
+        return;
+      }
+      storeUpdate((s) => ({ ...s, ...partialOrUpdater }));
+    },
     
     async load() {
       const settings = await settingsStorage.loadSettings();
@@ -63,7 +69,7 @@ function createSettingsStore() {
     },
     
     updatePartial(partial: Partial<AppSettings>) {
-      update((s) => ({ ...s, ...partial }));
+      storeUpdate((s) => ({ ...s, ...partial }));
     },
     
     reset() {

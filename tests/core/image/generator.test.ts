@@ -122,6 +122,57 @@ describe('ImageGenerator', () => {
     expect(result!.prompt).toContain('masterpiece, best quality');
     expect(result!.prompt).toContain('1girl, classroom');
   });
+
+  it('passes agent scene, director, and character emotion context to the prompt LLM', async () => {
+    const capturedMessages: Message[][] = [];
+    const mockImage = new ArrayBuffer(8);
+    const mockLLM: ProviderPlugin = {
+      id: 'mock-llm',
+      name: 'Mock LLM',
+      requiredConfig: [],
+      validateConfig: async () => true,
+      chat: async function* (messages: Message[]) {
+        capturedMessages.push(messages);
+        yield 'dramatic bridge scene';
+      },
+      chatWithCard: async function* (messages: Message[]) {
+        capturedMessages.push(messages);
+        yield 'dramatic bridge scene';
+      },
+    };
+    const mockImageProvider: ImageProviderPlugin = {
+      id: 'novelai',
+      name: 'NovelAI',
+      requiredConfig: [],
+      generateImage: vi.fn().mockResolvedValue(mockImage),
+    };
+    const registry = {
+      getProvider: () => mockLLM,
+      getImageProvider: () => mockImageProvider,
+    } as unknown as PluginRegistry;
+    const generator = new ImageGenerator(registry);
+
+    await generator.generateForChat({
+      messages: [{ role: 'assistant', content: 'Rain hits the bridge.', type: 'dialogue', timestamp: 0 }],
+      artStyle: DEFAULT_ART_PRESETS[0],
+      imageConfig: defaultImageConfig,
+      config: { providerId: 'mock-llm' } as UserConfig,
+      agentContext: {
+        sceneLocation: 'Old bridge',
+        sceneTime: 'Midnight',
+        sceneMood: 'Tense',
+        directorMandate: 'Keep the lantern visible',
+        directorEmphasis: ['rain', 'lantern'],
+        characterEmotions: { Alice: 'worried', Kai: 'focused' },
+      },
+    });
+
+    const promptContext = capturedMessages[0][1].content;
+    expect(promptContext).toContain('Scene: Location: Old bridge, Time: Midnight, Mood: Tense');
+    expect(promptContext).toContain('Director Scene Mandate: Keep the lantern visible');
+    expect(promptContext).toContain('Director Emphasis: rain, lantern');
+    expect(promptContext).toContain('Character Emotions: Alice (worried), Kai (focused)');
+  });
 });
 
 describe('resolveArtStyle', () => {

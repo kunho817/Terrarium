@@ -117,8 +117,9 @@
 
             <!-- Pattern -->
             <div class="flex items-center gap-2">
-              <label class="text-xs text-subtext0 w-24 shrink-0">Pattern</label>
+              <label for="regex-{script.id}-pattern" class="text-xs text-subtext0 w-24 shrink-0">Pattern</label>
               <input
+                id="regex-{script.id}-pattern"
                 type="text"
                 value={script.pattern}
                 oninput={(e) => updateScript(i, { ...script, pattern: (e.target as HTMLInputElement).value })}
@@ -131,8 +132,9 @@
 
             <!-- Replacement -->
             <div class="flex items-center gap-2">
-              <label class="text-xs text-subtext0 w-24 shrink-0">Replacement</label>
+              <label for="regex-{script.id}-replacement" class="text-xs text-subtext0 w-24 shrink-0">Replacement</label>
               <input
+                id="regex-{script.id}-replacement"
                 type="text"
                 value={script.replacement}
                 oninput={(e) => updateScript(i, { ...script, replacement: (e.target as HTMLInputElement).value })}
@@ -145,8 +147,9 @@
 
             <!-- Stage + Flags -->
             <div class="flex items-center gap-2">
-              <label class="text-xs text-subtext0 w-24 shrink-0">Stage</label>
+              <label for="regex-{script.id}-stage" class="text-xs text-subtext0 w-24 shrink-0">Stage</label>
               <select
+                id="regex-{script.id}-stage"
                 value={script.stage}
                 onchange={(e) => updateScript(i, { ...script, stage: (e.target as HTMLSelectElement).value as RegexStage })}
                 class="flex-1 bg-surface0 text-text px-2.5 py-1.5 rounded-md text-sm border border-surface1
@@ -159,8 +162,9 @@
             </div>
 
             <div class="flex items-center gap-2">
-              <label class="text-xs text-subtext0 w-24 shrink-0">Flags</label>
+              <label for="regex-{script.id}-flags" class="text-xs text-subtext0 w-24 shrink-0">Flags</label>
               <input
+                id="regex-{script.id}-flags"
                 type="text"
                 value={script.flag ?? ''}
                 oninput={(e) => updateScript(i, { ...script, flag: (e.target as HTMLInputElement).value })}

@@ -1,6 +1,6 @@
 {
   "productName": "Terrarium",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "identifier": "com.terrarium.app",
   "build": {
     "frontendDist": "../build",

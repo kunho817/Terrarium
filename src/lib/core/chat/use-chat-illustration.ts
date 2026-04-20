@@ -30,6 +30,12 @@ export async function generateAndInsertIllustrations(
 			if (agentContext.sceneLocation) {
 				contextLines.push(`Scene: ${agentContext.sceneLocation}, ${agentContext.sceneMood || ''} ${agentContext.sceneTime || ''}`.trim());
 			}
+			if (agentContext.characterEmotions && Object.keys(agentContext.characterEmotions).length > 0) {
+				const emotions = Object.entries(agentContext.characterEmotions)
+					.map(([name, emotion]) => `${name} (${emotion})`)
+					.join(', ');
+				contextLines.push(`Character emotions: ${emotions}`);
+			}
 			if (contextLines.length) {
 				plannerContent = `[Scene Context: ${contextLines.join('; ')}]\n\n${plannerContent}`;
 			}

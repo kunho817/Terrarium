@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { memoryRepo, type MemoryView } from '$lib/repositories/memory-repo';
-	import type { MemoryType, SessionSummary } from '$lib/types/memory';
+	import { MEMORY_TYPES, type MemoryType, type SessionSummary } from '$lib/types/memory';
 	import MemoryCard from './MemoryCard.svelte';
 	import SummaryList from './SummaryList.svelte';
 
@@ -25,7 +25,7 @@
 	let newType = $state<MemoryType>('event');
 	let newImportance = $state(0.7);
 
-	const allTypes: MemoryType[] = ['event', 'trait', 'relationship', 'location', 'state'];
+	const allTypes = MEMORY_TYPES;
 
 	async function load() {
 		try {

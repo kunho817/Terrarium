@@ -30,7 +30,7 @@
     list: '#f9e2af',      // Yellow
   };
 
-  const color = portColors[port.type] || '#cdd6f4';
+  const color = $derived(portColors[port.type] || '#cdd6f4');
 </script>
 
 <div

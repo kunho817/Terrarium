@@ -12,7 +12,6 @@ describe('Serialization', () => {
     connections: [
       { id: 'conn1', from: { blockId: 'block1', portId: 'text' }, to: { blockId: 'block2', portId: 'trueBranch' } },
     ],
-    viewport: { x: 0, y: 0, zoom: 1 },
   };
 
   it('exports to .tprompt format', () => {

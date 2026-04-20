@@ -21,6 +21,7 @@ export type {
   ModelInfo,
   ModelSlot,
   MemorySettings,
+  AgentSettings,
 } from './config';
 
 // Script
@@ -78,7 +79,6 @@ export type {
   ProviderPlugin,
   CardFormatPlugin,
   ChatContext,
-  AgentPlugin,
   ImageProviderPlugin,
   PromptBuilderPlugin,
   ChatMetadata,
@@ -102,14 +102,18 @@ export type {
 } from './memory';
 export { MEMORY_WRITE_MODES, DEFAULT_EXTRACTION_PROMPT, DEFAULT_SUMMARY_PROMPT } from './memory';
 
-// Agent
 export type {
-  AgentConfig,
-  AgentContext,
-  AgentResult,
-  ProgressCallback,
-  Agent,
-} from './agent';
+  AgentPipelineContext,
+  SessionAgentState,
+  ExtractionSnapshot,
+  TurnMaintenanceOutput,
+  NarrativeState,
+  CharacterSnapshot,
+  EntityRecord,
+  RelationRecord,
+} from '../core/agents/types';
+
+export { AgentPipeline } from '../core/agents/agent-pipeline';
 
 // Branded Types
 export type {

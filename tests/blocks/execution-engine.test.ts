@@ -91,7 +91,6 @@ describe('ExecutionEngine', () => {
         { id: 'text1', type: 'TextBlock', position: { x: 0, y: 0 }, config: { content: 'Hello' } },
       ],
       connections: [],
-      viewport: { x: 0, y: 0, zoom: 1 },
     };
 
     const engine = new ExecutionEngine(testExecutor);
@@ -118,7 +117,6 @@ describe('ExecutionEngine', () => {
         { id: 'conn1', from: { blockId: 'text1', portId: 'text' }, to: { blockId: 'merge1', portId: 'input1' } },
         { id: 'conn2', from: { blockId: 'text2', portId: 'text' }, to: { blockId: 'merge1', portId: 'input2' } },
       ],
-      viewport: { x: 0, y: 0, zoom: 1 },
     };
 
     const engine = new ExecutionEngine(testExecutor);

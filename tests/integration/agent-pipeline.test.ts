@@ -110,12 +110,13 @@ vi.mock('$lib/stores/settings', () => ({
 
 import { AgentRunner } from '$lib/core/agents/agent-runner';
 import { getSceneState, deleteSceneState, getCharacterStates, deleteCharacterState, updateSceneState } from '$lib/storage/agent-states';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { AgentContext } from '$lib/types/agent';
 
 describe('Agent Pipeline Integration', () => {
 	let runner: AgentRunner;
 	let context: AgentContext;
-	const sessionId = 'integration-test-session';
+	const sessionId = makeSessionId('integration-test-session');
 
 	beforeEach(async () => {
 		sceneStatesStore.clear();
@@ -134,7 +135,7 @@ describe('Agent Pipeline Integration', () => {
 
 		context = {
 			sessionId,
-			cardId: 'test-card',
+			cardId: makeCharacterId('test-card'),
 			cardType: 'character',
 			messages: [
 				{

@@ -28,6 +28,7 @@ export interface AgentImageContext {
   sceneMood?: string;
   directorMandate?: string;
   directorEmphasis?: string[];
+  characterEmotions?: Record<string, string>;
 }
 
 export interface ImageGenContext {
@@ -194,11 +195,14 @@ export class ImageGenerator {
     if (this.cardDescription) {
       contextParts.push(`Character Appearance/Description: ${this.cardDescription}`);
     }
-    if (this.scene) {
+    const sceneLocation = this.agentContext?.sceneLocation ?? this.scene?.location;
+    const sceneTime = this.agentContext?.sceneTime ?? this.scene?.time;
+    const sceneMood = this.agentContext?.sceneMood ?? this.scene?.mood;
+    if (sceneLocation || sceneTime || sceneMood) {
       const sceneParts: string[] = [];
-      if (this.scene.location) sceneParts.push(`Location: ${this.scene.location}`);
-      if (this.scene.time) sceneParts.push(`Time: ${this.scene.time}`);
-      if (this.scene.mood) sceneParts.push(`Mood: ${this.scene.mood}`);
+      if (sceneLocation) sceneParts.push(`Location: ${sceneLocation}`);
+      if (sceneTime) sceneParts.push(`Time: ${sceneTime}`);
+      if (sceneMood) sceneParts.push(`Mood: ${sceneMood}`);
       if (sceneParts.length) contextParts.push(`Scene: ${sceneParts.join(', ')}`);
     }
     if (this.personaName) {
@@ -210,6 +214,12 @@ export class ImageGenerator {
       }
       if (this.agentContext.directorEmphasis?.length) {
         contextParts.push(`Director Emphasis: ${this.agentContext.directorEmphasis.join(', ')}`);
+      }
+      if (this.agentContext.characterEmotions && Object.keys(this.agentContext.characterEmotions).length > 0) {
+        const emotions = Object.entries(this.agentContext.characterEmotions)
+          .map(([name, emotion]) => `${name} (${emotion})`)
+          .join(', ');
+        contextParts.push(`Character Emotions: ${emotions}`);
       }
     }
 

@@ -21,6 +21,9 @@ function substituteTemplates(text: string, card: CharacterCard, scene: SceneStat
     sceneTime: scene.time || '',
     sceneMood: scene.mood || '',
     variables: scene.variables || {},
+    userPersona: '',
+    userDescription: '',
+    userExampleDialogue: '',
   };
   return substituteVariables(text, vars);
 }

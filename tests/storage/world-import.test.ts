@@ -105,7 +105,17 @@ describe('exportWorldCard', () => {
     original.name = 'Roundtrip';
     original.description = 'Test roundtrip';
     original.tags = ['tag1', 'tag2'];
-    original.characters = [{ id: 'c1', name: 'Char', description: 'A character' }];
+    original.characters = [{
+      id: 'c1',
+      name: 'Char',
+      description: 'A character',
+      personality: '',
+      exampleMessages: '',
+      avatar: null,
+      lorebookEntryIds: [],
+      trackState: false,
+      tags: [],
+    }];
 
     const exported = exportWorldCard(original);
     const reimported = parseWorldCard(exported);

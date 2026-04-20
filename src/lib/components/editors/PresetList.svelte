@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import type { PromptPreset } from '$lib/types/prompt-preset';
 
   let { presets, activePresetId, onselect, oncreate, onduplicate, onrename, ondelete }: {
@@ -14,6 +15,13 @@
   let editingId = $state<string | null>(null);
   let editingName = $state('');
   let newName = $state('');
+  let renameInput: HTMLInputElement | null = $state(null);
+
+  $effect(() => {
+    if (editingId && renameInput) {
+      tick().then(() => renameInput?.focus());
+    }
+  });
 
   function startRename(id: string, currentName: string) {
     editingId = id;
@@ -60,6 +68,7 @@
     >
       {#if isEditing}
         <input
+          bind:this={renameInput}
           type="text"
           value={editingName}
           oninput={(e) => editingName = e.currentTarget.value}
@@ -70,7 +79,6 @@
           onblur={() => confirmRename(preset.id)}
           class="flex-1 bg-surface0 text-text px-2 py-0.5 rounded text-sm border border-surface1
                  focus:border-mauve focus:outline-none transition-colors min-w-0"
-          autofocus
         />
       {:else}
         <span class="flex-1 text-sm truncate">{preset.name}</span>

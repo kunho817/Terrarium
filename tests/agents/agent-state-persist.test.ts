@@ -10,6 +10,7 @@ vi.mock('$lib/stores/scene', () => ({
 
 import { sceneStore } from '$lib/stores/scene';
 import { AgentRunner } from '$lib/core/agents/agent-runner';
+import { makeCharacterId, makeSessionId } from '$lib/types/branded';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
 
 function mockSceneAgent(): Agent {
@@ -35,8 +36,8 @@ function mockSceneAgent(): Agent {
 
 function mockContext(): AgentContext {
   return {
-    sessionId: 'test-session',
-    cardId: 'test-card',
+    sessionId: makeSessionId('test-session'),
+    cardId: makeCharacterId('test-card'),
     cardType: 'character',
     messages: [],
     scene: {
@@ -64,6 +65,7 @@ describe('AgentRunner state persistence', () => {
     runner.unregisterAgent('director');
     runner.unregisterAgent('scene-state');
     runner.unregisterAgent('character-state');
+    runner.unregisterAgent('narrative-consistency');
 
     runner.registerAgent(mockSceneAgent());
 
@@ -92,6 +94,7 @@ describe('AgentRunner state persistence', () => {
     runner.unregisterAgent('director');
     runner.unregisterAgent('scene-state');
     runner.unregisterAgent('character-state');
+    runner.unregisterAgent('narrative-consistency');
 
     const agent: Agent = {
       id: 'memory',

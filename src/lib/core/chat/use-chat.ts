@@ -16,6 +16,7 @@ export type { ResolvedCard } from './use-chat-helpers';
 import type { MessageType, Message, UserConfig } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
 import type { ImageGenerationConfig } from '$lib/types/image-config';
+import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 import type { AppSettings } from '$lib/storage/settings';
 
 interface ResolvedChatConfig {
@@ -44,13 +45,13 @@ function resolveChatConfig(settings: AppSettings, worldSettings?: import('$lib/t
 		activePreset = presetSettings.presets.find((p: PromptPreset) => p.id === presetSettings.activePresetId);
 	}
 
-	const imageConfig = settings.imageGeneration;
+	const imageConfig = settings.imageGeneration ?? DEFAULT_IMAGE_CONFIG;
 	const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
 
 	return { config, activePreset, imageConfig, imageAutoGenerate };
 }
 
-export async function initChat(characterId: string, sessionId?: string): Promise<void> {
+export async function initChat(characterId: string, sessionId?: string, firstMessageOverride?: string): Promise<void> {
 	if (sessionId) {
 		await chatRepo.loadSession(characterId, sessionId);
 		await sceneRepo.loadScene(characterId, sessionId);
@@ -62,7 +63,7 @@ export async function initChat(characterId: string, sessionId?: string): Promise
 		}
 	}
 
-	await injectFirstMessage();
+	await injectFirstMessage(firstMessageOverride);
 }
 
 export async function injectFirstMessage(greetingContent?: string): Promise<void> {

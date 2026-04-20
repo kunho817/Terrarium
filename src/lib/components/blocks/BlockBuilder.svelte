@@ -164,6 +164,8 @@
           <div 
             class="bg-surface1 rounded-lg p-6 w-96 max-h-[80vh] overflow-y-auto border border-surface2"
             onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
+            role="presentation"
           >
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-semibold text-text">Edit {block.type}</h3>

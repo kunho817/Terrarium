@@ -35,18 +35,22 @@ export async function callAgentLLM(
 
 	const metadata: ChatMetadata = {};
 	let fullText = '';
+	let timedOut = false;
 
-	const abortController = new AbortController();
-	const timeoutId = setTimeout(() => abortController.abort(), timeout);
+	const timeoutPromise = new Promise<never>((_resolve, reject) => {
+		setTimeout(() => {
+			timedOut = true;
+			reject(new Error(`Agent LLM call timed out after ${timeout}ms`));
+		}, timeout);
+	});
 
-	try {
+	async function runChat(): Promise<string> {
 		for await (const token of provider.chat(messages, chatConfig, metadata)) {
+			if (timedOut) break;
 			fullText += token;
 		}
-		clearTimeout(timeoutId);
 		return fullText;
-	} catch (error) {
-		clearTimeout(timeoutId);
-		throw error;
 	}
+
+	return Promise.race([runChat(), timeoutPromise]);
 }

@@ -11,13 +11,19 @@
 
   let { x, y, type, blockId, portId, onAction, onClose }: Props = $props();
 
-  const canvasItems = [
+  interface MenuItem {
+    label: string;
+    action: string;
+    danger?: boolean;
+  }
+
+  const canvasItems: MenuItem[] = [
     { label: 'Add Block...', action: 'add-block' },
     { label: '---', action: '' },
     { label: 'Clear Canvas', action: 'clear-canvas' }
   ];
 
-  const nodeItems = [
+  const nodeItems: MenuItem[] = [
     { label: 'Edit', action: 'edit' },
     { label: 'Duplicate', action: 'duplicate' },
     { label: 'Collapse', action: 'collapse' },
@@ -25,7 +31,7 @@
     { label: 'Delete', action: 'delete', danger: true }
   ];
 
-  const portItems = [
+  const portItems: MenuItem[] = [
     { label: 'Disconnect All', action: 'disconnect-all' }
   ];
 
@@ -57,8 +63,13 @@
   class="context-menu"
   style="left: {x}px; top: {y}px;"
   role="menu"
+  tabindex="0"
   oncontextmenu={(e) => e.preventDefault()}
   onclick={(e) => e.stopPropagation()}
+  onkeydown={(e) => {
+    e.stopPropagation();
+    handleKeydown(e);
+  }}
 >
   {#each items as item}
     {#if item.label === '---'}

@@ -3,7 +3,21 @@ import { ChatEngine, consumeStream } from '$lib/core/chat/engine';
 import type { SendMessageOptions } from '$lib/core/chat/engine';
 import { PluginRegistry } from '$lib/plugins/registry';
 import { registerBuiltinPromptBuilders } from '$lib/plugins/prompt-builder/builtin';
-import type { ProviderPlugin, Message, UserConfig, CharacterCard, SceneState } from '$lib/types';
+import type { ProviderPlugin, Message, UserConfig, CharacterCard, SceneState, WorldCard } from '$lib/types';
+
+const agentRunnerMocks = vi.hoisted(() => ({
+  getAgentsByPriority: vi.fn(),
+  onBeforeSend: vi.fn(),
+  onAfterReceive: vi.fn(),
+}));
+
+vi.mock('$lib/core/agents/agent-runner', () => ({
+  AgentRunner: vi.fn().mockImplementation(() => ({
+    getAgentsByPriority: agentRunnerMocks.getAgentsByPriority,
+    onBeforeSend: agentRunnerMocks.onBeforeSend,
+    onAfterReceive: agentRunnerMocks.onAfterReceive,
+  })),
+}));
 
 // Mock script bridge
 const mockExecuteScript = vi.fn();
@@ -84,6 +98,12 @@ function createEngine(provider?: ProviderPlugin): { engine: ChatEngine; registry
 }
 
 describe('ChatEngine', () => {
+  beforeEach(() => {
+    agentRunnerMocks.getAgentsByPriority.mockReturnValue([]);
+    agentRunnerMocks.onBeforeSend.mockResolvedValue({});
+    agentRunnerMocks.onAfterReceive.mockResolvedValue({});
+  });
+
   describe('send', () => {
     it('returns user message with processed content', async () => {
       const { engine } = createEngine();
@@ -290,6 +310,69 @@ describe('ChatEngine', () => {
       expect(message.content).toBe('Response');
     });
 
+    it('injects expanded world character lore into provider prompts', async () => {
+      const capturedPrompts: Message[][] = [];
+      const provider: ProviderPlugin = {
+        ...createMockProvider(['ok']),
+        async *chat(messages: Message[], _config: UserConfig): AsyncGenerator<string> {
+          capturedPrompts.push(messages);
+          yield 'ok';
+        },
+      };
+      const worldCard: WorldCard = {
+        name: 'The Vale',
+        description: 'A rain-soaked valley',
+        scenario: 'The bridge is guarded',
+        firstMessage: '',
+        alternateGreetings: [],
+        systemPrompt: '',
+        postHistoryInstructions: '',
+        lorebook: [],
+        loreSettings: { tokenBudget: 2048, scanDepth: 5, recursiveScanning: false, fullWordMatching: false },
+        characters: [
+          {
+            id: 'mara',
+            name: 'Mara',
+            description: 'A ranger watching the old bridge',
+            personality: 'Guarded and terse',
+            exampleMessages: 'Mara: "Keep to the shadow road."',
+            avatar: 'mara.png',
+            lorebookEntryIds: [],
+            trackState: true,
+            tags: ['ranger'],
+          },
+        ],
+        regexScripts: [],
+        triggers: [],
+        scriptState: {},
+        scenarios: [],
+        creator: '',
+        tags: [],
+        creatorNotes: '',
+        metadata: {},
+      };
+
+      const { engine } = createEngine(provider);
+      const result = await engine.send({
+        input: 'Where is Mara?',
+        type: 'dialogue',
+        card: baseCard,
+        scene: baseScene,
+        config: baseConfig,
+        messages: [],
+        worldCard,
+      });
+
+      await consumeStream(result);
+
+      const promptText = capturedPrompts[0].map((message) => message.content).join('\n');
+      expect(promptText).toContain('[Character: Mara]');
+      expect(promptText).toContain('A ranger watching the old bridge');
+      expect(promptText).toContain('Personality: Guarded and terse');
+      expect(promptText).toContain('Example Messages:\nMara: "Keep to the shadow road."');
+      expect(promptText).toContain('Avatar: mara.png');
+    });
+
     it('supports abort mid-stream', async () => {
       const slowProvider = createMockProvider(['a', 'b', 'c', 'd', 'e']);
       const { engine } = createEngine(slowProvider);
@@ -330,6 +413,59 @@ describe('ChatEngine', () => {
       });
       const { message } = await consumeStream(result);
       expect(message.content).toBe('ok');
+    });
+
+    it('keeps agent image context updated through after-receive agents', async () => {
+      agentRunnerMocks.onBeforeSend.mockResolvedValueOnce({
+        updatedState: {
+          directorGuidance: {
+            sceneMandate: 'Keep the lantern in frame',
+            requiredOutcomes: [],
+            forbiddenMoves: [],
+            emphasis: ['lantern', 'rain'],
+            targetPacing: 'normal',
+            pressureLevel: 'medium',
+          },
+        },
+      });
+      agentRunnerMocks.onAfterReceive.mockResolvedValueOnce({
+        updatedState: {
+          scene: {
+            location: 'Old bridge',
+            time: 'Midnight',
+            mood: 'Tense',
+          },
+          characters: [
+            { characterName: 'Alice', emotion: 'worried' },
+            { characterName: 'Kai', emotion: 'focused' },
+          ],
+        },
+      });
+
+      const { engine } = createEngine(createMockProvider(['Rain falls.']));
+      const result = await engine.send({
+        input: 'Continue',
+        type: 'dialogue',
+        card: baseCard,
+        scene: baseScene,
+        config: baseConfig,
+        messages: [],
+        imageAutoGenerate: true,
+      });
+
+      await consumeStream(result);
+
+      expect(result.agentContext).toMatchObject({
+        directorMandate: 'Keep the lantern in frame',
+        directorEmphasis: ['lantern', 'rain'],
+        sceneLocation: 'Old bridge',
+        sceneTime: 'Midnight',
+        sceneMood: 'Tense',
+        characterEmotions: {
+          Alice: 'worried',
+          Kai: 'focused',
+        },
+      });
     });
   });
 
