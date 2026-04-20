@@ -22,6 +22,14 @@ Rules:
 Example output:
 [{"afterParagraph":1,"prompt":"1girl, standing in forest, golden hour, detailed trees"},{"afterParagraph":4,"prompt":"1girl, close-up, tears, emotional, soft lighting"}]`;
 
+export interface AgentImageContext {
+  sceneLocation?: string;
+  sceneTime?: string;
+  sceneMood?: string;
+  directorMandate?: string;
+  directorEmphasis?: string[];
+}
+
 export interface ImageGenContext {
   messages: Message[];
   artStyle: ArtStylePreset;
@@ -31,6 +39,7 @@ export interface ImageGenContext {
   cardName?: string;
   scene?: SceneState;
   personaName?: string;
+  agentContext?: AgentImageContext;
 }
 
 export class ImageGenerator {
@@ -38,6 +47,7 @@ export class ImageGenerator {
   cardDescription?: string;
   scene?: SceneState;
   personaName?: string;
+  agentContext?: AgentImageContext;
 
   constructor(private registry: PluginRegistry) {}
 
@@ -133,6 +143,7 @@ export class ImageGenerator {
     this.cardDescription = ctx.cardDescription;
     this.scene = ctx.scene;
     this.personaName = ctx.personaName;
+    this.agentContext = ctx.agentContext;
 
     const llmProvider = this.registry.getProvider(ctx.config.providerId as string);
     const llmPrompt = await this.generateImagePrompt(
@@ -192,6 +203,14 @@ export class ImageGenerator {
     }
     if (this.personaName) {
       contextParts.push(`User/Persona: ${this.personaName}`);
+    }
+    if (this.agentContext) {
+      if (this.agentContext.directorMandate) {
+        contextParts.push(`Director Scene Mandate: ${this.agentContext.directorMandate}`);
+      }
+      if (this.agentContext.directorEmphasis?.length) {
+        contextParts.push(`Director Emphasis: ${this.agentContext.directorEmphasis.join(', ')}`);
+      }
     }
 
     contextParts.push('Conversation:');

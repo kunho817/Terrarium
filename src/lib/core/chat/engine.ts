@@ -13,6 +13,7 @@ import type {
   ChatContext,
   LorebookEntry,
 } from '$lib/types';
+import type { AgentImageContext } from '../image/generator';
 import type { WorldCard } from '$lib/types/world';
 import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
@@ -121,6 +122,7 @@ export interface SendResult {
   stream: AsyncGenerator<string>;
   onComplete: Promise<Message>;
   abort: () => void;
+  agentContext?: AgentImageContext;
 }
 
 export class ChatEngine {
@@ -231,6 +233,19 @@ export class ChatEngine {
     }
     if (agentResult.injectPrompt) {
       ctx.additionalPrompt = (ctx.additionalPrompt || '') + '\n\n' + agentResult.injectPrompt;
+    }
+
+    const agentImgContext: AgentImageContext = {};
+    if (agentResult.updatedState?.scene) {
+      const s = agentResult.updatedState.scene;
+      agentImgContext.sceneLocation = s.location;
+      agentImgContext.sceneTime = s.time;
+      agentImgContext.sceneMood = s.mood;
+    }
+    if (agentResult.updatedState?.directorGuidance) {
+      const dg = agentResult.updatedState.directorGuidance;
+      agentImgContext.directorMandate = dg.sceneMandate;
+      agentImgContext.directorEmphasis = dg.emphasis;
     }
 
     // 7-8. Assemble prompt messages (preset-driven or legacy)
@@ -382,6 +397,7 @@ export class ChatEngine {
         resetPipeline();
       },
       onComplete,
+      agentContext: Object.keys(agentImgContext).length > 0 ? agentImgContext : undefined,
     };
   }
 }
