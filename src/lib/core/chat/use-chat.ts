@@ -130,7 +130,7 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 
 	chatStore.addMessage(result.userMessage);
 
-	await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
+	await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets, result.agentContext);
 }
 
 export async function editMessage(index: number, newContent: string): Promise<void> {
@@ -175,5 +175,5 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 		imageAutoGenerate,
 	});
 
-	await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
+	await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets, result.agentContext);
 }

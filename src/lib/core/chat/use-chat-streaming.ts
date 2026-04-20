@@ -16,6 +16,7 @@ export async function streamAndFinalize(
 	imageConfig: import('$lib/types/image-config').ImageGenerationConfig | undefined,
 	imageAutoGenerate: boolean,
 	customPresets: import('$lib/types/art-style').ArtStylePreset[] | undefined,
+	agentContext?: import('$lib/core/image/generator').AgentImageContext,
 ): Promise<void> {
 	const startTime = Date.now();
 
@@ -45,6 +46,6 @@ export async function streamAndFinalize(
 	await chatRepo.saveMessages();
 
 	if (imageAutoGenerate && assistantMessage.content.length > 0 && imageConfig) {
-		generateAndInsertIllustrations(assistantMessage, config, imageConfig, customPresets);
+		generateAndInsertIllustrations(assistantMessage, config, imageConfig, customPresets, agentContext);
 	}
 }
