@@ -1,11 +1,11 @@
 {
-  "version": "0.1.1",
-  "notes": "Terrarium v0.1.1 — Memory agent fix, image generation improvements.",
-  "pub_date": "2026-04-20T04:21:00Z",
+  "version": "0.1.2",
+  "notes": "Terrarium v0.1.2 — Save & Reroll race condition fix, world chat re-entry bug fix.",
+  "pub_date": "2026-04-20T05:39:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZ0Jsb0ZTUjh0alZyZDBuZVNtOGZPcG5peE9iL3luRjh6Znh0Z1B3bzJtZ2JsaVJNeXh2Vkh3cFo3QnlDVTZYWDA1MEdYcWtsb2gxbUIxVFNRR21RR2EyVElPV3VDMndvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2NjU5MDYxCWZpbGU6VGVycmFyaXVtXzAuMS4xX3g2NC1zZXR1cC5leGUKTDVSd2drdkRyTVp0eFI1MWpUeEpINXh0anNzUDk1c0RrVTBEU1ZoTjhWbWVTNnA5YWs1dUQzLzlvOTZwaGJOUlgwL000cHo5VmVFd2tEdnJ2anY2RHc9PQo=",
-      "url": "https://github.com/kunho817/Terrarium/releases/latest/download/Terrarium_0.1.1_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZ0Jsb0ZTUjh0amZvb1RmQ0txZEppdFRVVkQ5enVpRVk1ditpYkt2UC8zUkNmbll3aFpRQzdPOVFHSFFZNjJ5cjExa0FkUnR4M3lKSk9zZXN0Nzc1Q3FqRFVGampBeFFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzc2NjU5OTQwCWZpbGU6VGVycmFyaXVtXzAuMS4yX3g2NC1zZXR1cC5leGUKc1JQeGdpeEhWTk9sSTk3NTlhMCtOVTlxbGdVYkpJZFZVRTNJZVZMNUx3ZWtxZmNQcU41TjNMcnk0eExGczgvbHVjdzZvQ1JnODJKbW1ZRU5XUzc3Qnc9PQo=",
+      "url": "https://github.com/kunho817/Terrarium/releases/latest/download/Terrarium_0.1.2_x64-setup.exe"
     }
   }
 }
