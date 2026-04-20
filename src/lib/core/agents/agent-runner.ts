@@ -1,4 +1,5 @@
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
+import type { SceneState } from '$lib/types/scene';
 import { MemoryAgent } from './memory-agent';
 import { DirectorAgent } from './director-agent';
 import { SceneStateAgent } from './scene-state-agent';
@@ -122,7 +123,7 @@ export class AgentRunner {
 			try {
 				const { sceneStore } = await import('$lib/stores/scene');
 				const agentScene = combined.updatedState.scene;
-				sceneStore.update((state: any) => ({
+				sceneStore.update((state: SceneState) => ({
 					...state,
 					location: agentScene.location || state.location,
 					mood: agentScene.mood || state.mood,

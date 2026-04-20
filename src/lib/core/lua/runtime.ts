@@ -1,5 +1,5 @@
 import { LuaFactory } from 'wasmoon';
-import type { VariableStore } from '$lib/types';
+import type { VariableStore, VariableValue } from '$lib/types';
 import { applySandbox } from './sandbox';
 import { createApiBridge, type LuaApiContext } from './api-bridge';
 
@@ -27,7 +27,7 @@ export class LuaRuntime {
 
 		const ctx: LuaApiContext = {
 			getVar: (name: string) => this.variables[name],
-			setVar: (name: string, value: unknown) => { this.variables[name] = value as any; },
+			setVar: (name: string, value: VariableValue) => { this.variables[name] = value; },
 			hasVar: (name: string) => name in this.variables,
 		};
 

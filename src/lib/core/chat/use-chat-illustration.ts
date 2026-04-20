@@ -5,7 +5,7 @@ import { settingsStore } from '$lib/stores/settings';
 import { charactersStore } from '$lib/stores/characters';
 import { ImageGenerator, resolveArtStyle } from '$lib/core/image/generator';
 import { getRegistry } from '$lib/core/bootstrap';
-import type { Message } from '$lib/types';
+import type { Message, UserConfig } from '$lib/types';
 
 export async function generateAndInsertIllustrations(
 	assistantMessage: Message,
@@ -17,7 +17,7 @@ export async function generateAndInsertIllustrations(
 		const artStyle = resolveArtStyle(imageConfig.artStylePresetId, customPresets);
 		const generator = new ImageGenerator(getRegistry());
 
-		const plans = await generator.planIllustrations(assistantMessage.content, config as any);
+		const plans = await generator.planIllustrations(assistantMessage.content, config as UserConfig);
 		if (plans.length === 0) return;
 
 		const results = new Map<number, { dataUrl: string; prompt: string }>();

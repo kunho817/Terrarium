@@ -70,7 +70,7 @@ export class ImageGenerator {
       const parsed = JSON.parse(jsonMatch[0]);
       if (!Array.isArray(parsed)) return [];
       return parsed.filter(
-        (p: any) =>
+        (p: { afterParagraph?: number; prompt?: string }) =>
           typeof p.afterParagraph === 'number' &&
           typeof p.prompt === 'string' &&
           p.prompt.trim().length > 0,

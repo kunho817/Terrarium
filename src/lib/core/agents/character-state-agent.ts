@@ -89,7 +89,7 @@ export function parseCharacterOutput(content: string): CharacterExtraction | nul
 		}
 		
 		return {
-			characters: parsed.characters.map((c: any) => ({
+			characters: parsed.characters.map((c: { name?: string; emotion?: string; location?: string; inventory?: string[]; health?: string; notes?: string }) => ({
 				name: typeof c.name === 'string' ? c.name : '',
 				emotion: typeof c.emotion === 'string' ? c.emotion : '',
 				location: typeof c.location === 'string' ? c.location : '',

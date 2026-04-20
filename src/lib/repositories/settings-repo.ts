@@ -24,7 +24,7 @@ export const settingsRepo = {
       }
       
       // Migrate: add noiseSchedule to novelai config if missing
-      if (settings.imageGeneration?.novelai && !(settings.imageGeneration.novelai as any).noiseSchedule) {
+      if (settings.imageGeneration?.novelai && !settings.imageGeneration.novelai.noiseSchedule) {
         settings.imageGeneration.novelai.noiseSchedule = 'karras';
       }
       

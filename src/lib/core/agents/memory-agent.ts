@@ -6,6 +6,7 @@ import { MEMORY_WRITE_MODES, DEFAULT_EXTRACTION_PROMPT } from '$lib/types/memory
 import { callAgentLLM } from './agent-llm';
 import type { MemoryRecord, MemoryType, ExtractionResult } from '$lib/types/memory';
 import type { Agent, AgentContext, AgentResult } from '$lib/types/agent';
+import type { Message } from '$lib/types';
 
 function parseExtractionResult(content: string): ExtractionResult | null {
 	const match = content.match(/\{[\s\S]*\}/);
@@ -184,7 +185,7 @@ export class MemoryAgent implements Agent {
 					type: fact.type as MemoryType,
 					content: fact.content,
 					importance: fact.importance,
-					sourceMessageIds: messageWindow.map((m) => (m as any).id).filter(Boolean),
+					sourceMessageIds: messageWindow.map((m: Message & { id?: string }) => m.id).filter((id): id is string => typeof id === 'string'),
 					turnNumber: ctx.turnNumber,
 					createdAt: Date.now(),
 					embedding,
