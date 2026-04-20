@@ -151,14 +151,3 @@ export type {
   ExecutionError,
 } from './block-execution';
 
-// Scratch Blocks
-export type {
-  ScratchBlock,
-  ScratchScript,
-  SlotType,
-  SlotDefinition,
-  BlockDefinition as ScratchBlockDefinition,
-  BlockType as ScratchBlockType,
-  BlockConfig as ScratchBlockConfig,
-} from './scratch-blocks';
-export { createBlock, createScript } from './scratch-blocks';
