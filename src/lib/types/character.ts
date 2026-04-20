@@ -6,7 +6,6 @@
 import type { LorebookEntry, LorebookSettings } from './lorebook';
 import type { Trigger } from './trigger';
 import type { RegexScript, VariableStore } from './script';
-import type { AlternateGreeting } from './world';
 
 export interface DepthPrompt {
   depth: number;
@@ -20,7 +19,7 @@ export interface CharacterCard {
   personality: string;
   scenario: string;
   firstMessage: string;
-  alternateGreetings: AlternateGreeting[];
+  alternateGreetings: string[];
   exampleMessages: string;
   avatar?: ArrayBuffer;
 
