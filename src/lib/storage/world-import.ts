@@ -1,12 +1,36 @@
 import type { WorldCard, WorldCharacter, AlternateGreeting } from '$lib/types';
 import { createDefaultWorldCard } from '$lib/types';
 
+interface RawAlternateGreeting {
+	id?: string;
+	name?: string;
+	content?: string;
+}
+
+interface RawWorldCharacter {
+	id?: string;
+	name?: string;
+	description?: string;
+	personality?: string;
+	exampleMessages?: string;
+	avatar?: string | null;
+	lorebookEntryIds?: string[];
+	trackState?: boolean;
+	tags?: string[];
+}
+
+interface RawWorldData extends Partial<WorldCard> {
+	alternateGreetings?: (RawAlternateGreeting | string)[];
+	characters?: RawWorldCharacter[];
+	scenarios?: unknown;
+}
+
 const TCWORLD_SPEC = 'tcworld';
 const TCWORLD_VERSION = '1.0';
 
 const REQUIRED_DATA_FIELDS: (keyof WorldCard)[] = ['name', 'description'];
 
-function migrateAlternateGreetings(raw: any): AlternateGreeting[] {
+function migrateAlternateGreetings(raw: (RawAlternateGreeting | string)[] | undefined): AlternateGreeting[] {
 	if (!Array.isArray(raw)) return [];
 	if (raw.length === 0) return [];
 	if (typeof raw[0] === 'object' && raw[0] !== null && 'id' in raw[0]) {
@@ -19,7 +43,7 @@ function migrateAlternateGreetings(raw: any): AlternateGreeting[] {
 	}));
 }
 
-function migrateCharacter(char: any): WorldCharacter {
+function migrateCharacter(char: RawWorldCharacter): WorldCharacter {
 	return {
 		id: char.id ?? crypto.randomUUID(),
 		name: char.name ?? '',
@@ -48,7 +72,7 @@ export function validateWorldCard(data: ArrayBuffer): boolean {
 
 export function parseWorldCard(data: ArrayBuffer): WorldCard {
 	const text = new TextDecoder().decode(data);
-	let parsed: any;
+	let parsed: { spec?: string; specVersion?: string; data?: RawWorldData };
 	try {
 		parsed = JSON.parse(text);
 	} catch {
@@ -58,7 +82,7 @@ export function parseWorldCard(data: ArrayBuffer): WorldCard {
 		throw new Error('Not a valid .tcworld file');
 	}
 	const defaults = createDefaultWorldCard();
-	const raw = parsed.data;
+	const raw: RawWorldData = parsed.data ?? {};
 	const merged = { ...defaults, ...raw };
 	merged.alternateGreetings = migrateAlternateGreetings(raw.alternateGreetings);
 	if (Array.isArray(raw.characters)) {
