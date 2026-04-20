@@ -13,8 +13,42 @@ export { generateIllustration } from './use-chat-illustration';
 export { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
 export type { ResolvedCard } from './use-chat-helpers';
 
-import type { MessageType, Message } from '$lib/types';
+import type { MessageType, Message, UserConfig } from '$lib/types';
 import type { PromptPreset } from '$lib/types/prompt-preset';
+import type { ImageGenerationConfig } from '$lib/types/image-config';
+import type { AppSettings } from '$lib/storage/settings';
+
+interface ResolvedChatConfig {
+	config: UserConfig;
+	activePreset: PromptPreset | undefined;
+	imageConfig: ImageGenerationConfig;
+	imageAutoGenerate: boolean;
+}
+
+function resolveChatConfig(settings: AppSettings, worldSettings?: import('$lib/types/world').WorldSettings): ResolvedChatConfig {
+	const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
+	const baseConfig: UserConfig = {
+		providerId: settings.defaultProvider,
+		model: (providerConfig?.model as string) || undefined,
+		apiKey: (providerConfig?.apiKey as string) || undefined,
+		baseUrl: (providerConfig?.baseUrl as string) || undefined,
+		temperature: (providerConfig?.temperature as number) || undefined,
+		maxTokens: (providerConfig?.maxTokens as number) || undefined,
+	};
+
+	const config = resolveEffectiveSettings(baseConfig, worldSettings);
+
+	const presetSettings = settings.promptPresets;
+	let activePreset: PromptPreset | undefined;
+	if (presetSettings) {
+		activePreset = presetSettings.presets.find((p: PromptPreset) => p.id === presetSettings.activePresetId);
+	}
+
+	const imageConfig = settings.imageGeneration;
+	const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
+
+	return { config, activePreset, imageConfig, imageAutoGenerate };
+}
 
 export async function initChat(characterId: string, sessionId?: string): Promise<void> {
 	if (sessionId) {
@@ -77,27 +111,7 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 	const sessionPersonaId = await getSessionPersonaId();
 	const persona = await resolvePersona(resolved.card, sessionPersonaId);
 	const engine = getEngine();
-
-	const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
-	const baseConfig = {
-		providerId: settings.defaultProvider,
-		model: (providerConfig?.model as string) || undefined,
-		apiKey: (providerConfig?.apiKey as string) || undefined,
-		baseUrl: (providerConfig?.baseUrl as string) || undefined,
-		temperature: (providerConfig?.temperature as number) || undefined,
-		maxTokens: (providerConfig?.maxTokens as number) || undefined,
-	};
-
-	const config = resolveEffectiveSettings(baseConfig, resolved.worldCard?.worldSettings);
-
-	const presetSettings = settings.promptPresets;
-	let activePreset: PromptPreset | undefined;
-	if (presetSettings) {
-		activePreset = presetSettings.presets.find(p => p.id === presetSettings.activePresetId);
-	}
-
-	const imageConfig = settings.imageGeneration;
-	const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
+	const { config, activePreset, imageConfig, imageAutoGenerate } = resolveChatConfig(settings, resolved.worldCard?.worldSettings);
 
 	const result = await engine.send({
 		input,
@@ -146,27 +160,7 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 	const sessionPersonaId = await getSessionPersonaId();
 	const persona = await resolvePersona(resolved.card, sessionPersonaId);
 	const engine = getEngine();
-
-	const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
-	const baseConfig = {
-		providerId: settings.defaultProvider,
-		model: (providerConfig?.model as string) || undefined,
-		apiKey: (providerConfig?.apiKey as string) || undefined,
-		baseUrl: (providerConfig?.baseUrl as string) || undefined,
-		temperature: (providerConfig?.temperature as number) || undefined,
-		maxTokens: (providerConfig?.maxTokens as number) || undefined,
-	};
-
-	const config = resolveEffectiveSettings(baseConfig, resolved.worldCard?.worldSettings);
-
-	const presetSettings = settings.promptPresets;
-	let activePreset: PromptPreset | undefined;
-	if (presetSettings) {
-		activePreset = presetSettings.presets.find(p => p.id === presetSettings.activePresetId);
-	}
-
-	const imageConfig = settings.imageGeneration;
-	const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
+	const { config, activePreset, imageConfig, imageAutoGenerate } = resolveChatConfig(settings, resolved.worldCard?.worldSettings);
 
 	const result = await engine.send({
 		input: userMessage.content,
