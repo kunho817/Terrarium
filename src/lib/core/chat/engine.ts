@@ -72,6 +72,7 @@ export interface SendMessageOptions {
   config: UserConfig;
   messages: Message[];
   characterId?: string;
+  sessionId?: string;
   preset?: PromptPreset;
   persona?: UserPersona;
   worldCard?: WorldCard;
@@ -203,7 +204,7 @@ export class ChatEngine {
 
     const agentResult = await this.agentRunner.onBeforeSend(
       {
-        sessionId: makeSessionId(options.characterId || ''),
+        sessionId: makeSessionId(options.sessionId || options.characterId || ''),
         cardId: makeCharacterId(options.characterId || ''),
         cardType: options.worldCard ? 'world' : 'character',
         messages: allMessages,
@@ -268,6 +269,7 @@ export class ChatEngine {
     const capturedCtx = ctx;
     const capturedConfig = options.config;
     const capturedCharacterId = options.characterId;
+    const capturedSessionId = options.sessionId;
 
     async function* tokenStream(): AsyncGenerator<string> {
       const provider = self.registry.getProvider(capturedConfig.providerId);
@@ -301,7 +303,7 @@ export class ChatEngine {
       // 11b. Run agent runner onAfterReceive
       try {
         await self.agentRunner.onAfterReceive({
-          sessionId: makeSessionId(capturedCharacterId || ''),
+          sessionId: makeSessionId(capturedSessionId || capturedCharacterId || ''),
           cardId: makeCharacterId(capturedCharacterId || ''),
           cardType: 'character',
           messages: capturedCtx.messages,

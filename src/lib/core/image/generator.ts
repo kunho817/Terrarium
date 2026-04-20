@@ -3,6 +3,7 @@ import type { PluginRegistry } from '$lib/plugins/registry';
 import type { Message, UserConfig, ContentSegment, IllustrationPlan } from '$lib/types';
 import type { ImageGenerationConfig } from '$lib/types/image-config';
 import type { ArtStylePreset } from '$lib/types/art-style';
+import type { SceneState } from '$lib/types/scene';
 import { DEFAULT_ART_PRESETS } from '$lib/types/art-style';
 
 const PLAN_SYSTEM_PROMPT = `You are an illustration planner for a roleplay chat. You will be given an AI assistant's response. Your job is to decide where illustrations should be inserted to enhance the visual experience.
@@ -26,9 +27,18 @@ export interface ImageGenContext {
   artStyle: ArtStylePreset;
   imageConfig: ImageGenerationConfig;
   config: UserConfig;
+  cardDescription?: string;
+  cardName?: string;
+  scene?: SceneState;
+  personaName?: string;
 }
 
 export class ImageGenerator {
+  cardName?: string;
+  cardDescription?: string;
+  scene?: SceneState;
+  personaName?: string;
+
   constructor(private registry: PluginRegistry) {}
 
   async planIllustrations(
@@ -119,6 +129,11 @@ export class ImageGenerator {
   ): Promise<{ dataUrl: string; prompt: string } | null> {
     if (ctx.imageConfig.provider === 'none') return null;
 
+    this.cardName = ctx.cardName;
+    this.cardDescription = ctx.cardDescription;
+    this.scene = ctx.scene;
+    this.personaName = ctx.personaName;
+
     const llmProvider = this.registry.getProvider(ctx.config.providerId as string);
     const llmPrompt = await this.generateImagePrompt(
       llmProvider,
@@ -160,9 +175,29 @@ export class ImageGenerator {
     config: UserConfig,
   ): Promise<string | null> {
     const recentMessages = messages.slice(-10);
-    const chatContext = recentMessages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join('\n');
+    const contextParts: string[] = [];
+
+    if (this.cardName) {
+      contextParts.push(`Character: ${this.cardName}`);
+    }
+    if (this.cardDescription) {
+      contextParts.push(`Character Appearance/Description: ${this.cardDescription}`);
+    }
+    if (this.scene) {
+      const sceneParts: string[] = [];
+      if (this.scene.location) sceneParts.push(`Location: ${this.scene.location}`);
+      if (this.scene.time) sceneParts.push(`Time: ${this.scene.time}`);
+      if (this.scene.mood) sceneParts.push(`Mood: ${this.scene.mood}`);
+      if (sceneParts.length) contextParts.push(`Scene: ${sceneParts.join(', ')}`);
+    }
+    if (this.personaName) {
+      contextParts.push(`User/Persona: ${this.personaName}`);
+    }
+
+    contextParts.push('Conversation:');
+    contextParts.push(recentMessages.map((m) => `${m.role}: ${m.content}`).join('\n'));
+
+    const chatContext = contextParts.join('\n\n');
 
     const llmMessages: Message[] = [
       { role: 'system', content: imageConfig.imagePromptInstructions, type: 'system', timestamp: 0 },

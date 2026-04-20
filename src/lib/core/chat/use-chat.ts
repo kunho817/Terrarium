@@ -106,6 +106,8 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 		scene: get(sceneStore),
 		config,
 		messages: state.messages,
+		characterId: (state.characterId as string | null) ?? undefined,
+		sessionId: (state.sessionId as string | null) ?? undefined,
 		preset: activePreset,
 		persona,
 		worldCard: resolved.worldCard,
