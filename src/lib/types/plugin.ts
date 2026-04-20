@@ -61,19 +61,6 @@ export interface ChatContext {
   config: UserConfig;
   additionalPrompt?: string;
   lorebookMatches: LorebookEntry[];
-  agentOutputs?: import('$lib/types/agent').AgentOutputs;
-}
-
-// === Agent Plugin (v2 expansion) ===
-// Spec reference: Section 3.3
-
-export interface AgentPlugin {
-  id: string;
-  name: string;
-
-  onBeforeSend(ctx: ChatContext): Promise<ChatContext>;
-  onAfterReceive(ctx: ChatContext, response: string): Promise<string>;
-  runBackground(ctx: ChatContext): Promise<void>;
 }
 
 // === Image Provider Plugin (v2 expansion) ===

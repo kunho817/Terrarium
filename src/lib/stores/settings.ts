@@ -10,20 +10,10 @@ import { createDefaultPresetSettings, migratePresetItems, createDefaultPreset } 
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 
 const DEFAULT_AGENT_SETTINGS: AgentSettings = {
-  director: {
-    enabled: true,
-    mode: 'light',
-    tokenBudget: 6400,
-  },
-  scene: {
-    enabled: true,
-    tokenBudget: 2560,
-  },
-  character: {
-    enabled: true,
-    autoTrack: true,
-    tokenBudget: 6400,
-  },
+  enabled: true,
+  turnMaintenance: { enabled: true, contextMessages: 20, tokenBudget: 2048 },
+  extraction: { enabled: true, tokenBudget: 1024, repairAttempts: 2 },
+  director: { mode: 'light' },
 };
 
 function createSettingsStore() {

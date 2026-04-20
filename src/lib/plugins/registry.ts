@@ -6,7 +6,6 @@
 import type {
   ProviderPlugin,
   CardFormatPlugin,
-  AgentPlugin,
   ImageProviderPlugin,
   PromptBuilderPlugin,
 } from '$lib/types/plugin';
@@ -15,7 +14,6 @@ export class PluginRegistry {
   private providers = new Map<string, ProviderPlugin>();
   private cardFormatsById = new Map<string, CardFormatPlugin>();
   private cardFormatsByExtension = new Map<string, CardFormatPlugin>();
-  private agents = new Map<string, AgentPlugin>();
   private imageProviders = new Map<string, ImageProviderPlugin>();
   private promptBuilders = new Map<string, PromptBuilderPlugin>();
 
@@ -71,27 +69,6 @@ export class PluginRegistry {
 
   listCardFormats(): CardFormatPlugin[] {
     return Array.from(this.cardFormatsById.values());
-  }
-
-  // === Agent ===
-
-  registerAgent(plugin: AgentPlugin): void {
-    if (this.agents.has(plugin.id)) {
-      throw new Error(`Agent plugin "${plugin.id}" is already registered`);
-    }
-    this.agents.set(plugin.id, plugin);
-  }
-
-  getAgent(id: string): AgentPlugin {
-    const plugin = this.agents.get(id);
-    if (!plugin) {
-      throw new Error(`Agent plugin "${id}" not found`);
-    }
-    return plugin;
-  }
-
-  listAgents(): AgentPlugin[] {
-    return Array.from(this.agents.values());
   }
 
   // === Image Provider ===

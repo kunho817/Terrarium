@@ -5,29 +5,29 @@
 
   let loaded = $state(false);
 
-  let directorEnabled = $state(true);
+  let enabled = $state(true);
+  let turnMaintenanceEnabled = $state(true);
+  let contextMessages = $state(20);
+  let tmBudget = $state(2048);
+
+  let extractionEnabled = $state(true);
+  let extractionBudget = $state(1024);
+  let repairAttempts = $state(2);
+
   let directorMode = $state<'light' | 'strong' | 'absolute'>('light');
-  let directorBudget = $state(6400);
-
-  let sceneEnabled = $state(true);
-  let sceneBudget = $state(2560);
-
-  let characterEnabled = $state(true);
-  let characterAutoTrack = $state(true);
-  let characterBudget = $state(6400);
 
   onMount(async () => {
     await settingsRepo.load();
     const ag = $settingsStore.agentSettings;
     if (ag) {
-      directorEnabled = ag.director?.enabled ?? true;
+      enabled = ag.enabled ?? true;
+      turnMaintenanceEnabled = ag.turnMaintenance?.enabled ?? true;
+      contextMessages = ag.turnMaintenance?.contextMessages ?? 20;
+      tmBudget = ag.turnMaintenance?.tokenBudget ?? 2048;
+      extractionEnabled = ag.extraction?.enabled ?? true;
+      extractionBudget = ag.extraction?.tokenBudget ?? 1024;
+      repairAttempts = ag.extraction?.repairAttempts ?? 2;
       directorMode = ag.director?.mode ?? 'light';
-      directorBudget = ag.director?.tokenBudget ?? 6400;
-      sceneEnabled = ag.scene?.enabled ?? true;
-      sceneBudget = ag.scene?.tokenBudget ?? 2560;
-      characterEnabled = ag.character?.enabled ?? true;
-      characterAutoTrack = ag.character?.autoTrack ?? true;
-      characterBudget = ag.character?.tokenBudget ?? 6400;
     }
     loaded = true;
   });
@@ -35,9 +35,10 @@
   async function handleSave() {
     settingsStore.update({
       agentSettings: {
-        director: { enabled: directorEnabled, mode: directorMode, tokenBudget: directorBudget },
-        scene: { enabled: sceneEnabled, tokenBudget: sceneBudget },
-        character: { enabled: characterEnabled, autoTrack: characterAutoTrack, tokenBudget: characterBudget },
+        enabled,
+        turnMaintenance: { enabled: turnMaintenanceEnabled, contextMessages, tokenBudget: tmBudget },
+        extraction: { enabled: extractionEnabled, tokenBudget: extractionBudget, repairAttempts },
+        director: { mode: directorMode },
       },
     });
     await settingsRepo.save();
@@ -55,33 +56,149 @@
       </div>
 
       <p class="text-xs text-subtext0">
-        Configure the AI agents that run during chat to manage scene state, character tracking, and narrative direction.
+        Configure the agent pipeline that handles memory, narrative planning, and scene extraction.
       </p>
 
-      <!-- Director Agent -->
+      <!-- Global Toggle -->
       <section class="space-y-4 rounded-lg border border-surface1 p-4">
         <div class="flex items-center justify-between">
           <div>
-            <h2 class="text-sm font-medium text-text">Director Agent</h2>
-            <p class="text-xs text-subtext0">Guides narrative direction and plot progression.</p>
+            <h2 class="text-sm font-medium text-text">Agent Pipeline</h2>
+            <p class="text-xs text-subtext0">Enable or disable the entire agent pipeline.</p>
           </div>
           <button
             type="button"
             role="switch"
-            aria-checked={directorEnabled}
-            aria-label="Director agent"
-            onclick={() => directorEnabled = !directorEnabled}
+            aria-checked={enabled}
+            aria-label="Agent pipeline"
+            onclick={() => enabled = !enabled}
             class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
                    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
-                   {directorEnabled ? 'bg-mauve' : 'bg-surface1'}"
+                   {enabled ? 'bg-mauve' : 'bg-surface1'}"
           >
             <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow
                          transition-transform duration-200 ease-in-out
-                         {directorEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+                         {enabled ? 'translate-x-5' : 'translate-x-0'}"></span>
           </button>
         </div>
+      </section>
 
-        {#if directorEnabled}
+      {#if enabled}
+        <!-- Turn Maintenance -->
+        <section class="space-y-4 rounded-lg border border-surface1 p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-medium text-text">Turn Maintenance</h2>
+              <p class="text-xs text-subtext0">Narrative planning and director guidance before each generation.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={turnMaintenanceEnabled}
+              aria-label="Turn maintenance"
+              onclick={() => turnMaintenanceEnabled = !turnMaintenanceEnabled}
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
+                     transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
+                     {turnMaintenanceEnabled ? 'bg-mauve' : 'bg-surface1'}"
+            >
+              <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow
+                           transition-transform duration-200 ease-in-out
+                           {turnMaintenanceEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+            </button>
+          </div>
+
+          {#if turnMaintenanceEnabled}
+            <div class="space-y-1">
+              <label for="context-messages" class="text-sm text-text">Context Messages: {contextMessages}</label>
+              <input
+                id="context-messages"
+                type="range"
+                min="5"
+                max="50"
+                step="5"
+                value={contextMessages}
+                oninput={(e) => { contextMessages = Number((e.target as HTMLInputElement).value); }}
+                class="w-full accent-mauve"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label for="tm-budget" class="text-sm text-text">Token Budget: {tmBudget}</label>
+              <input
+                id="tm-budget"
+                type="range"
+                min="512"
+                max="8192"
+                step="256"
+                value={tmBudget}
+                oninput={(e) => { tmBudget = Number((e.target as HTMLInputElement).value); }}
+                class="w-full accent-mauve"
+              />
+            </div>
+          {/if}
+        </section>
+
+        <!-- Extraction -->
+        <section class="space-y-4 rounded-lg border border-surface1 p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-medium text-text">Extraction</h2>
+              <p class="text-xs text-subtext0">Extract scene state, character info, and events from AI responses.</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={extractionEnabled}
+              aria-label="Extraction"
+              onclick={() => extractionEnabled = !extractionEnabled}
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
+                     transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
+                     {extractionEnabled ? 'bg-mauve' : 'bg-surface1'}"
+            >
+              <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow
+                           transition-transform duration-200 ease-in-out
+                           {extractionEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
+            </button>
+          </div>
+
+          {#if extractionEnabled}
+            <div class="space-y-1">
+              <label for="ext-budget" class="text-sm text-text">Token Budget: {extractionBudget}</label>
+              <input
+                id="ext-budget"
+                type="range"
+                min="256"
+                max="4096"
+                step="256"
+                value={extractionBudget}
+                oninput={(e) => { extractionBudget = Number((e.target as HTMLInputElement).value); }}
+                class="w-full accent-mauve"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label for="repair-attempts" class="text-sm text-text">Repair Attempts: {repairAttempts}</label>
+              <input
+                id="repair-attempts"
+                type="range"
+                min="0"
+                max="5"
+                step="1"
+                value={repairAttempts}
+                oninput={(e) => { repairAttempts = Number((e.target as HTMLInputElement).value); }}
+                class="w-full accent-mauve"
+              />
+            </div>
+          {/if}
+        </section>
+
+        <!-- Director -->
+        <section class="space-y-4 rounded-lg border border-surface1 p-4">
+          <div>
+            <h2 class="text-sm font-medium text-text">Director Mode</h2>
+            <p class="text-xs text-subtext0">Controls how strongly the director influences narrative direction.</p>
+          </div>
+
           <div class="space-y-1">
             <label for="director-mode" class="text-sm text-text">Guidance Mode</label>
             <select
@@ -96,135 +213,8 @@
               <option value="absolute">Absolute — Strict control</option>
             </select>
           </div>
-
-          <div class="space-y-1">
-            <label for="director-budget" class="text-sm text-text">Token Budget: {directorBudget}</label>
-            <input
-              id="director-budget"
-              type="range"
-              min="512"
-              max="16384"
-              step="512"
-              value={directorBudget}
-              oninput={(e) => { directorBudget = Number((e.target as HTMLInputElement).value); }}
-              class="w-full accent-mauve"
-            />
-            <div class="flex justify-between text-xs text-subtext0">
-              <span>512</span>
-              <span>16384</span>
-            </div>
-          </div>
-        {/if}
-      </section>
-
-      <!-- Scene State Agent -->
-      <section class="space-y-4 rounded-lg border border-surface1 p-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-medium text-text">Scene State Agent</h2>
-            <p class="text-xs text-subtext0">Tracks location, time, mood, and environmental context.</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={sceneEnabled}
-            aria-label="Scene state agent"
-            onclick={() => sceneEnabled = !sceneEnabled}
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-                   transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
-                   {sceneEnabled ? 'bg-mauve' : 'bg-surface1'}"
-          >
-            <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow
-                         transition-transform duration-200 ease-in-out
-                         {sceneEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
-          </button>
-        </div>
-
-        {#if sceneEnabled}
-          <div class="space-y-1">
-            <label for="scene-budget" class="text-sm text-text">Token Budget: {sceneBudget}</label>
-            <input
-              id="scene-budget"
-              type="range"
-              min="256"
-              max="8192"
-              step="256"
-              value={sceneBudget}
-              oninput={(e) => { sceneBudget = Number((e.target as HTMLInputElement).value); }}
-              class="w-full accent-mauve"
-            />
-            <div class="flex justify-between text-xs text-subtext0">
-              <span>256</span>
-              <span>8192</span>
-            </div>
-          </div>
-        {/if}
-      </section>
-
-      <!-- Character State Agent -->
-      <section class="space-y-4 rounded-lg border border-surface1 p-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-sm font-medium text-text">Character State Agent</h2>
-            <p class="text-xs text-subtext0">Tracks character emotions, positions, and state changes.</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={characterEnabled}
-            aria-label="Character state agent"
-            onclick={() => characterEnabled = !characterEnabled}
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-                   transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
-                   {characterEnabled ? 'bg-mauve' : 'bg-surface1'}"
-          >
-            <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow
-                         transition-transform duration-200 ease-in-out
-                         {characterEnabled ? 'translate-x-5' : 'translate-x-0'}"></span>
-          </button>
-        </div>
-
-        {#if characterEnabled}
-          <div class="flex items-center justify-between">
-            <div>
-              <span class="text-sm text-text">Auto-Track Characters</span>
-              <p class="text-xs text-subtext0">Automatically detect and track character states in world chats.</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={characterAutoTrack}
-              aria-label="Auto-track characters"
-              onclick={() => characterAutoTrack = !characterAutoTrack}
-              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent
-                     transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-mauve
-                     {characterAutoTrack ? 'bg-mauve' : 'bg-surface1'}"
-            >
-              <span class="pointer-events-none inline-block h-5 w-5 rounded-full bg-text shadow
-                           transition-transform duration-200 ease-in-out
-                           {characterAutoTrack ? 'translate-x-5' : 'translate-x-0'}"></span>
-            </button>
-          </div>
-
-          <div class="space-y-1">
-            <label for="char-budget" class="text-sm text-text">Token Budget: {characterBudget}</label>
-            <input
-              id="char-budget"
-              type="range"
-              min="512"
-              max="16384"
-              step="512"
-              value={characterBudget}
-              oninput={(e) => { characterBudget = Number((e.target as HTMLInputElement).value); }}
-              class="w-full accent-mauve"
-            />
-            <div class="flex justify-between text-xs text-subtext0">
-              <span>512</span>
-              <span>16384</span>
-            </div>
-          </div>
-        {/if}
-      </section>
+        </section>
+      {/if}
 
       <button
         onclick={handleSave}

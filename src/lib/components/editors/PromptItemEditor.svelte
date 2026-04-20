@@ -72,12 +72,15 @@
     director: 'bg-mauve/20 text-mauve',
     sceneState: 'bg-blue/20 text-blue',
     characterState: 'bg-peach/20 text-peach',
+    narrativeGuidance: 'bg-mauve/20 text-mauve',
+    sectionWorld: 'bg-sky/20 text-sky',
+    worldRelations: 'bg-lavender/20 text-lavender',
   };
 
   // Types that use "Prompt Text" label for content
   const promptTextTypes: Set<PromptItemType> = new Set(['plain', 'system', 'jailbreak', 'prefill']);
   // Types that hide the content textarea (auto-resolved)
-  const hiddenContentTypes: Set<PromptItemType> = new Set(['chatHistory', 'exampleMessages', 'memory', 'director', 'sceneState', 'characterState']);
+  const hiddenContentTypes: Set<PromptItemType> = new Set(['chatHistory', 'exampleMessages', 'memory', 'director', 'sceneState', 'characterState', 'narrativeGuidance', 'sectionWorld', 'worldRelations']);
 
   function getContentLabel(): string {
     if (promptTextTypes.has(item.type)) return 'Prompt Text';

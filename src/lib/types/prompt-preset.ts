@@ -4,7 +4,8 @@ export type PromptItemType =
   | 'system' | 'description' | 'persona' | 'personality' | 'scenario'
   | 'exampleMessages' | 'chatHistory' | 'lorebook' | 'authornote'
   | 'postHistoryInstructions' | 'depthPrompt' | 'jailbreak' | 'prefill' | 'plain'
-  | 'memory' | 'director' | 'sceneState' | 'characterState' | 'worldDescription';
+  | 'memory' | 'director' | 'sceneState' | 'characterState' | 'worldDescription'
+  | 'narrativeGuidance' | 'sectionWorld' | 'worldRelations';
 
 export type PromptItemRole = 'system' | 'user' | 'assistant';
 

@@ -46,9 +46,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
   outputLanguage: '',
   agentSettings: {
-    director: { enabled: false, mode: 'light', tokenBudget: 1024 },
-    scene: { enabled: true, tokenBudget: 2560 },
-    character: { enabled: true, autoTrack: true, tokenBudget: 6400 },
+    enabled: true,
+    turnMaintenance: { enabled: true, contextMessages: 20, tokenBudget: 2048 },
+    extraction: { enabled: true, tokenBudget: 1024, repairAttempts: 2 },
+    director: { mode: 'light' },
   },
 };
 

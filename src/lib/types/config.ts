@@ -54,18 +54,23 @@ export interface MemorySettings {
 }
 
 export interface AgentSettings {
-  director?: {
+  enabled: boolean;
+  turnMaintenance: {
     enabled: boolean;
+    contextMessages: number;
+    tokenBudget: number;
+  };
+  extraction: {
+    enabled: boolean;
+    tokenBudget: number;
+    repairAttempts: number;
+  };
+  director: {
     mode: 'light' | 'strong' | 'absolute';
-    tokenBudget: number;
   };
-  scene?: {
-    enabled: boolean;
-    tokenBudget: number;
-  };
-  character?: {
-    enabled: boolean;
-    autoTrack: boolean;
-    tokenBudget: number;
+  worldMode?: {
+    extractEntities: boolean;
+    extractRelations: boolean;
+    sectionWorldInjection: boolean;
   };
 }
