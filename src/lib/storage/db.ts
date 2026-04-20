@@ -8,7 +8,7 @@ const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS memories (
   id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
-  type TEXT NOT NULL CHECK(type IN ('event', 'trait', 'relationship', 'location', 'state')),
+  type TEXT NOT NULL CHECK(type IN ('event', 'trait', 'relationship', 'location', 'state', 'world_fact', 'personal_event', 'general')),
   content TEXT NOT NULL,
   importance REAL NOT NULL DEFAULT 0.5,
   source_message_ids TEXT NOT NULL DEFAULT '[]',
@@ -58,6 +58,12 @@ CREATE TABLE IF NOT EXISTS character_states (
 );
 CREATE INDEX IF NOT EXISTS idx_character_states_session ON character_states(session_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_character_states_session_name ON character_states(session_id, character_name);
+
+CREATE TABLE IF NOT EXISTS session_agent_state (
+  session_id TEXT PRIMARY KEY,
+  state TEXT NOT NULL DEFAULT '{}',
+  updated_at INTEGER NOT NULL
+);
 `;
 
 let db: Database | null = null;
