@@ -13,6 +13,14 @@ export type {
   Message,
 } from './message';
 
+export type {
+  PipelineStepStatus,
+  PipelineSubTaskDiagnostic,
+  StepDiagnostic,
+  PipelineStepSnapshot,
+  PipelineSnapshot,
+} from './diagnostics';
+
 // Config
 export type {
   ConfigFieldType,
@@ -20,9 +28,25 @@ export type {
   UserConfig,
   ModelInfo,
   ModelSlot,
+  GraphPromptTemplate,
   MemorySettings,
   AgentSettings,
+  ResponseLengthTierId,
+  AgentPromptOverrideSettings,
+  AgentPromptPrefillSettings,
+  AgentPromptGraphKey,
+  AgentPromptGraphSettings,
 } from './config';
+
+export {
+  RESPONSE_LENGTH_TIERS,
+  DEFAULT_RESPONSE_LENGTH_TIER,
+  DEFAULT_TARGET_IMAGE_COUNT,
+  OUTPUT_LANGUAGE_OPTIONS,
+  getResponseLengthTier,
+  buildResponseLengthInstruction,
+  clampTargetImageCount,
+} from './chat-settings';
 
 // Script
 export type {
@@ -60,6 +84,13 @@ export type {
   PromptItemType,
   PromptItemRole,
   PromptItem,
+  PromptBlockToggle,
+  PromptScript,
+  PromptScriptStage,
+  PromptScriptTarget,
+  PromptScriptBlock,
+  PromptScriptTargetKey,
+  PromptScriptComposeMode,
   PromptPreset,
   PromptPresetSettings,
 } from './prompt-preset';
@@ -89,8 +120,8 @@ export type { ArtStylePreset } from './art-style';
 export { DEFAULT_ART_PRESETS } from './art-style';
 
 // Image Config
-export type { ImageGenerationConfig } from './image-config';
-export { DEFAULT_IMAGE_CONFIG } from './image-config';
+export type { ImageGenerationConfig, ImagePromptGraphKey } from './image-config';
+export { DEFAULT_IMAGE_CONFIG, DEFAULT_IMAGE_JAILBREAK, DEFAULT_IMAGE_PLACEMENT_INSTRUCTIONS } from './image-config';
 
 // Memory
 export type {
@@ -111,6 +142,8 @@ export type {
   CharacterSnapshot,
   EntityRecord,
   RelationRecord,
+  AgentPromptSections,
+  AgentPromptSectionType,
 } from '../core/agents/types';
 
 export { AgentPipeline } from '../core/agents/agent-pipeline';

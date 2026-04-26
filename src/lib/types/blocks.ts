@@ -11,6 +11,8 @@ export type BlockType =
   | 'ToggleBlock' 
   | 'SwitchBlock' 
   | 'MergeBlock'
+  | 'StageBlock'
+  | 'OutputBlock'
   | 'VariableBlock' 
   | 'LoopBlock';
 

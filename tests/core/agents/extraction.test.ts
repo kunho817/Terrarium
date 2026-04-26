@@ -7,8 +7,20 @@ import {
 import type { ExtractionSnapshot, SessionAgentState } from '$lib/core/agents/types';
 import type { Message } from '$lib/types/message';
 
+const agentLLMMocks = vi.hoisted(() => {
+	const callAgentLLM = vi.fn();
+	const callAgentLLMWithMetadata = vi.fn(async (...args: any[]) => ({
+		text: await callAgentLLM(...args),
+		durationMs: 10,
+		inputTokens: 100,
+		outputTokens: 50,
+	}));
+	return { callAgentLLM, callAgentLLMWithMetadata };
+});
+
 vi.mock('$lib/core/agents/agent-llm', () => ({
-	callAgentLLM: vi.fn(),
+	callAgentLLM: agentLLMMocks.callAgentLLM,
+	callAgentLLMWithMetadata: agentLLMMocks.callAgentLLMWithMetadata,
 }));
 
 vi.mock('$lib/stores/settings', () => ({
@@ -71,6 +83,7 @@ function makeState(): SessionAgentState {
 		sessionId: 'test-session',
 		lastExtraction: null,
 		lastTurnMaintenance: null,
+		lastSectionWorld: null,
 		entities: {},
 		relations: [],
 		worldFacts: [],
@@ -108,11 +121,20 @@ describe('parseExtractionJson', () => {
 			events: ['Alice entered the tavern'],
 			newFacts: ['Alice is searching for someone'],
 			changed: [],
+			memoryCandidates: {
+				persistent: [{ content: 'Alice is searching for someone', type: 'trait' }],
+				turningPoints: ['Alice entered the tavern'],
+				worldLog: ['The tavern is crowded tonight'],
+			},
 		});
 		const result = parseExtractionJson(json);
 		expect(result).not.toBeNull();
 		expect(result!.scene.location).toBe('Tavern');
 		expect(result!.events).toEqual(['Alice entered the tavern']);
+		expect(result!.memoryCandidates?.persistent).toEqual([
+			{ content: 'Alice is searching for someone', type: 'trait' },
+		]);
+		expect(result!.memoryCandidates?.turningPoints).toContain('Alice entered the tavern');
 	});
 
 	it('extracts JSON from surrounding text', () => {
@@ -137,6 +159,46 @@ describe('parseExtractionJson', () => {
 		const result = parseExtractionJson(json);
 		expect(result).not.toBeNull();
 		expect(result!.events).toEqual([]);
+	});
+
+	it('derives structured memory candidates when the model returns the legacy shape', () => {
+		const json = JSON.stringify({
+			scene: {
+				location: 'Forest road',
+				characters: ['Alice'],
+				atmosphere: 'uneasy',
+				timeOfDay: 'dusk',
+				environmentalNotes: 'wind rising',
+			},
+			characters: [
+				{
+					name: 'Alice',
+					emotion: 'wary',
+					location: 'road',
+					inventory: ['map'],
+					health: 'healthy',
+					notes: 'she still distrusts the captain',
+				},
+			],
+			events: ['Alice spotted torchlight in the distance'],
+			newFacts: ['The road patrols report to the captain'],
+			changed: ['The road is no longer safe'],
+		});
+		const result = parseExtractionJson(json);
+		expect(result).not.toBeNull();
+		expect(result!.memoryCandidates?.persistent).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ content: 'The road patrols report to the captain' }),
+				expect.objectContaining({ content: 'Alice: she still distrusts the captain' }),
+			]),
+		);
+		expect(result!.memoryCandidates?.turningPoints).toEqual(
+			expect.arrayContaining([
+				'Alice spotted torchlight in the distance',
+				'Change: The road is no longer safe',
+			]),
+		);
+		expect(result!.memoryCandidates?.worldLog).toContain('Active location: Forest road');
 	});
 });
 
@@ -230,5 +292,59 @@ describe('runExtraction', () => {
 
 		const result = await runExtraction(makeMessages(), makeState(), 'character');
 		expect(result).toBeNull();
+	});
+
+	it('stores structured memory records from extraction output', async () => {
+		const { callAgentLLM } = await import('$lib/core/agents/agent-llm');
+		const { insertMemory } = await import('$lib/storage/memories');
+		const mocked = vi.mocked(callAgentLLM);
+		mocked.mockResolvedValueOnce(
+			JSON.stringify({
+				scene: {
+					location: 'Hidden chapel',
+					characters: ['Alice'],
+					atmosphere: 'quiet',
+					timeOfDay: 'night',
+					environmentalNotes: 'candlelight',
+				},
+				characters: [
+					{
+						name: 'Alice',
+						emotion: 'relieved',
+						location: 'altar',
+						inventory: ['silver key'],
+						health: 'healthy',
+						notes: 'still distrusts the captain',
+					},
+				],
+				events: ['You handed Alice the key'],
+				newFacts: ['Alice now trusts the captain'],
+				changed: ['The chapel is now considered safe'],
+				memoryCandidates: {
+					persistent: [
+						{ content: 'Alice now trusts the captain', type: 'relationship' },
+						{ content: 'The silver key opens the hidden chapel cache', type: 'world_fact' },
+					],
+					turningPoints: ['You handed Alice the key'],
+					worldLog: ['The hidden chapel dampens outside noise'],
+				},
+			}),
+		);
+
+		const result = await runExtraction(makeMessages(), makeState(), 'character');
+
+		expect(result).not.toBeNull();
+		const stored = vi.mocked(insertMemory).mock.calls.map(([memory]) => memory);
+		expect(stored).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ type: 'location', content: 'Current scene location: Hidden chapel' }),
+				expect.objectContaining({ type: 'state', content: expect.stringContaining('Scene state - atmosphere: quiet; time: night; environment: candlelight') }),
+				expect.objectContaining({ type: 'personal_event', content: 'You handed Alice the key' }),
+				expect.objectContaining({ type: 'relationship', content: 'Alice now trusts the captain' }),
+				expect.objectContaining({ type: 'world_fact', content: 'The silver key opens the hidden chapel cache' }),
+				expect.objectContaining({ type: 'world_fact', content: 'The hidden chapel dampens outside noise' }),
+				expect.objectContaining({ type: 'state', content: expect.stringContaining('Alice state - emotion: relieved; location: altar') }),
+			]),
+		);
 	});
 });

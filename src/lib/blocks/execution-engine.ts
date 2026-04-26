@@ -19,6 +19,7 @@ interface ExecutionResult {
   fragments: PromptFragment[];
   output: string;
   errors: ExecutionError[];
+  blockOutputs: Map<string, Map<string, PortValue>>;
 }
 
 export class ExecutionEngine {
@@ -50,7 +51,7 @@ export class ExecutionEngine {
     // Combine fragments into final output
     const output = this.assembleOutput(fragments);
 
-    return { fragments, output, errors };
+    return { fragments, output, errors, blockOutputs };
   }
 
   private findOutputBlocks(graph: BlockGraph): BlockInstance[] {

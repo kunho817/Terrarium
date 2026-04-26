@@ -6,6 +6,7 @@
   import * as worldStorage from '$lib/storage/worlds';
   import * as worldImport from '$lib/storage/world-import';
   import { createDefaultWorldCard } from '$lib/types';
+  import { showConfirmDialog } from '$lib/utils/app-dialog';
 
   let error = $state('');
   let importing = $state(false);
@@ -79,7 +80,7 @@
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete world "${name}"? This cannot be undone.`)) return;
+    if (!(await showConfirmDialog(`Delete world "${name}"? This cannot be undone.`))) return;
     await worldsRepo.deleteWorld(id);
   }
 

@@ -12,6 +12,7 @@
 import type { ProviderPlugin, ChatMetadata } from '$lib/types/plugin';
 import type { Message, UserConfig, CharacterCard, ConfigField } from '$lib/types';
 import { parseSSE } from './sse';
+import { hydrateProviderRuntimeConfig } from './runtime-config';
 
 const DEFAULT_BASE_URL = 'https://api.anthropic.com/v1';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -88,7 +89,7 @@ export function createClaudeProvider(): ProviderPlugin {
     requiredConfig,
 
     async validateConfig(config: UserConfig): Promise<boolean> {
-      return !!config.apiKey;
+      return !!hydrateProviderRuntimeConfig(config, 'claude', DEFAULT_BASE_URL).apiKey;
     },
 
     async *chat(
@@ -96,29 +97,34 @@ export function createClaudeProvider(): ProviderPlugin {
       config: UserConfig,
       metadata?: ChatMetadata,
     ): AsyncGenerator<string> {
-      const baseUrl = (config.baseUrl as string) || DEFAULT_BASE_URL;
+      const resolvedConfig = hydrateProviderRuntimeConfig(
+        config,
+        'claude',
+        DEFAULT_BASE_URL,
+      );
+      const baseUrl = (resolvedConfig.baseUrl as string) || DEFAULT_BASE_URL;
       const url = `${baseUrl.replace(/\/$/, '')}/messages`;
 
       const { system, messages: claudeMessages } = messagesToClaude(messages);
 
       const body: Record<string, unknown> = {
-        model: config.model || 'claude-sonnet-4-20250514',
+        model: resolvedConfig.model || 'claude-sonnet-4-20250514',
         messages: claudeMessages,
         stream: true,
-        max_tokens: config.maxTokens ?? 2048,
+        max_tokens: resolvedConfig.maxTokens ?? 2048,
       };
       if (system) {
         body.system = system;
       }
-      if (config.temperature !== undefined) {
-        body.temperature = config.temperature;
+      if (resolvedConfig.temperature !== undefined) {
+        body.temperature = resolvedConfig.temperature;
       }
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': config.apiKey || '',
+          'x-api-key': resolvedConfig.apiKey || '',
           'anthropic-version': ANTHROPIC_VERSION,
         },
         body: JSON.stringify(body),

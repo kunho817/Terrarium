@@ -550,6 +550,53 @@ describe('resolveItem', () => {
     });
     expect(result).toBeNull();
   });
+
+  it('resolves memory item from agent pipeline sections', () => {
+    const item: PromptItem = {
+      id: '1',
+      type: 'memory',
+      name: 'Memory',
+      enabled: true,
+      role: 'system',
+      content: '',
+    };
+    const result = resolveItem(item, {
+      card: baseCard,
+      scene: baseScene,
+      messages: [],
+      lorebookMatches: [],
+      agentPromptSections: {
+        memory: '[Memory]\n- The lantern was lost in the river.',
+      },
+    });
+
+    expect(result).not.toBeNull();
+    expect((result as Message).content).toContain('The lantern was lost in the river.');
+  });
+
+  it('wraps agent pipeline sections with item innerFormat when provided', () => {
+    const item: PromptItem = {
+      id: '1',
+      type: 'director',
+      name: 'Director',
+      enabled: true,
+      role: 'system',
+      content: '[Injected Director]\n{{slot}}',
+    };
+    const result = resolveItem(item, {
+      card: baseCard,
+      scene: baseScene,
+      messages: [],
+      lorebookMatches: [],
+      agentPromptSections: {
+        director: '[Director Supervision]\nScene Mandate: Force a confession.',
+      },
+    });
+
+    expect(result).not.toBeNull();
+    expect((result as Message).content).toContain('[Injected Director]');
+    expect((result as Message).content).toContain('Scene Mandate: Force a confession.');
+  });
 });
 
 // ── assembleWithPreset tests ──────────────────────────────────────────────
@@ -716,6 +763,20 @@ describe('assembleWithPreset', () => {
     expect(prefill).toBeNull();
   });
 
+  it('falls back to preset.assistantPrefill when no prefill item is enabled', () => {
+    const preset = createDefaultPreset();
+    preset.assistantPrefill = 'Continue as {{char}}.';
+
+    const { prefill } = assembleWithPreset(preset, {
+      card: baseCard,
+      scene: baseScene,
+      messages: [],
+      lorebookMatches: [],
+    });
+
+    expect(prefill).toBe('Continue as Alice.');
+  });
+
   it('skips disabled items entirely', () => {
     const preset = createDefaultPreset();
     // Disable the system item
@@ -751,6 +812,35 @@ describe('assembleWithPreset', () => {
 
     const contents = messages.map((m) => m.content);
     expect(contents).toContain('--- Lore ---\nHidden forest\n--- End ---');
+  });
+
+  it('injects agent pipeline sections through matching preset items', () => {
+    const preset = createDefaultPreset();
+
+    const { messages } = assembleWithPreset(preset, {
+      card: minimalCard,
+      scene: baseScene,
+      messages: [],
+      lorebookMatches: [],
+      agentPromptSections: {
+        memory: '[Memory]\n- Alice hid the key in the bell tower.',
+        narrativeGuidance: '[Narrative Brief]\nKeep the tension on the tower approach.',
+        director: '[Director Supervision]\nScene Mandate: Reveal the bell toll at the end.',
+        sceneState: '[Scene State]\nLocation: Bell tower stairs',
+        characterState: '[Character States]\nAlice: feeling tense',
+        sectionWorld: '[Section World: Tower]\nThe bell tower is unstable in high wind.',
+        worldRelations: '[World Relations]\n- Alice -> Tower: knows the hidden route',
+      },
+    });
+
+    const contents = messages.map((message) => message.content);
+    expect(contents).toContain('[Memory]\n- Alice hid the key in the bell tower.');
+    expect(contents).toContain('[Narrative Brief]\nKeep the tension on the tower approach.');
+    expect(contents).toContain('[Director Supervision]\nScene Mandate: Reveal the bell toll at the end.');
+    expect(contents).toContain('[Scene State]\nLocation: Bell tower stairs');
+    expect(contents).toContain('[Character States]\nAlice: feeling tense');
+    expect(contents).toContain('[Section World: Tower]\nThe bell tower is unstable in high wind.');
+    expect(contents).toContain('[World Relations]\n- Alice -> Tower: knows the hidden route');
   });
 
   describe('outputLanguage injection', () => {
@@ -802,6 +892,43 @@ describe('assembleWithPreset', () => {
       expect(langIdx).toBeGreaterThanOrEqual(0);
       expect(memIdx).toBeGreaterThanOrEqual(0);
       expect(langIdx).toBeLessThan(memIdx);
+    });
+  });
+
+  describe('responseLengthTier injection', () => {
+    it('injects response length instruction when responseLengthTier is set', () => {
+      const preset = createDefaultPreset();
+      const { messages } = assembleWithPreset(preset, {
+        card: minimalCard,
+        scene: baseScene,
+        messages: [],
+        lorebookMatches: [],
+        responseLengthTier: 'novel',
+      });
+
+      const contents = messages.map((m) => m.content);
+      const lengthMsg = contents.find((c) => c.includes('Final response-length requirement:'));
+      expect(lengthMsg).toBeDefined();
+      expect(lengthMsg).toContain('13 to 20 paragraphs');
+    });
+
+    it('places response length instruction before additionalPrompt', () => {
+      const preset = createDefaultPreset();
+      const { messages } = assembleWithPreset(preset, {
+        card: minimalCard,
+        scene: baseScene,
+        messages: [],
+        lorebookMatches: [],
+        responseLengthTier: 'standard',
+        additionalPrompt: '[Memory] test memory',
+      });
+
+      const contents = messages.map((m) => m.content);
+      const lengthIdx = contents.findIndex((c) => c.includes('Final response-length requirement:'));
+      const memIdx = contents.findIndex((c) => c.includes('[Memory] test memory'));
+      expect(lengthIdx).toBeGreaterThanOrEqual(0);
+      expect(memIdx).toBeGreaterThanOrEqual(0);
+      expect(lengthIdx).toBeLessThan(memIdx);
     });
   });
 });

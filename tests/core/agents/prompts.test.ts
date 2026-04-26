@@ -5,7 +5,7 @@ describe('Agent prompts registry', () => {
   it('has EXTRACTION_SYSTEM prompt', () => {
     const prompt = PROMPTS.get('EXTRACTION_SYSTEM');
     expect(prompt).toBeTruthy();
-    expect(prompt).toContain('memory extraction engine');
+    expect(prompt).toContain('Extraction stage');
     expect(prompt).toContain('JSON');
   });
 

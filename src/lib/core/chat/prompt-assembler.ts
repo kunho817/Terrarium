@@ -10,8 +10,11 @@ import type { PromptItem, PromptPreset } from '$lib/types/prompt-preset';
 import type { Message, CharacterCard, SceneState, LorebookEntry } from '$lib/types';
 import type { UserPersona } from '$lib/types/persona';
 import type { WorldCard } from '$lib/types/world';
+import type { ResponseLengthTierId } from '$lib/types/chat-settings';
+import type { AgentPromptSections } from '$lib/core/agents/types';
 import { parseExampleMessages, groupLoreByPosition } from './pipeline';
 import { substituteVariables, type TemplateVariables } from './template-engine';
+import { buildResponseLengthInstruction } from '$lib/types/chat-settings';
 
 export interface AssemblyContext {
   card: CharacterCard;
@@ -22,6 +25,8 @@ export interface AssemblyContext {
   worldCard?: WorldCard;
   additionalPrompt?: string;
   outputLanguage?: string;
+  responseLengthTier?: ResponseLengthTierId;
+  agentPromptSections?: AgentPromptSections;
 }
 
 function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string, persona?: UserPersona, worldCard?: WorldCard): TemplateVariables {
@@ -45,6 +50,23 @@ function buildTemplateVars(card: CharacterCard, scene: SceneState, slot: string,
 
 function sysMsg(content: string): Message {
   return { role: 'system', content, type: 'system', timestamp: 0 };
+}
+
+function resolveAgentSection(
+  type: keyof AgentPromptSections,
+  item: PromptItem,
+  ctx: AssemblyContext,
+): Message | null {
+  const section = ctx.agentPromptSections?.[type];
+  if (!section) {
+    return null;
+  }
+
+  const content = item.content
+    ? substituteVariables(item.content, buildTemplateVars(ctx.card, ctx.scene, section, ctx.persona, ctx.worldCard))
+    : section;
+
+  return sysMsg(content);
 }
 
 /**
@@ -203,13 +225,25 @@ export function resolveItem(
     }
 
     case 'memory':
+      return resolveAgentSection('memory', item, ctx);
+
     case 'director':
+      return resolveAgentSection('director', item, ctx);
+
     case 'sceneState':
+      return resolveAgentSection('sceneState', item, ctx);
+
     case 'characterState':
+      return resolveAgentSection('characterState', item, ctx);
+
     case 'narrativeGuidance':
+      return resolveAgentSection('narrativeGuidance', item, ctx);
+
     case 'sectionWorld':
+      return resolveAgentSection('sectionWorld', item, ctx);
+
     case 'worldRelations':
-      return null;
+      return resolveAgentSection('worldRelations', item, ctx);
 
     default:
       return null;
@@ -261,10 +295,21 @@ export function assembleWithPreset(
     }
   }
 
+  if (!prefill && preset.assistantPrefill.trim()) {
+    prefill = substituteVariables(
+      preset.assistantPrefill,
+      buildTemplateVars(ctx.card, ctx.scene, '', ctx.persona, ctx.worldCard),
+    );
+  }
+
   if (ctx.outputLanguage) {
     messages.push(sysMsg(
       `Write all narrative prose and dialogue in ${ctx.outputLanguage}. Maintain natural phrasing and cultural authenticity appropriate to the language.`,
     ));
+  }
+
+  if (ctx.responseLengthTier) {
+    messages.push(sysMsg(buildResponseLengthInstruction(ctx.responseLengthTier)));
   }
 
   if (ctx.additionalPrompt) {

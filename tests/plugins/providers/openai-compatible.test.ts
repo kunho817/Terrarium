@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createOpenAICompatibleProvider } from '$lib/plugins/providers/openai-compatible';
 import type { Message, UserConfig, CharacterCard } from '$lib/types';
 import type { ChatMetadata } from '$lib/types/plugin';
+import { settingsStore } from '$lib/stores/settings';
 
 // Mock SSE parser — default: no usage
 vi.mock('$lib/plugins/providers/sse', () => ({
@@ -69,6 +70,7 @@ describe('OpenAI-compatible provider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    settingsStore.reset();
     provider = createOpenAICompatibleProvider({
       id: 'openai',
       name: 'OpenAI',
@@ -99,6 +101,19 @@ describe('OpenAI-compatible provider', () => {
     it('returns false when apiKey is missing and requiresApiKey is true', async () => {
       const result = await provider.validateConfig({ providerId: 'openai' });
       expect(result).toBe(false);
+    });
+
+    it('returns true when apiKey is inherited from provider settings', async () => {
+      settingsStore.update({
+        providers: {
+          openai: {
+            apiKey: 'inherited-key',
+          },
+        },
+      });
+
+      const result = await provider.validateConfig({ providerId: 'openai', apiKey: '' });
+      expect(result).toBe(true);
     });
 
     it('returns true without apiKey when requiresApiKey is false', async () => {
@@ -155,6 +170,30 @@ describe('OpenAI-compatible provider', () => {
       expect(mockFetch.mock.calls[0][0]).toBe(
         'http://localhost:11434/v1/chat/completions'
       );
+    });
+
+    it('uses inherited provider apiKey when config apiKey is blank', async () => {
+      settingsStore.update({
+        providers: {
+          openai: {
+            apiKey: 'inherited-key',
+          },
+        },
+      });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      for await (const _ of provider.chat(mockMessages, {
+        providerId: 'openai',
+        apiKey: '',
+        model: 'gpt-4',
+      })) {
+      }
+
+      const [, init] = mockFetch.mock.calls[0];
+      expect(init.headers['Authorization']).toBe('Bearer inherited-key');
     });
 
     it('throws on non-ok response', async () => {
@@ -327,6 +366,25 @@ describe('OpenAI-compatible provider', () => {
 
       const models = await provider.listModels!(mockConfig);
       expect(models).toEqual([]);
+    });
+
+    it('uses inherited provider apiKey for model listing', async () => {
+      settingsStore.update({
+        providers: {
+          openai: {
+            apiKey: 'inherited-key',
+          },
+        },
+      });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
+      });
+
+      await provider.listModels!({ providerId: 'openai', apiKey: '' });
+
+      const [, init] = mockFetch.mock.calls[0];
+      expect(init.headers['Authorization']).toBe('Bearer inherited-key');
     });
   });
 });

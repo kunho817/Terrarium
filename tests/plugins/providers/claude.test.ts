@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createClaudeProvider } from '$lib/plugins/providers/claude';
 import type { Message, UserConfig, CharacterCard } from '$lib/types';
 import type { ChatMetadata } from '$lib/types/plugin';
+import { settingsStore } from '$lib/stores/settings';
 
 // Mock SSE parser
 vi.mock('$lib/plugins/providers/sse', () => ({
@@ -69,6 +70,7 @@ describe('Claude provider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    settingsStore.reset();
     provider = createClaudeProvider();
   });
 
@@ -93,6 +95,19 @@ describe('Claude provider', () => {
     it('returns false when apiKey is missing', async () => {
       const result = await provider.validateConfig({ providerId: 'claude' });
       expect(result).toBe(false);
+    });
+
+    it('returns true when apiKey is inherited from provider settings', async () => {
+      settingsStore.update({
+        providers: {
+          claude: {
+            apiKey: 'sk-ant-inherited',
+          },
+        },
+      });
+
+      const result = await provider.validateConfig({ providerId: 'claude', apiKey: '' });
+      expect(result).toBe(true);
     });
   });
 
@@ -175,6 +190,30 @@ describe('Claude provider', () => {
       }
 
       expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8080/v1/messages');
+    });
+
+    it('uses inherited provider apiKey when config apiKey is blank', async () => {
+      settingsStore.update({
+        providers: {
+          claude: {
+            apiKey: 'sk-ant-inherited',
+          },
+        },
+      });
+      mockFetch.mockResolvedValue({
+        ok: true,
+        body: createMockStream(),
+      });
+
+      for await (const _ of provider.chat(mockMessages, {
+        providerId: 'claude',
+        apiKey: '',
+        model: 'claude-sonnet-4-20250514',
+      })) {
+      }
+
+      const [, init] = mockFetch.mock.calls[0];
+      expect(init.headers['x-api-key']).toBe('sk-ant-inherited');
     });
 
     it('populates metadata.inputTokens from message_start event', async () => {

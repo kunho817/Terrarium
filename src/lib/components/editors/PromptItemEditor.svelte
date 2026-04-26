@@ -33,9 +33,12 @@
     { value: 'jailbreak', label: 'Jailbreak' },
     { value: 'prefill', label: 'Prefill' },
     { value: 'memory', label: 'Memory (Agent)' },
+    { value: 'narrativeGuidance', label: 'Narrative Guidance (Agent)' },
     { value: 'director', label: 'Director (Agent)' },
     { value: 'sceneState', label: 'Scene State (Agent)' },
     { value: 'characterState', label: 'Character State (Agent)' },
+    { value: 'sectionWorld', label: 'Section World (Agent)' },
+    { value: 'worldRelations', label: 'World Relations (Agent)' },
   ];
 
   const roleOptions: { value: PromptItemRole; label: string }[] = [

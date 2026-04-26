@@ -28,9 +28,15 @@ describe('Agent pipeline types', () => {
       events: ['Alice entered the tavern'],
       newFacts: ['Alice is looking for someone'],
       changed: [],
+      memoryCandidates: {
+        persistent: [{ content: 'Alice is looking for someone', type: 'trait' }],
+        turningPoints: ['Alice entered the tavern'],
+        worldLog: ['The tavern is crowded tonight'],
+      },
     };
     expect(snapshot.scene.location).toBe('Tavern');
     expect(snapshot.scene.characters).toEqual(['Alice']);
+    expect(snapshot.memoryCandidates?.persistent[0].type).toBe('trait');
   });
 
   it('CharacterSnapshot has required fields', () => {
@@ -95,6 +101,7 @@ describe('Agent pipeline types', () => {
       sessionId: 'sess-1',
       lastExtraction: null,
       lastTurnMaintenance: null,
+      lastSectionWorld: null,
       entities: {},
       relations: [],
       worldFacts: [],

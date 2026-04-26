@@ -66,6 +66,44 @@ CREATE TABLE IF NOT EXISTS session_agent_state (
 );
 `;
 
+const MIGRATE_MEMORIES_CONSTRAINT_SQL = `
+CREATE TABLE IF NOT EXISTS memories_new (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  content TEXT NOT NULL,
+  importance REAL NOT NULL DEFAULT 0.5,
+  source_message_ids TEXT NOT NULL DEFAULT '[]',
+  turn_number INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
+INSERT OR IGNORE INTO memories_new SELECT id, session_id, type, content, importance, source_message_ids, turn_number, created_at FROM memories;
+DROP TABLE IF EXISTS memories;
+ALTER TABLE memories_new RENAME TO memories;
+CREATE INDEX IF NOT EXISTS idx_memories_session ON memories(session_id);
+CREATE INDEX IF NOT EXISTS idx_memories_session_type ON memories(session_id, type);
+`;
+
+function migrateMemoriesConstraint(database: Database): void {
+	try {
+		const result = database.exec("SELECT type FROM memories WHERE type = 'general' LIMIT 1");
+		if (result.length > 0 && result[0].values.length > 0) return;
+	} catch {
+		return;
+	}
+	try {
+		database.exec("INSERT INTO memories (id, session_id, type, content, importance, source_message_ids, turn_number, created_at) VALUES ('__migration_test', '__test', 'general', 'test', 0.5, '[]', 0, 0)");
+		database.exec("DELETE FROM memories WHERE id = '__migration_test'");
+		return;
+	} catch {
+	}
+	try {
+		database.run(MIGRATE_MEMORIES_CONSTRAINT_SQL);
+	} catch (err) {
+		console.warn('[DB] memories migration failed:', err);
+	}
+}
+
 let db: Database | null = null;
 let dbPromise: Promise<Database> | null = null;
 
@@ -89,6 +127,7 @@ export async function getDb() {
         db = new SQL.Database();
       }
       db.run(SCHEMA_SQL);
+      migrateMemoriesConstraint(db);
       dbPromise = null;
       return db;
     })();

@@ -32,7 +32,9 @@ export const chatRepo = {
 
     try {
       const messages = await chatStorage.loadMessages(characterId, sessionId);
-      chatStore.setSessionState(makeCharacterId(characterId), makeSessionId(sessionId), messages);
+      const sessions = await chatRepo.getCachedSessions(characterId);
+      const session = sessions.find(s => (s.id as string) === sessionId);
+      chatStore.setSessionState(makeCharacterId(characterId), makeSessionId(sessionId), messages, session?.cardType);
       log.info('Session loaded', { characterId, sessionId, messageCount: messages.length });
     } catch (error) {
       chatStore.setSessionState(makeCharacterId(characterId), makeSessionId(sessionId), []);
@@ -72,7 +74,8 @@ export const chatRepo = {
       }
 
       const messages = await chatStorage.loadMessages(chatId, sessionId as string);
-      chatStore.setSessionState(makeCharacterId(chatId), sessionId, messages);
+      const session = sessions.find(s => s.id === sessionId);
+      chatStore.setSessionState(makeCharacterId(chatId), sessionId, messages, session?.cardType);
       log.info('Chat loaded', { chatId, sessionId, messageCount: messages.length });
     } catch (error) {
       chatStore.clear();

@@ -87,8 +87,8 @@ function createViewportStore() {
       for (const block of blocks) {
         minX = Math.min(minX, block.position.x);
         minY = Math.min(minY, block.position.y);
-        maxX = Math.max(maxX, block.position.x + 208);
-        maxY = Math.max(maxY, block.position.y + 100);
+        maxX = Math.max(maxX, block.position.x + 288);
+        maxY = Math.max(maxY, block.position.y + 160);
       }
       
       const contentWidth = maxX - minX + padding * 2;

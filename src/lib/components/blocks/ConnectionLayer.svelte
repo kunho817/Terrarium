@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { Connection, BlockInstance, Port } from '$lib/types';
-  import { blockRegistry } from '$lib/blocks/registry';
+  import { getBlockInputPorts, getBlockOutputPorts } from '$lib/blocks/ports';
 
   // Layout constants - must match BlockNode.svelte dimensions
-  const HEADER_HEIGHT = 44; // Height of block header in pixels
-  const PORT_Y_OFFSET = 20; // Starting Y offset for ports within block-body (matches BlockNode.svelte)
-  const PORT_SPACING = 24; // Vertical spacing between ports in pixels (matches BlockNode.svelte)
-  const BLOCK_WIDTH = 208; // Total block width in pixels (w-52 = 13rem = 208px)
+  const HEADER_HEIGHT = 40; // Height of block header in pixels
+  const PORT_Y_OFFSET = 17; // Starting Y offset for ports within block body
+  const PORT_SPACING = 28; // Vertical spacing between ports in pixels
+  const BLOCK_WIDTH = 288; // Total block width in pixels (18rem)
   const BEZIER_CONTROL_FACTOR = 0.5; // Control point offset as fraction of horizontal distance
   
   // Visual constants
@@ -40,10 +40,7 @@
     const block = blocks.find(b => b.id === blockId);
     if (!block) return null;
 
-    const definition = blockRegistry.get(block.type);
-    if (!definition) return null;
-
-    const ports = isInput ? definition.inputPorts : definition.outputPorts;
+    const ports = isInput ? getBlockInputPorts(block) : getBlockOutputPorts(block);
     const portIndex = ports.findIndex(p => p.id === portId);
     if (portIndex === -1) return null;
 
@@ -73,7 +70,7 @@
 
 <svg 
   class="connection-layer absolute pointer-events-none" 
-  style="left: -5000px; top: -5000px; width: 10000px; height: 10000px; overflow: visible; z-index: 1;"
+  style="left: 0; top: 0; width: 12000px; height: 12000px; overflow: visible; z-index: 1;"
 >
   <!-- Existing connections -->
   {#each connections as conn (conn.id)}

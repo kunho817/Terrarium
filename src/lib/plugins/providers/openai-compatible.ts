@@ -7,6 +7,7 @@
 import type { ProviderPlugin, ChatMetadata } from '$lib/types/plugin';
 import type { Message, UserConfig, CharacterCard, ConfigField, ModelInfo } from '$lib/types';
 import { parseSSE } from './sse';
+import { hydrateProviderRuntimeConfig } from './runtime-config';
 
 export interface OpenAICompatibleOptions {
   id: string;
@@ -96,7 +97,12 @@ export function createOpenAICompatibleProvider(
     requiredConfig,
 
     async validateConfig(config: UserConfig): Promise<boolean> {
-      if (options.requiresApiKey && !config.apiKey) return false;
+      const resolvedConfig = hydrateProviderRuntimeConfig(
+        config,
+        options.id,
+        options.defaultBaseUrl,
+      );
+      if (options.requiresApiKey && !resolvedConfig.apiKey) return false;
       return true;
     },
 
@@ -105,26 +111,31 @@ export function createOpenAICompatibleProvider(
       config: UserConfig,
       metadata?: ChatMetadata
     ): AsyncGenerator<string> {
-      const baseUrl = (config.baseUrl as string) || options.defaultBaseUrl;
+      const resolvedConfig = hydrateProviderRuntimeConfig(
+        config,
+        options.id,
+        options.defaultBaseUrl,
+      );
+      const baseUrl = (resolvedConfig.baseUrl as string) || options.defaultBaseUrl;
       const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (config.apiKey) {
-        headers['Authorization'] = `Bearer ${config.apiKey}`;
+      if (resolvedConfig.apiKey) {
+        headers['Authorization'] = `Bearer ${resolvedConfig.apiKey}`;
       }
 
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          model: config.model || '',
+          model: resolvedConfig.model || '',
           messages: messagesToOpenAI(messages),
           stream: true,
           stream_options: { include_usage: true },
-          temperature: config.temperature ?? 0.7,
-          max_tokens: config.maxTokens ?? 2048,
+          temperature: resolvedConfig.temperature ?? 0.7,
+          max_tokens: resolvedConfig.maxTokens ?? 2048,
         }),
       });
 
@@ -168,13 +179,18 @@ export function createOpenAICompatibleProvider(
     },
 
     async listModels(config: UserConfig): Promise<ModelInfo[]> {
-      const baseUrl = (config.baseUrl as string) || options.defaultBaseUrl;
+      const resolvedConfig = hydrateProviderRuntimeConfig(
+        config,
+        options.id,
+        options.defaultBaseUrl,
+      );
+      const baseUrl = (resolvedConfig.baseUrl as string) || options.defaultBaseUrl;
       const url = `${baseUrl.replace(/\/$/, '')}/models`;
 
       try {
         const headers: Record<string, string> = {};
-        if (config.apiKey) {
-          headers['Authorization'] = `Bearer ${config.apiKey}`;
+        if (resolvedConfig.apiKey) {
+          headers['Authorization'] = `Bearer ${resolvedConfig.apiKey}`;
         }
 
         const response = await fetch(url, { headers });

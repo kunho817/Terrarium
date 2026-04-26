@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { presetToBlocks, blocksToPreset } from '$lib/blocks/preset-migration';
+import {
+  blocksToPreset,
+  normalizePromptBlockToggles,
+  presetToBlocks,
+} from '$lib/blocks/preset-migration';
 import type { PromptPreset } from '$lib/types';
 
 describe('Preset Migration', () => {
@@ -17,14 +21,46 @@ describe('Preset Migration', () => {
   it('converts preset to blocks', () => {
     const graph = presetToBlocks(samplePreset);
     
-    expect(graph.blocks.length).toBeGreaterThan(0);
-    expect(graph.blocks.some((b) => b.type === 'TextBlock')).toBe(true);
+    expect(graph.blocks).toHaveLength(samplePreset.items.length);
+    expect(graph.blocks.some((block) => block.type === 'TextBlock')).toBe(true);
+    expect(graph.blocks.some((block) => block.type === 'FieldBlock')).toBe(true);
   });
 
   it('converts blocks back to preset', () => {
     const graph = presetToBlocks(samplePreset);
-    const restoredPreset = blocksToPreset(graph, new Map());
+    const restoredPreset = blocksToPreset(graph, samplePreset);
     
-    expect(restoredPreset.items.length).toBeGreaterThan(0);
+    expect(restoredPreset.id).toBe(samplePreset.id);
+    expect(restoredPreset.name).toBe(samplePreset.name);
+    expect(restoredPreset.items).toHaveLength(samplePreset.items.length);
+    expect(restoredPreset.items.map((item) => item.type)).toEqual(
+      samplePreset.items.map((item) => item.type),
+    );
+  });
+
+  it('normalizes persisted toggle state from toggle blocks', () => {
+    const toggles = normalizePromptBlockToggles(
+      [{ id: 'debug', name: 'Debug', value: true }],
+      {
+        version: '1.0',
+        blocks: [
+          {
+            id: 'toggle-1',
+            type: 'ToggleBlock',
+            position: { x: 10, y: 20 },
+            config: {
+              toggleId: 'debug',
+              toggleName: 'Debug',
+              defaultValue: false,
+            },
+          },
+        ],
+        connections: [],
+      },
+    );
+
+    expect(toggles).toEqual([
+      { id: 'debug', name: 'Debug', value: true },
+    ]);
   });
 });

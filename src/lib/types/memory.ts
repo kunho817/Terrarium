@@ -67,4 +67,14 @@ Focus on facts that would be important for continuity in a long roleplay session
 Output as JSON:
 {"facts": [{"content": "...", "type": "event", "importance": 0.8}, ...]}`;
 
-export const DEFAULT_SUMMARY_PROMPT = `You are a narrative summarizer. Summarize the following conversation segment, preserving key events, character developments, relationship changes, and important plot details. Write in a concise narrative style that captures the essence of what happened. Focus on information that would be needed for story continuity.`;
+const LEGACY_SUMMARY_PROMPT = `You are a narrative summarizer. Summarize the following conversation segment, preserving key events, character developments, relationship changes, and important plot details. Write in a concise narrative style that captures the essence of what happened. Focus on information that would be needed for story continuity.`;
+
+export const DEFAULT_SUMMARY_PROMPT = `You are the Summary stage in a multi-stage roleplay pipeline. Compress the supplied turn range into archival continuity notes. Preserve durable events, relationship changes, world-state changes, character shifts, unresolved tensions, and any facts later turns must remember. Omit filler dialogue and moment-to-moment prose. Write concise continuity-focused prose, not bullet points or commentary.`;
+
+export function migrateSummaryPrompt(prompt?: string): string {
+  const normalized = prompt?.trim() ?? '';
+  if (!normalized || normalized === LEGACY_SUMMARY_PROMPT) {
+    return DEFAULT_SUMMARY_PROMPT;
+  }
+  return prompt ?? DEFAULT_SUMMARY_PROMPT;
+}

@@ -5,21 +5,27 @@
     port: PortType;
     isInput: boolean;
     isConnected: boolean;
-    onActivate?: (e: MouseEvent | KeyboardEvent) => void;
+    onPress?: (e: MouseEvent | KeyboardEvent) => void;
+    onRelease?: (e: MouseEvent | KeyboardEvent) => void;
   }
 
-  let { port, isInput, isConnected, onActivate }: Props = $props();
+  let { port, isInput, isConnected, onPress, onRelease }: Props = $props();
 
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onActivate?.(e);
+      onPress?.(e);
     }
   }
 
-  function handleActivate(e: MouseEvent | KeyboardEvent) {
+  function handlePress(e: MouseEvent | KeyboardEvent) {
     e.stopPropagation();
-    onActivate?.(e);
+    onPress?.(e);
+  }
+
+  function handleRelease(e: MouseEvent | KeyboardEvent) {
+    e.stopPropagation();
+    onRelease?.(e);
   }
 
   // Port colors by type
@@ -34,33 +40,56 @@
 </script>
 
 <div
-  class="port absolute w-3 h-3 rounded-full border-2 transition-all cursor-pointer"
-  class:input-port={isInput}
-  class:output-port={!isInput}
+  class="port-row flex items-center gap-2 rounded-md border border-surface2 bg-mantle/95 px-2 py-1 shadow-sm transition-all"
+  class:input-row={isInput}
+  class:output-row={!isInput}
   class:connected={isConnected}
   data-port-id={port.id}
-  style="
-    background-color: {isConnected ? color : '#313244'};
-    border-color: {color};
-    {isInput ? 'left: -6px;' : 'right: -6px;'}
-  "
-  onmousedown={handleActivate}
+  data-port-direction={isInput ? 'input' : 'output'}
+  onmousedown={handlePress}
+  onmouseup={handleRelease}
   onkeydown={handleKeyDown}
   role="button"
   tabindex="0"
   aria-label="{isInput ? 'Input' : 'Output'} port: {port.name}"
-></div>
+>
+  {#if !isInput}
+    <span class="truncate text-[11px] font-medium text-subtext0">{port.name}</span>
+  {/if}
+
+  <span
+    class="port-dot inline-flex h-3.5 w-3.5 shrink-0 rounded-full border-2"
+    style="background-color: {isConnected ? color : '#313244'}; border-color: {color};"
+  ></span>
+
+  {#if isInput}
+    <span class="truncate text-[11px] font-medium text-subtext0">{port.name}</span>
+  {/if}
+</div>
 
 <style>
-  .port {
-    top: 50%;
-    transform: translateY(-50%);
+  .port-row {
+    min-width: 88px;
+    max-width: 132px;
+    cursor: pointer;
   }
-  .port:hover {
+
+  .input-row {
+    justify-content: flex-start;
+    transform: translateX(-12px);
+  }
+
+  .output-row {
+    justify-content: flex-end;
+    transform: translateX(12px);
+  }
+
+  .port-row:hover {
     box-shadow: 0 0 0 4px rgba(203, 166, 247, 0.3);
-    transform: translateY(-50%) scale(1.2);
+    border-color: rgba(203, 166, 247, 0.75);
   }
-  .port.connected {
+
+  .connected {
     box-shadow: 0 0 0 2px rgba(203, 166, 247, 0.5);
   }
 </style>

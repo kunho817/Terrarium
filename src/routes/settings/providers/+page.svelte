@@ -79,6 +79,19 @@
                            border border-surface1 focus:outline-none focus:border-mauve
                            placeholder:text-subtext0"
                   />
+                {:else if field.type === 'select'}
+                  <select
+                    id={field.key}
+                    value={providerConfig[field.key] || field.defaultValue || ''}
+                    onchange={(e) => providerConfig[field.key] = (e.target as HTMLSelectElement).value}
+                    class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2
+                           border border-surface1 focus:outline-none focus:border-mauve"
+                  >
+                    <option value="">-- Select --</option>
+                    {#each field.options || [] as option}
+                      <option value={option.value}>{option.label}</option>
+                    {/each}
+                  </select>
                 {:else if field.type === 'number'}
                   <input
                     id={field.key}

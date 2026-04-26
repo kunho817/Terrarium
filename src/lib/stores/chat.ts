@@ -12,6 +12,7 @@ import * as chatStorage from '$lib/storage/chats';
 interface ChatState {
   characterId: CharacterId | null;
   sessionId: SessionId | null;
+  cardType: 'character' | 'world' | null;
   messages: Message[];
   isLoading: boolean;
   streamingMessage: string | null;
@@ -22,6 +23,7 @@ function createChatStore() {
   const { subscribe, set, update } = writable<ChatState>({
     characterId: null,
     sessionId: null,
+    cardType: null,
     messages: [],
     isLoading: false,
     streamingMessage: null,
@@ -56,10 +58,47 @@ function createChatStore() {
       });
     },
 
+    replaceMessage(target: Message, message: Message) {
+      update((s) => {
+        let index = -1;
+        for (let i = s.messages.length - 1; i >= 0; i -= 1) {
+          if (s.messages[i] === target) {
+            index = i;
+            break;
+          }
+        }
+        if (index < 0) {
+          for (let i = s.messages.length - 1; i >= 0; i -= 1) {
+            const entry = s.messages[i];
+            if (
+              entry.timestamp === target.timestamp
+              && entry.role === target.role
+              && entry.content === target.content
+            ) {
+              index = i;
+              break;
+            }
+          }
+        }
+
+        if (index < 0) return s;
+        const messages = [...s.messages];
+        messages[index] = message;
+        return { ...s, messages };
+      });
+    },
+
     truncateAfter(index: number) {
       update((s) => {
         if (index < 0 || index >= s.messages.length) return s;
         return { ...s, messages: s.messages.slice(0, index + 1) };
+      });
+    },
+
+    removeFrom(index: number) {
+      update((s) => {
+        if (index < 0 || index > s.messages.length) return s;
+        return { ...s, messages: s.messages.slice(0, index) };
       });
     },
 
@@ -71,14 +110,15 @@ function createChatStore() {
       update((s) => ({ ...s, streamingMessage: null, isStreaming: false }));
     },
 
-    setSessionState(characterId: CharacterId | null, sessionId: SessionId | null, messages: Message[]) {
-      update((s) => ({ ...s, characterId, sessionId, messages, isLoading: false }));
+    setSessionState(characterId: CharacterId | null, sessionId: SessionId | null, messages: Message[], cardType?: 'character' | 'world') {
+      update((s) => ({ ...s, characterId, sessionId, messages, cardType: cardType ?? null, isLoading: false }));
     },
 
     clear() {
       set({
         characterId: null,
         sessionId: null,
+        cardType: null,
         messages: [],
         isLoading: false,
         streamingMessage: null,

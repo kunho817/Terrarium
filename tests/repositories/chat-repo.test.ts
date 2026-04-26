@@ -43,6 +43,7 @@ describe('chatRepo', () => {
   describe('loadSession', () => {
     it('loads messages into store', async () => {
       vi.mocked(loadMessages).mockResolvedValue([mockMessage]);
+      vi.mocked(listSessions).mockResolvedValue([makeChatSession('session-1')]);
       
       await chatRepo.loadSession('char-1', 'session-1');
       
@@ -56,6 +57,7 @@ describe('chatRepo', () => {
 
     it('handles empty messages', async () => {
       vi.mocked(loadMessages).mockResolvedValue([]);
+      vi.mocked(listSessions).mockResolvedValue([makeChatSession('session-1')]);
       
       await chatRepo.loadSession('char-1', 'session-1');
       
@@ -101,6 +103,7 @@ describe('chatRepo', () => {
       chatStore.set({
         characterId: makeCharacterId('char-1'),
         sessionId: makeSessionId('session-1'),
+        cardType: null,
         messages: [mockMessage],
         isLoading: false,
         streamingMessage: null,
@@ -128,6 +131,7 @@ describe('chatRepo', () => {
       chatStore.set({
         characterId: makeCharacterId('char-1'),
         sessionId: makeSessionId('session-1'),
+        cardType: null,
         messages: [{ role: 'user', content: 'Hello world', type: 'dialogue', timestamp: 1234 }],
         isLoading: false,
         streamingMessage: null,
@@ -146,6 +150,7 @@ describe('chatRepo', () => {
       chatStore.set({
         characterId: makeCharacterId('char-1'),
         sessionId: makeSessionId('session-1'),
+        cardType: null,
         messages: [{ role: 'assistant', content: 'Hi there', type: 'dialogue', timestamp: 5678 }],
         isLoading: false,
         streamingMessage: null,
@@ -165,6 +170,7 @@ describe('chatRepo', () => {
       chatStore.set({
         characterId: makeCharacterId('char-1'),
         sessionId: makeSessionId('session-1'),
+        cardType: null,
         messages: [{ role: 'user', content: longContent, type: 'dialogue', timestamp: 9999 }],
         isLoading: false,
         streamingMessage: null,

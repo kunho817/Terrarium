@@ -98,8 +98,8 @@ export async function findSimilarMemories(
 		`SELECT m.id, m.session_id, m.type, m.content, m.importance, m.source_message_ids, m.turn_number, m.created_at,
             e.embedding
      FROM memories m JOIN embeddings e ON m.id = e.memory_id
-     WHERE m.session_id = ?`,
-		[sessionId],
+     WHERE m.session_id = ? AND m.turn_number < ?`,
+		[sessionId, currentTurn],
 	);
 	if (!memRows.length) return [];
 
@@ -172,6 +172,24 @@ export async function deleteMemoriesForSession(sessionId: string): Promise<void>
 	}
 	db.run('DELETE FROM memories WHERE session_id = ?', [sessionId]);
 	db.run('DELETE FROM summaries WHERE session_id = ?', [sessionId]);
+	try { await persist(); } catch {}
+}
+
+export async function deleteMemoriesForTurn(sessionId: string, turnNumber: number): Promise<void> {
+	const db = await getDb();
+	const ids = db.exec('SELECT id FROM memories WHERE session_id = ? AND turn_number >= ?', [sessionId, turnNumber]);
+	if (ids.length) {
+		for (const row of ids[0].values) {
+			db.run('DELETE FROM embeddings WHERE memory_id = ?', [row[0]]);
+		}
+	}
+	db.run('DELETE FROM memories WHERE session_id = ? AND turn_number >= ?', [sessionId, turnNumber]);
+	try { await persist(); } catch {}
+}
+
+export async function deleteSummariesFromTurn(sessionId: string, turnNumber: number): Promise<void> {
+	const db = await getDb();
+	db.run('DELETE FROM summaries WHERE session_id = ? AND end_turn >= ?', [sessionId, turnNumber]);
 	try { await persist(); } catch {}
 }
 

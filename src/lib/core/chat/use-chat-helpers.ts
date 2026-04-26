@@ -49,18 +49,34 @@ export interface ResolvedCard {
 }
 
 export function resolveActiveCard(): ResolvedCard | null {
+	const chatState = get(chatStore);
+	const cardType = chatState.cardType;
+	const activeId = chatState.characterId as string | null;
 	const charState = get(charactersStore);
-	if (charState.current && charState.currentId) {
+	const worldState = get(worldsStore);
+
+	if (cardType === 'world' || (activeId && worldState.currentId === activeId && !charState.current)) {
+		if (worldState.current) {
+			return {
+				card: worldCardToCharacterCard(worldState.current),
+				cardType: 'world',
+				worldCard: worldState.current,
+			};
+		}
+	}
+
+	if (charState.current) {
 		return { card: charState.current, cardType: 'character' };
 	}
-	const worldState = get(worldsStore);
-	if (worldState.current && worldState.currentId) {
+
+	if (worldState.current) {
 		return {
 			card: worldCardToCharacterCard(worldState.current),
 			cardType: 'world',
 			worldCard: worldState.current,
 		};
 	}
+
 	return null;
 }
 

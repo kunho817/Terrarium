@@ -7,6 +7,7 @@ import {
 	updateSummary,
 	deleteSummary,
 } from '$lib/storage/memories';
+import { memorySyncStore } from '$lib/stores/memory-sync';
 import type { MemoryType, MemoryRecord, SessionSummary } from '$lib/types/memory';
 import { makeSessionId } from '$lib/types/branded';
 
@@ -49,21 +50,26 @@ export const memoryRepo = {
 			embedding: new Array(128).fill(0),
 		};
 		await insertMemory(record);
+		memorySyncStore.bump();
 	},
 
 	async updateMemory(id: string, patch: { content?: string; importance?: number; type?: MemoryType }): Promise<void> {
 		await updateMemory(id, patch);
+		memorySyncStore.bump();
 	},
 
 	async deleteMemory(id: string): Promise<void> {
 		await deleteMemory(id);
+		memorySyncStore.bump();
 	},
 
 	async updateSummary(id: string, patch: { summary: string }): Promise<void> {
 		await updateSummary(id, patch);
+		memorySyncStore.bump();
 	},
 
 	async deleteSummary(id: string): Promise<void> {
 		await deleteSummary(id);
+		memorySyncStore.bump();
 	},
 };

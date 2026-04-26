@@ -5,8 +5,8 @@
   import Minimap from './Minimap.svelte';
   import ContextMenu from './ContextMenu.svelte';
   import { connectionDragStore } from '$lib/stores/connection-drag';
-  import { blockBuilderStore } from '$lib/stores/block-builder';
   import { viewportStore } from '$lib/stores/viewport';
+  import { describeConnectionMode, validateConnection } from '$lib/blocks/connection-rules';
 
   interface Props {
     graph: BlockGraph;
@@ -14,73 +14,136 @@
     onBlockSelect?: (blockId: string | null) => void;
     onBlockMove?: (blockId: string, position: { x: number; y: number }) => void;
     onBlockDoubleClick?: (blockId: string) => void;
+    onBlockEdit?: (blockId: string) => void;
+    onConnectionAdd?: (connection: Connection) => void;
+    onBlockDelete?: (blockId: string) => void;
+    onBlockDuplicate?: (blockId: string) => void;
+    onBlockCollapse?: (blockId: string, collapsed: boolean) => void;
+    onClearCanvas?: () => void;
+    onAddBlock?: (blockType: string, position: { x: number; y: number }) => void;
+    onCanvasInteract?: () => void;
   }
 
-  let { graph, selectedBlockId, onBlockSelect, onBlockMove, onBlockDoubleClick }: Props = $props();
+  let {
+    graph,
+    selectedBlockId,
+    onBlockSelect,
+    onBlockMove,
+    onBlockDoubleClick,
+    onBlockEdit,
+    onConnectionAdd,
+    onBlockDelete,
+    onBlockDuplicate,
+    onBlockCollapse,
+    onClearCanvas,
+    onAddBlock,
+    onCanvasInteract,
+  }: Props = $props();
 
   let viewport = $state($viewportStore);
-  $effect(() => { viewport = $viewportStore; });
+  $effect(() => {
+    viewport = $viewportStore;
+  });
 
   let isDragging = $state(false);
-  let dragBlockId: string | null = $state(null);
+  let dragBlockId = $state<string | null>(null);
   let dragOffset = $state({ x: 0, y: 0 });
 
   let isPanning = $state(false);
   let panStart = $state({ x: 0, y: 0 });
   let panOffsetStart = $state({ x: 0, y: 0 });
 
-  let contextMenu = $state<{ visible: boolean; x: number; y: number; type: 'canvas' | 'node'; blockId?: string }>({
-    visible: false, x: 0, y: 0, type: 'canvas'
+  let contextMenu = $state<{
+    visible: boolean;
+    x: number;
+    y: number;
+    type: 'canvas' | 'node';
+    blockId?: string;
+    canvasX?: number;
+    canvasY?: number;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    type: 'canvas',
   });
 
   let containerWidth = $state(800);
   let containerHeight = $state(600);
+  let canvasElement: HTMLDivElement | null = $state(null);
+  let connectionStatus = $state<{ tone: 'info' | 'error' | 'success'; message: string } | null>(null);
+  let statusResetHandle: ReturnType<typeof setTimeout> | null = null;
+
+  const connectedPorts = $derived(() => {
+    const ports = new Set<string>();
+    for (const connection of graph.connections) {
+      ports.add(`${connection.from.blockId}-${connection.from.portId}`);
+      ports.add(`${connection.to.blockId}-${connection.to.portId}`);
+    }
+    return ports;
+  });
 
   function screenToCanvas(screenX: number, screenY: number, canvasRect: DOMRect) {
-    const relX = screenX - canvasRect.left;
-    const relY = screenY - canvasRect.top;
-    return viewportStore.screenToCanvas(relX, relY);
+    const relativeX = screenX - canvasRect.left;
+    const relativeY = screenY - canvasRect.top;
+    return viewportStore.screenToCanvas(relativeX, relativeY);
   }
 
-  function handleBlockMouseDown(block: BlockInstance, e: MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+  function setConnectionStatus(message: string, tone: 'info' | 'error' | 'success' = 'info') {
+    connectionStatus = { tone, message };
+    if (statusResetHandle) {
+      clearTimeout(statusResetHandle);
+    }
+    if (tone !== 'info') {
+      statusResetHandle = setTimeout(() => {
+        connectionStatus = null;
+        statusResetHandle = null;
+      }, 2200);
+    }
+  }
+
+  function handleBlockMouseDown(block: BlockInstance, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
     isDragging = true;
     dragBlockId = block.id;
-    const canvas = (e.currentTarget as HTMLElement).closest('.canvas-area') as HTMLElement;
-    const rect = canvas.getBoundingClientRect();
-    const canvasPos = screenToCanvas(e.clientX, e.clientY, rect);
+    const rect = canvasElement?.getBoundingClientRect();
+    if (!rect) {
+      return;
+    }
+    const canvasPosition = screenToCanvas(event.clientX, event.clientY, rect);
     dragOffset = {
-      x: canvasPos.x - block.position.x,
-      y: canvasPos.y - block.position.y
+      x: canvasPosition.x - block.position.x,
+      y: canvasPosition.y - block.position.y,
     };
     onBlockSelect?.(block.id);
   }
 
-  function handleMouseMove(e: MouseEvent) {
+  function handleMouseMove(event: MouseEvent) {
     if (isPanning) {
-      const deltaX = e.clientX - panStart.x;
-      const deltaY = e.clientY - panStart.y;
+      const deltaX = event.clientX - panStart.x;
+      const deltaY = event.clientY - panStart.y;
       viewportStore.setOffset(
         panOffsetStart.x + deltaX,
-        panOffsetStart.y + deltaY
+        panOffsetStart.y + deltaY,
       );
       return;
     }
 
-    if (!isDragging || !dragBlockId) return;
-    
-    const canvas = document.querySelector('.canvas-area');
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const canvasPos = screenToCanvas(e.clientX, e.clientY, rect as DOMRect);
-    
-    const newX = canvasPos.x - dragOffset.x;
-    const newY = canvasPos.y - dragOffset.y;
-    
+    if (!isDragging || !dragBlockId) {
+      return;
+    }
+
+    if (!canvasElement) {
+      return;
+    }
+
+    const rect = canvasElement.getBoundingClientRect();
+    const canvasPosition = screenToCanvas(event.clientX, event.clientY, rect);
     onBlockMove?.(dragBlockId, {
-      x: Math.max(0, newX),
-      y: Math.max(0, newY)
+      x: Math.max(0, canvasPosition.x - dragOffset.x),
+      y: Math.max(0, canvasPosition.y - dragOffset.y),
     });
   }
 
@@ -90,178 +153,266 @@
     isPanning = false;
   }
 
-  function handleCanvasMouseDown(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (target.classList.contains('canvas-area') || 
-        target.classList.contains('grid-bg') ||
-        target.classList.contains('transform-layer')) {
-      if (e.button === 0) {
+  function handleCanvasMouseDown(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (
+      target.classList.contains('canvas-area') ||
+      target.classList.contains('grid-bg') ||
+      target.classList.contains('transform-layer')
+    ) {
+      onCanvasInteract?.();
+      if ($connectionDragStore.isDragging) {
+        connectionDragStore.endDrag();
+        connectionStatus = null;
+        event.preventDefault();
+        return;
+      }
+      if (event.button === 0) {
         isPanning = true;
-        panStart = { x: e.clientX, y: e.clientY };
+        panStart = { x: event.clientX, y: event.clientY };
         panOffsetStart = { x: viewport.offsetX, y: viewport.offsetY };
-        e.preventDefault();
+        event.preventDefault();
       }
     }
   }
 
-  function handleWheel(e: WheelEvent) {
-    e.preventDefault();
-    const canvas = document.querySelector('.canvas-area');
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const relX = e.clientX - rect.left;
-    const relY = e.clientY - rect.top;
-    
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    viewportStore.zoomAt(relX, relY, delta);
+  function handleWheel(event: WheelEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!canvasElement) {
+      return;
+    }
+
+    const rect = canvasElement.getBoundingClientRect();
+    const relativeX = event.clientX - rect.left;
+    const relativeY = event.clientY - rect.top;
+    viewportStore.zoomAt(relativeX, relativeY, event.deltaY > 0 ? -0.1 : 0.1);
   }
 
-  function handleCanvasClick(e: MouseEvent) {
-    const target = e.target as HTMLElement;
+  function handleCanvasClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
     if (target.classList.contains('canvas-area') || target.classList.contains('grid-bg')) {
+      if ($connectionDragStore.isDragging) {
+        connectionDragStore.endDrag();
+        connectionStatus = null;
+      }
       onBlockSelect?.(null);
     }
   }
 
-  function handlePortClick(blockId: string, portId: string, isInput: boolean, e: MouseEvent) {
-    if ($connectionDragStore.isDragging && isInput) {
-      const fromBlockId = $connectionDragStore.fromBlockId;
-      const fromPortId = $connectionDragStore.fromPortId;
-      if (!fromBlockId || !fromPortId) return;
-      
+  function handlePortMouseDown(blockId: string, portId: string, isInput: boolean, event: MouseEvent) {
+    if (isInput) {
+      return;
+    }
+
+    if (!canvasElement) {
+      return;
+    }
+
+    const portRect = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+      ?? (event.target as HTMLElement).getBoundingClientRect();
+    const canvasRect = canvasElement.getBoundingClientRect();
+    const position = viewportStore.screenToCanvas(
+      portRect.left + portRect.width / 2 - canvasRect.left,
+      portRect.top + portRect.height / 2 - canvasRect.top,
+    );
+
+    if (
+      $connectionDragStore.isDragging &&
+      $connectionDragStore.fromBlockId === blockId &&
+      $connectionDragStore.fromPortId === portId
+    ) {
+      connectionDragStore.endDrag();
+      connectionStatus = null;
+      return;
+    }
+
+    connectionDragStore.startDrag(blockId, portId, false, position.x, position.y);
+    setConnectionStatus(
+      describeConnectionMode(graph, { blockId, portId }),
+      'info',
+    );
+  }
+
+  function handlePortMouseUp(blockId: string, portId: string, isInput: boolean, _event: MouseEvent) {
+    if (!$connectionDragStore.isDragging || !isInput) {
+      return;
+    }
+
+    const fromBlockId = $connectionDragStore.fromBlockId;
+    const fromPortId = $connectionDragStore.fromPortId;
+    if (!fromBlockId || !fromPortId) {
+      connectionDragStore.endDrag();
+      connectionStatus = null;
+      return;
+    }
+
+    const validation = validateConnection(
+      graph,
+      { blockId: fromBlockId, portId: fromPortId },
+      { blockId, portId },
+    );
+
+    if (!validation.ok) {
+      setConnectionStatus(validation.reason || 'Connection failed.', 'error');
       if (fromBlockId === blockId) {
-        connectionDragStore.endDrag();
         return;
       }
-      
-      const exists = graph.connections.some(c => 
-        c.from.blockId === fromBlockId && c.from.portId === fromPortId &&
-        c.to.blockId === blockId && c.to.portId === portId
-      );
-      if (exists) {
-        connectionDragStore.endDrag();
-        return;
-      }
-      
-      const conn: Connection = {
-        id: crypto.randomUUID(),
-        from: { blockId: fromBlockId, portId: fromPortId },
-        to: { blockId, portId },
+      return;
+    }
+
+    onConnectionAdd?.({
+      id: crypto.randomUUID(),
+      from: { blockId: fromBlockId, portId: fromPortId },
+      to: { blockId, portId },
+    });
+    connectionDragStore.endDrag();
+    setConnectionStatus(
+      `Connected ${validation.sourceType ?? 'source'} to ${validation.targetType ?? 'target'}.`,
+      'success',
+    );
+  }
+
+  function handleCanvasMouseMove(event: MouseEvent) {
+    if (!$connectionDragStore.isDragging) {
+      return;
+    }
+
+    if (!canvasElement) {
+      return;
+    }
+
+    const rect = canvasElement.getBoundingClientRect();
+    const position = viewportStore.screenToCanvas(
+      event.clientX - rect.left,
+      event.clientY - rect.top,
+    );
+    connectionDragStore.updateMouse(position.x, position.y);
+  }
+
+  function handleContextMenu(event: MouseEvent) {
+    event.preventDefault();
+    const target = event.target as HTMLElement;
+    const blockElement = target.closest('[data-block-id]');
+
+    if (blockElement) {
+      contextMenu = {
+        visible: true,
+        x: event.clientX,
+        y: event.clientY,
+        type: 'node',
+        blockId: blockElement.getAttribute('data-block-id') || undefined,
       };
-      blockBuilderStore.addConnection(conn);
-      connectionDragStore.endDrag();
-    } else if (!isInput) {
-      const portRect = (e.target as HTMLElement).getBoundingClientRect();
-      const canvas = document.querySelector('.canvas-area');
-      if (canvas) {
-        const canvasRect = canvas.getBoundingClientRect();
-        const pos = viewportStore.screenToCanvas(
-          portRect.left + portRect.width / 2 - canvasRect.left,
-          portRect.top + portRect.height / 2 - canvasRect.top
-        );
-        connectionDragStore.startDrag(blockId, portId, isInput, pos.x, pos.y);
-      }
+      return;
     }
-  }
 
-  function handleCanvasMouseMove(e: MouseEvent) {
-    if ($connectionDragStore.isDragging) {
-      const canvas = document.querySelector('.canvas-area');
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        const pos = viewportStore.screenToCanvas(
-          e.clientX - rect.left,
-          e.clientY - rect.top
-        );
-        connectionDragStore.updateMouse(pos.x, pos.y);
-      }
+    if (!canvasElement) {
+      return;
     }
-  }
-  
-  function handleConnectionDragEnd() {
-    if ($connectionDragStore.isDragging) {
-      connectionDragStore.endDrag();
-    }
-  }
 
-  function handleContextMenu(e: MouseEvent) {
-    e.preventDefault();
-    const target = e.target as HTMLElement;
-    const blockEl = target.closest('[data-block-id]');
-    
-    if (blockEl) {
-      const blockId = blockEl.getAttribute('data-block-id')!;
-      contextMenu = { visible: true, x: e.clientX, y: e.clientY, type: 'node', blockId };
-    } else {
-      const canvas = document.querySelector('.canvas-area');
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        containerWidth = rect.width;
-        containerHeight = rect.height;
-      }
-      contextMenu = { visible: true, x: e.clientX, y: e.clientY, type: 'canvas' };
-    }
+    const rect = canvasElement.getBoundingClientRect();
+    const canvasPosition = screenToCanvas(event.clientX, event.clientY, rect);
+    containerWidth = rect.width;
+    containerHeight = rect.height;
+    contextMenu = {
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
+      type: 'canvas',
+      canvasX: canvasPosition.x,
+      canvasY: canvasPosition.y,
+    };
   }
 
   function handleContextMenuAction(action: string, data?: Record<string, string>) {
-    if (action === 'delete' && data?.blockId) {
-      blockBuilderStore.removeBlock(data.blockId);
-    } else if (action === 'duplicate' && data?.blockId) {
-      const block = graph.blocks.find(b => b.id === data.blockId);
+    const blockId = data?.blockId;
+
+    if (action === 'edit' && blockId) {
+      onBlockEdit?.(blockId);
+      return;
+    }
+
+    if (action === 'delete' && blockId) {
+      onBlockDelete?.(blockId);
+      return;
+    }
+
+    if (action === 'duplicate' && blockId) {
+      onBlockDuplicate?.(blockId);
+      return;
+    }
+
+    if (action === 'collapse' && blockId) {
+      const block = graph.blocks.find((entry) => entry.id === blockId);
       if (block) {
-        blockBuilderStore.addBlock({
-          ...block,
-          id: crypto.randomUUID(),
-          position: { x: block.position.x + 40, y: block.position.y + 40 }
-        });
+        onBlockCollapse?.(blockId, !block.collapsed);
       }
-    } else if (action === 'collapse' && data?.blockId) {
-      const block = graph.blocks.find(b => b.id === data.blockId);
-      if (block) {
-        blockBuilderStore.setBlockCollapsed(data.blockId, !block.collapsed);
-      }
-    } else if (action === 'clear-canvas') {
-      graph.blocks.forEach(b => blockBuilderStore.removeBlock(b.id));
+      return;
+    }
+
+    if (action === 'clear-canvas') {
+      onClearCanvas?.();
+      return;
+    }
+
+    if (action === 'add-block') {
+      onAddBlock?.('TextBlock', {
+        x: contextMenu.canvasX ?? 120,
+        y: contextMenu.canvasY ?? 120,
+      });
     }
   }
 
-  function handleResize(e: ResizeObserverEntry) {
-    containerWidth = e.contentRect.width;
-    containerHeight = e.contentRect.height;
+  function handleMinimapNavigate(offsetX: number, offsetY: number) {
+    viewportStore.setOffset(offsetX, offsetY);
   }
 </script>
 
-<svelte:window 
-  onmousemove={handleMouseMove} 
-  onmouseup={() => { handleMouseUp(); handleConnectionDragEnd(); }}
+<svelte:window
+  onmousemove={handleMouseMove}
+  onmouseup={() => {
+    handleMouseUp();
+  }}
 />
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
-<div 
-  class="canvas-area relative w-full h-full bg-mantle rounded-lg overflow-hidden border-2 border-surface2"
+<div
+  class="canvas-area relative h-full w-full overflow-hidden rounded-lg border border-surface2 bg-mantle"
   class:panning={isPanning}
+  bind:this={canvasElement}
+  bind:clientWidth={containerWidth}
+  bind:clientHeight={containerHeight}
   onmousedown={handleCanvasMouseDown}
   onclick={handleCanvasClick}
   oncontextmenu={handleContextMenu}
   onmousemove={handleCanvasMouseMove}
   onwheel={handleWheel}
-  onkeydown={(e) => {
-    if (e.key === 'Escape') onBlockSelect?.(null);
+  onkeydown={(event) => {
+    if (event.key === 'Escape') {
+      if ($connectionDragStore.isDragging) {
+        connectionDragStore.endDrag();
+        connectionStatus = null;
+      }
+      onBlockSelect?.(null);
+    }
+    if (event.key === 'Delete' && selectedBlockId) {
+      onBlockDelete?.(selectedBlockId);
+    }
   }}
   role="application"
-  aria-label="Block canvas"
+  aria-label="Prompt builder canvas"
   tabindex="0"
 >
-  <div 
+  <div
     class="transform-layer absolute origin-top-left"
     style="transform: translate({viewport.offsetX}px, {viewport.offsetY}px) scale({viewport.scale});"
   >
-    <div 
-      class="grid-bg absolute pointer-events-none opacity-20"
-      style="width: 10000px; height: 10000px; left: -5000px; top: -5000px; background-image: radial-gradient(circle, #cdd6f4 1px, transparent 1px); background-size: 20px 20px;"
+    <div
+      class="grid-bg pointer-events-none absolute opacity-20"
+      style="left: -5000px; top: -5000px; width: 10000px; height: 10000px; background-image: radial-gradient(circle, #cdd6f4 1px, transparent 1px); background-size: 24px 24px;"
     ></div>
 
-    <ConnectionLayer 
+    <ConnectionLayer
       connections={graph.connections}
       blocks={graph.blocks}
       livePreview={$connectionDragStore.isDragging ? {
@@ -276,15 +427,19 @@
       <div
         data-block-id={block.id}
         class="absolute"
-        style="left: {block.position.x}px; top: {block.position.y}px;"
+        style="left: {block.position.x}px; top: {block.position.y}px; z-index: {block.id === selectedBlockId ? 20 : 10};"
       >
         <BlockNode
           {block}
           isSelected={block.id === selectedBlockId}
+          connectedPorts={connectedPorts()}
           onSelect={() => onBlockSelect?.(block.id)}
           onDoubleClick={() => onBlockDoubleClick?.(block.id)}
-          onDragStart={(e) => handleBlockMouseDown(block, e)}
-          onPortClick={(portId, isInput, e) => handlePortClick(block.id, portId, isInput, e)}
+          onEdit={() => onBlockEdit?.(block.id)}
+          onDragStart={(event) => handleBlockMouseDown(block, event)}
+          onPortMouseDown={(portId, isInput, event) => handlePortMouseDown(block.id, portId, isInput, event)}
+          onPortMouseUp={(portId, isInput, event) => handlePortMouseUp(block.id, portId, isInput, event)}
+          onCollapse={() => onBlockCollapse?.(block.id, !block.collapsed)}
         />
       </div>
     {/each}
@@ -292,22 +447,37 @@
     {#if graph.blocks.length === 0}
       <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="transform: translate(5000px, 5000px);">
         <div class="text-center">
-          <p class="text-text text-lg font-medium">Drag blocks from palette</p>
-          <p class="text-subtext0 text-sm">or click to add them here</p>
+          <p class="text-lg font-medium text-text">Drag blocks from the palette</p>
+          <p class="text-sm text-subtext0">or right-click to drop a text block here</p>
         </div>
       </div>
     {/if}
   </div>
 
   {#if graph.blocks.length > 0}
-    <Minimap 
+    <Minimap
       {graph}
       scale={viewport.scale}
       offsetX={viewport.offsetX}
       offsetY={viewport.offsetY}
       {containerWidth}
       {containerHeight}
+      onNavigate={handleMinimapNavigate}
     />
+  {/if}
+
+  {#if connectionStatus || $connectionDragStore.isDragging}
+    <div class="pointer-events-none absolute bottom-4 left-4 z-30 max-w-md rounded-md border border-surface2 bg-surface1/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
+      <p
+        class:text-subtext0={!connectionStatus || connectionStatus.tone === 'info'}
+        class:text-red={connectionStatus?.tone === 'error'}
+        class:text-green={connectionStatus?.tone === 'success'}
+      >
+        {connectionStatus?.message ?? describeConnectionMode(graph, $connectionDragStore.fromBlockId && $connectionDragStore.fromPortId
+          ? { blockId: $connectionDragStore.fromBlockId, portId: $connectionDragStore.fromPortId }
+          : null)}
+      </p>
+    </div>
   {/if}
 </div>
 
@@ -318,7 +488,9 @@
     type={contextMenu.type}
     blockId={contextMenu.blockId}
     onAction={handleContextMenuAction}
-    onClose={() => contextMenu.visible = false}
+    onClose={() => {
+      contextMenu.visible = false;
+    }}
   />
 {/if}
 
@@ -326,9 +498,8 @@
   .canvas-area {
     cursor: default;
   }
-  .canvas-area:has([data-block-id]:active) {
-    cursor: grabbing;
-  }
+
+  .canvas-area:has([data-block-id]:active),
   .canvas-area.panning {
     cursor: grabbing;
   }

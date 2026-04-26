@@ -5,6 +5,7 @@
   import { charactersRepo } from '$lib/repositories/characters-repo';
   import { getRegistry } from '$lib/core/bootstrap';
   import CharacterCardDisplay from '$lib/components/CharacterCardDisplay.svelte';
+  import { showConfirmDialog } from '$lib/utils/app-dialog';
   import type { CharacterCard } from '$lib/types';
   import * as characterStorage from '$lib/storage/characters';
 
@@ -59,7 +60,7 @@
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete character "${name}"? This cannot be undone.`)) return;
+    if (!(await showConfirmDialog(`Delete character "${name}"? This cannot be undone.`))) return;
     await charactersRepo.deleteCharacter(id);
   }
 

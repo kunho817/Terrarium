@@ -4,11 +4,14 @@ import { chatRepo } from '$lib/repositories/chat-repo';
 import { sceneStore } from '$lib/stores/scene';
 import { sceneRepo } from '$lib/repositories/scene-repo';
 import { settingsStore } from '$lib/stores/settings';
+import { settingsRepo } from '$lib/repositories/settings-repo';
 import { charactersStore } from '$lib/stores/characters';
 import { getEngine } from '$lib/core/bootstrap';
 import { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
 import { resolveEffectiveSettings } from './world-settings';
 import { streamAndFinalize } from './use-chat-streaming';
+import { resetSessionData } from '$lib/storage/sessions';
+import { applyProviderDefaults, resolveSlotConfig } from '$lib/core/models/slot-resolver';
 export { generateIllustration } from './use-chat-illustration';
 export { resolveActiveCard, resolvePersona, getSessionPersonaId } from './use-chat-helpers';
 export type { ResolvedCard } from './use-chat-helpers';
@@ -18,6 +21,7 @@ import type { PromptPreset } from '$lib/types/prompt-preset';
 import type { ImageGenerationConfig } from '$lib/types/image-config';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
 import type { AppSettings } from '$lib/storage/settings';
+import { getActiveImagePromptConfig } from '$lib/core/presets/active-preset';
 
 interface ResolvedChatConfig {
 	config: UserConfig;
@@ -27,17 +31,18 @@ interface ResolvedChatConfig {
 }
 
 function resolveChatConfig(settings: AppSettings, worldSettings?: import('$lib/types/world').WorldSettings): ResolvedChatConfig {
-	const providerConfig = settings.providers[settings.defaultProvider] as Record<string, unknown> | undefined;
+	const chatSlot = resolveSlotConfig(settings, ['chat']);
 	const baseConfig: UserConfig = {
-		providerId: settings.defaultProvider,
-		model: (providerConfig?.model as string) || undefined,
-		apiKey: (providerConfig?.apiKey as string) || undefined,
-		baseUrl: (providerConfig?.baseUrl as string) || undefined,
-		temperature: (providerConfig?.temperature as number) || undefined,
-		maxTokens: (providerConfig?.maxTokens as number) || undefined,
+		providerId: chatSlot.provider || settings.defaultProvider,
+		model: chatSlot.model,
+		apiKey: chatSlot.apiKey,
+		baseUrl: chatSlot.baseUrl,
+		temperature: chatSlot.temperature,
+		maxTokens: chatSlot.maxTokens,
 	};
 
 	const config = resolveEffectiveSettings(baseConfig, worldSettings);
+	const hydratedConfig = applyProviderDefaults(settings, config);
 
 	const presetSettings = settings.promptPresets;
 	let activePreset: PromptPreset | undefined;
@@ -45,13 +50,17 @@ function resolveChatConfig(settings: AppSettings, worldSettings?: import('$lib/t
 		activePreset = presetSettings.presets.find((p: PromptPreset) => p.id === presetSettings.activePresetId);
 	}
 
-	const imageConfig = settings.imageGeneration ?? DEFAULT_IMAGE_CONFIG;
+	const imageConfig = activePreset
+		? getActiveImagePromptConfig(settings)
+		: (settings.imageGeneration ?? DEFAULT_IMAGE_CONFIG);
 	const imageAutoGenerate = !!(imageConfig?.autoGenerate && imageConfig.provider !== 'none');
 
-	return { config, activePreset, imageConfig, imageAutoGenerate };
+	return { config: hydratedConfig, activePreset, imageConfig, imageAutoGenerate };
 }
 
 export async function initChat(characterId: string, sessionId?: string, firstMessageOverride?: string): Promise<void> {
+	getEngine().getPipeline().reset();
+
 	if (sessionId) {
 		await chatRepo.loadSession(characterId, sessionId);
 		await sceneRepo.loadScene(characterId, sessionId);
@@ -103,6 +112,7 @@ export async function injectFirstMessage(greetingContent?: string): Promise<void
 }
 
 export async function sendMessage(input: string, type: MessageType): Promise<void> {
+	await settingsRepo.ensureLoaded();
 	const state = get(chatStore);
 	const settings = get(settingsStore);
 
@@ -131,7 +141,7 @@ export async function sendMessage(input: string, type: MessageType): Promise<voi
 
 	chatStore.addMessage(result.userMessage);
 
-	await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
+	await streamAndFinalize(result.stream, result.onComplete, result.afterGeneration, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
 }
 
 export async function editMessage(index: number, newContent: string): Promise<void> {
@@ -143,6 +153,7 @@ export async function editMessage(index: number, newContent: string): Promise<vo
 }
 
 export async function rerollFromMessage(userMessageIndex: number): Promise<void> {
+	await settingsRepo.ensureLoaded();
 	const state = get(chatStore);
 	const settings = get(settingsStore);
 
@@ -158,9 +169,12 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 	await chatRepo.saveMessages();
 
 	const currentState = get(chatStore);
+	const rerollTurn = currentState.messages.filter((message) => message.role === 'user').length;
+	const priorMessages = currentState.messages.slice(0, -1);
 	const sessionPersonaId = await getSessionPersonaId();
 	const persona = await resolvePersona(resolved.card, sessionPersonaId);
 	const engine = getEngine();
+	await engine.getPipeline().clearTurnState(rerollTurn, currentState.sessionId as string | undefined);
 	const { config, activePreset, imageConfig, imageAutoGenerate } = resolveChatConfig(settings, resolved.worldCard?.worldSettings);
 
 	const result = await engine.send({
@@ -169,12 +183,53 @@ export async function rerollFromMessage(userMessageIndex: number): Promise<void>
 		card: resolved.card,
 		scene: get(sceneStore),
 		config,
-		messages: currentState.messages,
+		messages: priorMessages,
+		characterId: (currentState.characterId as string | null) ?? undefined,
+		sessionId: (currentState.sessionId as string | null) ?? undefined,
 		preset: activePreset,
 		persona,
 		worldCard: resolved.worldCard,
 		imageAutoGenerate,
 	});
 
-	await streamAndFinalize(result.stream, result.onComplete, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
+	await streamAndFinalize(result.stream, result.onComplete, result.afterGeneration, config, imageConfig, imageAutoGenerate, settings.customArtStylePresets);
+}
+
+function buildEmptyScene(): import('$lib/types').SceneState {
+	return {
+		location: '',
+		time: '',
+		mood: '',
+		participatingCharacters: [],
+		variables: {},
+		environmentalNotes: '',
+		lastUpdated: Date.now(),
+	};
+}
+
+export async function deleteFromMessage(messageIndex: number): Promise<void> {
+	const state = get(chatStore);
+	if (messageIndex < 0 || messageIndex >= state.messages.length) return;
+
+	const affectedTurn = state.messages
+		.slice(0, messageIndex + 1)
+		.filter((message) => message.role === 'user').length;
+
+	chatStore.removeFrom(messageIndex);
+	await chatRepo.saveMessages();
+
+	const engine = getEngine();
+	if (state.sessionId) {
+		if (affectedTurn > 0) {
+			await engine.getPipeline().clearTurnState(affectedTurn, state.sessionId as string);
+		} else {
+			await resetSessionData(state.sessionId as string);
+			engine.getPipeline().reset();
+		}
+	}
+
+	if (state.characterId && state.sessionId) {
+		sceneStore.setSceneState(state.characterId as string, state.sessionId as string, buildEmptyScene());
+		await sceneRepo.save();
+	}
 }

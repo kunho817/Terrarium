@@ -2,11 +2,13 @@
 	let {
 		autoGenerate = $bindable(),
 		imagePromptInstructions = $bindable(),
+		jailbreak = $bindable(),
 		positivePrompt = $bindable(),
 		negativePrompt = $bindable(),
 	}: {
 		autoGenerate: boolean;
 		imagePromptInstructions: string;
+		jailbreak: string;
 		positivePrompt: string;
 		negativePrompt: string;
 	} = $props();
@@ -48,5 +50,19 @@
 		class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
 			   focus:outline-none focus:border-mauve resize-y"
 		placeholder="Describe how the AI should generate image prompts..."
+	></textarea>
+</section>
+
+<section class="space-y-3">
+	<div>
+		<h2 class="text-sm font-medium text-text">Image Jailbreak</h2>
+		<p class="text-xs text-subtext0">Additional unrestricted prompt text appended to image planning and image-tag generation requests.</p>
+	</div>
+	<textarea
+		bind:value={jailbreak}
+		rows={4}
+		class="w-full bg-surface0 text-text text-sm rounded-md px-3 py-2 border border-surface1
+			   focus:outline-none focus:border-mauve resize-y"
+		placeholder="Optional image-generation jailbreak text..."
 	></textarea>
 </section>

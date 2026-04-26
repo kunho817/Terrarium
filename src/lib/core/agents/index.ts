@@ -10,7 +10,11 @@ export type {
   RelationRecord,
   WorldFactRecord,
   TurnSnapshot,
+  AgentPromptSections,
+  AgentPromptSectionType,
   PipelineStepStatus,
   PipelineProgressCallback,
 } from './types';
 export { PROMPTS } from './prompts';
+export { runSectionWorld, parseSectionWorldJson } from './section-world';
+export { formatSectionWorldInjection, buildAgentImageContext } from './injection';

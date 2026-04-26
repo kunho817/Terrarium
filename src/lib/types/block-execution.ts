@@ -19,6 +19,7 @@ export interface PromptFragment {
     isConditional?: boolean;
     conditionResult?: boolean;
     toggleId?: string;
+    outputKey?: string;
   };
 }
 

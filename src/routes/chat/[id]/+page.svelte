@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { chatStore } from '$lib/stores/chat';
@@ -27,6 +26,12 @@
   import SessionPanel from '$lib/components/SessionPanel.svelte';
   import AgentPipelineIndicator from '$lib/components/AgentPipelineIndicator.svelte';
   import MemoryPanel from '$lib/components/MemoryPanel.svelte';
+  import ImageGenerationPanel from '$lib/components/ImageGenerationPanel.svelte';
+  import ChatQuickSettingsPanel from '$lib/components/ChatQuickSettingsPanel.svelte';
+  import { imageGenerationPanelStore } from '$lib/stores/image-generation-panel';
+  import { memorySyncStore } from '$lib/stores/memory-sync';
+  import { showConfirmDialog } from '$lib/utils/app-dialog';
+  import { resolveSlotConfig } from '$lib/core/models/slot-resolver';
 
   let sending = $state(false);
   let error = $state('');
@@ -38,6 +43,10 @@
   let showMemoryPanel = $state(false);
   let showGreetingPicker = $state(false);
   let memoryCounts = $state<Map<string, number>>(new Map());
+  let showImagePanel = $state(false);
+  let showChatControls = $state(false);
+  let lastRouteKey = $state('');
+  let routeLoadToken = 0;
 
   async function loadMemoryCounts() {
     const counts = new Map<string, number>();
@@ -50,51 +59,70 @@
 
   let currentSessionId = $derived($chatStore.sessionId);
   let currentSession = $derived(sessions.find((s) => s.id === currentSessionId));
+  let activeChatModel = $derived(resolveSlotConfig($settingsStore, ['chat']).model || (($settingsStore.providers[$settingsStore.defaultProvider] as any)?.model || ''));
 
-  async function loadSessions() {
-    const characterId = $page.params.id!;
+  async function loadSessions(characterId: string) {
     sessions = await chatStorage.listSessions(characterId);
   }
 
-  async function loadArchivedSessions() {
-    const characterId = $page.params.id!;
+  async function loadArchivedSessions(characterId: string) {
     archivedSessions = await chatStorage.listArchivedSessions(characterId);
   }
 
-  onMount(async () => {
-    const characterId = $page.params.id!;
-    const type = $page.url.searchParams.get('cardType');
-    if (type === 'world') {
-      cardType = 'world';
-    } else if (type === 'character') {
-      cardType = 'character';
-    } else {
-      const sessions = await chatStorage.listSessions(characterId);
-      const latest = sessions.sort((a, b) => b.lastMessageAt - a.lastMessageAt)[0];
-      if (latest?.cardType === 'world') {
-        cardType = 'world';
-      } else if (latest?.cardType === 'character') {
-        cardType = 'character';
-      } else {
-        const worldExists = await existsPath(PATHS.worldFile(characterId));
-        cardType = worldExists ? 'world' : 'character';
-      }
+  async function resolveCardType(characterId: string, requestedType: string | null): Promise<'character' | 'world'> {
+    if (requestedType === 'world') {
+      return 'world';
+    }
+    if (requestedType === 'character') {
+      return 'character';
     }
 
+    const sessionList = await chatStorage.listSessions(characterId);
+    const latest = sessionList.sort((a, b) => b.lastMessageAt - a.lastMessageAt)[0];
+    if (latest?.cardType === 'world') {
+      return 'world';
+    }
+    if (latest?.cardType === 'character') {
+      return 'character';
+    }
+
+    const worldExists = await existsPath(PATHS.worldFile(characterId));
+    return worldExists ? 'world' : 'character';
+  }
+
+  async function loadChatPage(characterId: string, requestedType: string | null, requestedSession: string | null) {
+    const loadToken = ++routeLoadToken;
+    error = '';
+    showGreetingPicker = false;
+    showSessionPanel = false;
+    showMemoryPanel = false;
+    showImagePanel = false;
+    showChatControls = false;
+    imageGenerationPanelStore.clear();
+    chatStore.clear();
+    sceneStore.reset();
+    charactersStore.clearSelection();
+    worldsStore.clearSelection();
+
+    const resolvedCardType = await resolveCardType(characterId, requestedType);
+    if (loadToken !== routeLoadToken) return;
+    cardType = resolvedCardType;
+
     try {
-      if (cardType === 'world') {
-        charactersStore.clearSelection();
+      if (resolvedCardType === 'world') {
         await worldsRepo.selectWorld(characterId);
       } else {
-        worldsStore.clearSelection();
         await charactersRepo.selectCharacter(characterId);
       }
-      await loadSessions();
-      await loadArchivedSessions();
+      if (loadToken !== routeLoadToken) return;
+
+      await loadSessions(characterId);
+      await loadArchivedSessions(characterId);
       personas = await listPersonas();
+      if (loadToken !== routeLoadToken) return;
 
       let firstMessageOverride: string | undefined;
-      if (cardType === 'world' && !$page.url.searchParams.get('session')) {
+      if (resolvedCardType === 'world' && !requestedSession) {
         const greetings = $worldsStore.current?.alternateGreetings ?? [];
         if (greetings.length === 1) {
           firstMessageOverride = greetings[0].content;
@@ -104,23 +132,38 @@
       }
 
       if (!showGreetingPicker) {
-        const querySession = $page.url.searchParams.get('session');
-        if (querySession && sessions.some((s) => s.id === querySession)) {
-          await initChat(characterId, querySession);
+        if (requestedSession && sessions.some((s) => s.id === requestedSession)) {
+          await initChat(characterId, requestedSession);
         } else {
           await initChat(characterId, undefined, firstMessageOverride);
           const resolved = $chatStore.sessionId;
-          if (resolved && resolved !== querySession) {
-            const typeParam = cardType === 'world' ? 'cardType=world&' : '';
+          if (resolved && resolved !== requestedSession) {
+            const typeParam = resolvedCardType === 'world' ? 'cardType=world&' : '';
             goto(`/chat/${characterId}?${typeParam}session=${resolved}`, { replaceState: true });
           }
         }
-        loadMemoryCounts();
+        if (loadToken !== routeLoadToken) return;
+        await loadMemoryCounts();
       }
     } catch (e) {
+      if (loadToken !== routeLoadToken) return;
       console.error('[ChatPage] Failed to load:', e);
-      error = `Failed to load ${cardType}`;
+      error = `Failed to load ${resolvedCardType}`;
     }
+  }
+
+  $effect(() => {
+    const characterId = $page.params.id;
+    const requestedType = $page.url.searchParams.get('cardType');
+    const requestedSession = $page.url.searchParams.get('session');
+    const routeKey = `${characterId}|${requestedType ?? ''}|${requestedSession ?? ''}`;
+
+    if (!characterId || routeKey === lastRouteKey) {
+      return;
+    }
+
+    lastRouteKey = routeKey;
+    void loadChatPage(characterId, requestedType, requestedSession);
   });
 
   async function handleSend(text: string, type: import('$lib/types').MessageType) {
@@ -151,7 +194,7 @@
     showGreetingPicker = false;
     const characterId = $page.params.id!;
     await initChat(characterId, undefined, greeting.content);
-    await loadSessions();
+    await loadSessions(characterId);
     const chatState = $chatStore;
     if (chatState.sessionId) {
       const typeParam = cardType === 'world' ? 'cardType=world&' : '';
@@ -191,7 +234,7 @@
     await chatRepo.loadSession(characterId, session.id);
     await sceneRepo.loadScene(characterId, session.id);
     await injectFirstMessage();
-    await loadSessions();
+    await loadSessions(characterId);
 
     const typeParam = cardType === 'world' ? 'cardType=world&' : '';
     goto(`/chat/${characterId}?${typeParam}session=${session.id}`, { replaceState: true });
@@ -201,7 +244,7 @@
     const characterId = $page.params.id!;
     await chatStorage.updateSession(characterId, sessionId, { name });
     chatRepo.invalidateCache(characterId);
-    await loadSessions();
+    await loadSessions(characterId);
   }
 
   async function deleteSession(sessionId: string) {
@@ -209,7 +252,7 @@
     const characterId = $page.params.id!;
 
     await chatStorage.deleteSession(characterId, sessionId);
-    await loadSessions();
+    await loadSessions(characterId);
 
     if (sessionId === currentSessionId) {
       const remaining = sessions[0];
@@ -225,8 +268,8 @@
     if (sessions.length <= 1) return;
     const characterId = $page.params.id!;
     await chatRepo.archiveSession(characterId, sessionId);
-    await loadSessions();
-    await loadArchivedSessions();
+    await loadSessions(characterId);
+    await loadArchivedSessions(characterId);
     if (sessionId === currentSessionId) {
       const remaining = sessions.filter(s => s.id !== sessionId);
       if (remaining.length > 0) {
@@ -238,22 +281,22 @@
   async function restoreSessionFn(sessionId: string) {
     const characterId = $page.params.id!;
     await chatRepo.restoreSession(characterId, sessionId);
-    await loadSessions();
-    await loadArchivedSessions();
+    await loadSessions(characterId);
+    await loadArchivedSessions(characterId);
   }
 
   async function permanentDeleteSessionFn(sessionId: string) {
-    if (!confirm('Permanently delete this session? This cannot be undone.')) return;
+    if (!(await showConfirmDialog('Permanently delete this session? This cannot be undone.'))) return;
     const characterId = $page.params.id!;
     await chatRepo.permanentDeleteSession(characterId, sessionId);
-    await loadArchivedSessions();
+    await loadArchivedSessions(characterId);
   }
 
   async function pinSession(sessionId: string, pinned: boolean) {
     const characterId = $page.params.id!;
     await chatStorage.updateSession(characterId, sessionId, { pinnedAt: pinned ? Date.now() : undefined });
     chatRepo.invalidateCache(characterId);
-    await loadSessions();
+    await loadSessions(characterId);
   }
 
   async function exportSessionById(sessionId: string) {
@@ -278,8 +321,16 @@
     const characterId = $page.params.id!;
     await chatStorage.updateSession(characterId, sessionId, { personaId: personaId ? makePersonaId(personaId) : undefined });
     chatRepo.invalidateCache(characterId);
-    await loadSessions();
+    await loadSessions(characterId);
   }
+
+  $effect(() => {
+    $memorySyncStore;
+    if (sessions.length === 0 && archivedSessions.length === 0) {
+      return;
+    }
+    void loadMemoryCounts();
+  });
 </script>
 
 {#if error}
@@ -293,7 +344,7 @@
   <div class="flex-1 flex flex-col overflow-hidden">
     <TopBar
       characterName={cardType === 'world' ? ($worldsStore.current?.name ?? 'World') : ($charactersStore.current?.name ?? '')}
-      modelName={($settingsStore.providers[$settingsStore.defaultProvider] as any)?.model || ''}
+      modelName={activeChatModel}
       characterId={$page.params.id}
       isWorld={cardType === 'world'}
     />
@@ -328,7 +379,8 @@
     <AgentPipelineIndicator />
     <InputArea
       onSend={handleSend}
-      onGenerateImage={handleGenerateImage}
+      onOpenChatControls={() => { showChatControls = true; showImagePanel = false; }}
+      onOpenImagePanel={() => { showImagePanel = true; showChatControls = false; }}
       imageProviderAvailable={$settingsStore.imageGeneration?.provider !== 'none' && $settingsStore.imageGeneration?.provider !== undefined}
       disabled={sending || $chatStore.isStreaming}
     />
@@ -358,6 +410,18 @@
     <MemoryPanel
       sessionId={currentSessionId ?? ''}
       onclose={() => showMemoryPanel = false}
+    />
+  {/if}
+  {#if showImagePanel}
+    <ImageGenerationPanel
+      onclose={() => showImagePanel = false}
+      ongenerate={handleGenerateImage}
+      disabled={sending || $chatStore.isStreaming}
+    />
+  {/if}
+  {#if showChatControls}
+    <ChatQuickSettingsPanel
+      onclose={() => showChatControls = false}
     />
   {/if}
   {#if showGreetingPicker && $worldsStore.current?.alternateGreetings?.length}

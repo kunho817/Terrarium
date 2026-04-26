@@ -119,7 +119,7 @@ describe('ChatEngine', () => {
       { id: 'extraction', label: 'Extracting' },
     ]);
     pipelineMocks.runBeforeGeneration.mockClear();
-    pipelineMocks.runBeforeGeneration.mockResolvedValue({ injection: '', reliabilityGuard: false });
+    pipelineMocks.runBeforeGeneration.mockResolvedValue({ injection: '', reliabilityGuard: false, promptSections: {} });
     pipelineMocks.runAfterGeneration.mockClear();
     pipelineMocks.runAfterGeneration.mockResolvedValue({ extraction: null });
   });
@@ -267,6 +267,7 @@ describe('ChatEngine', () => {
       pipelineMocks.runBeforeGeneration.mockResolvedValueOnce({
         injection: '[Director] Advance the plot',
         reliabilityGuard: false,
+        promptSections: {},
       });
       const { engine } = createEngine();
       const result = await engine.send({
@@ -280,6 +281,68 @@ describe('ChatEngine', () => {
       await consumeStream(result);
 
       expect(pipelineMocks.runBeforeGeneration).toHaveBeenCalledTimes(1);
+    });
+
+    it('routes structured agent sections through preset items and appends only unclaimed sections', async () => {
+      const capturedPrompts: Message[][] = [];
+      const provider: ProviderPlugin = {
+        ...createMockProvider(['ok']),
+        async *chat(messages: Message[], _config: UserConfig): AsyncGenerator<string> {
+          capturedPrompts.push(messages);
+          yield 'ok';
+        },
+      };
+
+      pipelineMocks.runBeforeGeneration.mockResolvedValueOnce({
+        injection: '[Scene State]\nLocation: Tower\n\n[Director Supervision]\nScene Mandate: Keep the bell toll hidden.',
+        reliabilityGuard: false,
+        promptSections: {
+          sceneState: '[Scene State]\nLocation: Tower',
+          director: '[Director Supervision]\nScene Mandate: Keep the bell toll hidden.',
+        },
+      });
+
+      const { engine } = createEngine(provider);
+      const preset = {
+        id: 'preset-1',
+        name: 'Preset',
+        assistantPrefill: '',
+        items: [
+          {
+            id: 'scene-state',
+            type: 'sceneState',
+            name: 'Scene State',
+            enabled: true,
+            role: 'system',
+            content: '',
+          },
+          {
+            id: 'chat-history',
+            type: 'chatHistory',
+            name: 'Chat History',
+            enabled: true,
+            role: 'system',
+            content: '',
+          },
+        ],
+      } as SendMessageOptions['preset'];
+
+      const result = await engine.send({
+        input: 'Continue',
+        type: 'dialogue',
+        card: baseCard,
+        scene: baseScene,
+        config: baseConfig,
+        messages: [],
+        preset,
+      });
+
+      await consumeStream(result);
+
+      const promptText = capturedPrompts[0].map((message) => message.content).join('\n\n');
+      expect(promptText).toContain('[Scene State]\nLocation: Tower');
+      expect(promptText).toContain('[Director Supervision]\nScene Mandate: Keep the bell toll hidden.');
+      expect(promptText.match(/\[Scene State\]/g)?.length).toBe(1);
     });
 
     it('integrates lorebook matching into pipeline', async () => {

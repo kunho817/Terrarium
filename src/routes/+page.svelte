@@ -26,6 +26,14 @@
     return new Date(timestamp).toLocaleDateString();
   }
 
+  function truncateText(value: string | undefined, maxLength: number): string {
+    const text = value?.trim() ?? '';
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return `${text.slice(0, maxLength).trimEnd()}...`;
+  }
+
   async function loadRecentSessions(): Promise<void> {
     const chatIds = await chatStorage.listChats();
     if (chatIds.length === 0) return;
@@ -121,23 +129,29 @@
               {#each recentSessions as session}
                 <a
                   href="/chat/{session.characterId}?session={session.id}{session.cardType === 'world' ? '&cardType=world' : ''}"
-                  class="block p-3 rounded-lg bg-surface0 hover:bg-surface1
+                  class="block min-w-0 max-w-full overflow-hidden p-3 rounded-lg bg-surface0 hover:bg-surface1
                          transition-colors border border-surface1"
                 >
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2">
-                      <span class="text-text font-medium text-sm">{session.cardName}</span>
+                  <div class="flex min-w-0 items-center justify-between gap-2">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <span class="min-w-0 truncate text-text font-medium text-sm" title={session.cardName}>
+                        {truncateText(session.cardName, 40)}
+                      </span>
                       {#if session.cardType === 'world'}
                         <span class="text-[10px] px-1.5 py-0.5 rounded bg-lavender/20 text-lavender font-medium">World</span>
                       {/if}
                     </div>
                     <span class="text-subtext1 text-xs shrink-0">{relativeTime(session.lastMessageAt)}</span>
                   </div>
-                  <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-subtext0 text-xs">{session.name}</span>
+                  <div class="mt-0.5 flex min-w-0 items-center gap-2">
+                    <span class="min-w-0 truncate text-subtext0 text-xs" title={session.name}>
+                      {truncateText(session.name, 48)}
+                    </span>
                   </div>
                   {#if session.preview}
-                    <p class="text-subtext1 text-xs mt-1 truncate">{session.preview}</p>
+                    <p class="mt-1 min-w-0 truncate text-subtext1 text-xs" title={session.preview}>
+                      {truncateText(session.preview, 140)}
+                    </p>
                   {/if}
                 </a>
               {/each}

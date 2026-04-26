@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { MessageType } from '$lib/types';
 
-  let { onSend, onGenerateImage, imageProviderAvailable = false, disabled = false } = $props<{
+  let { onSend, onOpenImagePanel, onOpenChatControls, imageProviderAvailable = false, disabled = false } = $props<{
     onSend: (text: string, type: MessageType) => void;
-    onGenerateImage?: () => void;
+    onOpenImagePanel?: () => void;
+    onOpenChatControls?: () => void;
     imageProviderAvailable?: boolean;
     disabled?: boolean;
   }>();
@@ -73,15 +74,32 @@
         style="max-height: calc(1lh * 5 + 0.75rem); min-height: calc(1lh + 0.75rem);"
       ></textarea>
 
-      <!-- Generate image button -->
-      {#if imageProviderAvailable && onGenerateImage}
+      {#if onOpenChatControls}
         <button
-          onclick={onGenerateImage}
+          onclick={onOpenChatControls}
           disabled={disabled}
           class="px-2 py-1.5 bg-surface0 text-text rounded-md text-sm
                  hover:bg-surface1 disabled:opacity-50 disabled:cursor-not-allowed
                  transition-colors"
-          title="Generate illustration"
+          title="Open chat controls"
+          aria-label="Open chat controls"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M4.25 5A.75.75 0 0 1 5 4.25h10a.75.75 0 0 1 0 1.5H5A.75.75 0 0 1 4.25 5Zm-2 5A.75.75 0 0 1 3 9.25h14a.75.75 0 0 1 0 1.5H3A.75.75 0 0 1 2.25 10Zm2 5A.75.75 0 0 1 5 14.25h10a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Zm2.25-10a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm7 5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm-4 5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z" />
+          </svg>
+        </button>
+      {/if}
+
+      <!-- Image panel button -->
+      {#if imageProviderAvailable && onOpenImagePanel}
+        <button
+          onclick={onOpenImagePanel}
+          disabled={disabled}
+          class="px-2 py-1.5 bg-surface0 text-text rounded-md text-sm
+                 hover:bg-surface1 disabled:opacity-50 disabled:cursor-not-allowed
+                 transition-colors"
+          title="Open image panel"
+          aria-label="Open image panel"
         >
           <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-2.69l-2.22-2.219a.75.75 0 00-1.06 0l-1.91 1.909-4.97-4.969a.75.75 0 00-1.06 0L2.5 11.06zm10-3.56a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clip-rule="evenodd" />

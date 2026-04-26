@@ -3,15 +3,21 @@
  * Spec reference: Section 8 — Shared Types > Messages
  */
 
+import type { PipelineSnapshot } from './diagnostics';
+
 export type MessageRole = 'user' | 'assistant' | 'system' | 'narrator';
 
 export type MessageType = 'dialogue' | 'narrator' | 'action' | 'system';
 
 export interface GenerationInfo {
+  providerId?: string;
   model?: string;
   inputTokens?: number;
   outputTokens?: number;
   durationMs?: number;
+  firstTokenLatencyMs?: number;
+  streamError?: string;
+  pipeline?: PipelineSnapshot | null;
 }
 
 export interface ContentSegment {

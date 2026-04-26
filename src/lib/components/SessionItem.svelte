@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ChatSession } from '$lib/types';
   import type { UserPersona } from '$lib/types/persona';
+  import { showConfirmDialog } from '$lib/utils/app-dialog';
 
   let {
     session,
@@ -42,10 +43,10 @@
     editing = false;
   }
 
-  function handleDelete() {
-    if (confirm(`Delete "${session.name}"?`)) {
-      ondelete(session.id);
-    }
+  async function handleDelete() {
+    const confirmed = await showConfirmDialog(`Delete "${session.name}"?`);
+    if (!confirmed) return;
+    ondelete(session.id);
   }
 
   function handleSelectKeydown(e: KeyboardEvent) {

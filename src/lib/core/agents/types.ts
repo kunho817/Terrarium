@@ -2,6 +2,8 @@ import type { Message } from '$lib/types/message';
 import type { SceneState } from '$lib/types/scene';
 import type { UserConfig } from '$lib/types/config';
 import type { SessionId, CharacterId } from '$lib/types/branded';
+import type { MemoryType } from '$lib/types/memory';
+import type { PromptItemType } from '$lib/types/prompt-preset';
 
 export interface CharacterSnapshot {
   name: string;
@@ -10,6 +12,17 @@ export interface CharacterSnapshot {
   inventory: string[];
   health: string;
   notes: string;
+}
+
+export interface ExtractionMemoryCandidate {
+  content: string;
+  type: MemoryType;
+}
+
+export interface ExtractionMemoryCandidates {
+  persistent: ExtractionMemoryCandidate[];
+  turningPoints: string[];
+  worldLog: string[];
 }
 
 export interface ExtractionSnapshot {
@@ -26,6 +39,7 @@ export interface ExtractionSnapshot {
   events: string[];
   newFacts: string[];
   changed: string[];
+  memoryCandidates?: ExtractionMemoryCandidates;
 }
 
 export interface WorldExtractionFields {
@@ -103,10 +117,20 @@ export interface TurnMaintenanceOutput {
   };
 }
 
+export interface SectionWorldOutput {
+  sectionTitle: string;
+  prompt: string;
+  activeRules: string[];
+  scenePressures: string[];
+}
+
 export interface SessionAgentState {
   sessionId: string;
+  cardId?: string;
+  cardType?: 'character' | 'world';
   lastExtraction: ExtractionSnapshot | null;
   lastTurnMaintenance: TurnMaintenanceOutput | null;
+  lastSectionWorld: SectionWorldOutput | null;
   entities: Record<string, EntityRecord>;
   relations: RelationRecord[];
   worldFacts: WorldFactRecord[];
@@ -123,6 +147,13 @@ export interface AgentPipelineContext {
   turnNumber: number;
   config: UserConfig;
 }
+
+export type AgentPromptSectionType = Extract<
+  PromptItemType,
+  'memory' | 'director' | 'sceneState' | 'characterState' | 'narrativeGuidance' | 'sectionWorld' | 'worldRelations'
+>;
+
+export type AgentPromptSections = Partial<Record<AgentPromptSectionType, string>>;
 
 export type PipelineStepStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
 

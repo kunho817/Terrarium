@@ -4,6 +4,8 @@ import { readJson, writeJsonAtomic, ensureDir, listDirs, removePath, existsPath 
 import { PATHS } from './paths';
 import { deleteMemoriesForSession } from './memories';
 import { deleteSessionState } from './session-agent-state';
+import { getDb, persist } from './db';
+import { memorySyncStore } from '$lib/stores/memory-sync';
 
 async function readSessionsFile(characterId: string): Promise<SessionsFile> {
 	const indexPath = PATHS.sessionsIndex(characterId);
@@ -130,6 +132,7 @@ export async function deleteSession(
 	const file = await readSessionsFile(characterId);
 	file.sessions = file.sessions.filter((s) => s.id !== sessionId);
 	await writeSessionsFile(characterId, file);
+	memorySyncStore.bump();
 }
 
 export async function listArchivedSessions(characterId: string): Promise<ChatSession[]> {
@@ -202,4 +205,17 @@ export async function permanentDeleteSession(characterId: string, sessionId: str
 		deleteMemoriesForSession(sessionId),
 		deleteSessionState(sessionId),
 	]);
+	memorySyncStore.bump();
+}
+
+export async function resetSessionData(sessionId: string): Promise<void> {
+	const db = await getDb();
+	db.run('DELETE FROM embeddings WHERE memory_id IN (SELECT id FROM memories WHERE session_id = ?)', [sessionId]);
+	db.run('DELETE FROM memories WHERE session_id = ?', [sessionId]);
+	db.run('DELETE FROM summaries WHERE session_id = ?', [sessionId]);
+	db.run('DELETE FROM scene_states WHERE session_id = ?', [sessionId]);
+	db.run('DELETE FROM character_states WHERE session_id = ?', [sessionId]);
+	db.run('DELETE FROM session_agent_state WHERE session_id = ?', [sessionId]);
+	try { await persist(); } catch {}
+	memorySyncStore.bump();
 }

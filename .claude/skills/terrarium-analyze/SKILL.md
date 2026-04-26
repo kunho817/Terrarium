@@ -45,6 +45,17 @@ src/lib/
 │   └── art-style.ts        # ArtStyle
 │
 ├── core/
+│   ├── agents/              # Agent pipeline (LIBRA-inspired)
+│   │   ├── agent-pipeline.ts   # Pipeline orchestrator (before/after generation)
+│   │   ├── agent-llm.ts        # Shared LLM call utility
+│   │   ├── extraction.ts       # Memory extraction phase
+│   │   ├── turn-maintenance.ts # Turn maintenance phase
+│   │   ├── section-world.ts    # Section World Composer (world mode)
+│   │   ├── injection.ts        # Injection formatting utilities
+│   │   ├── prompts.ts          # Centralized prompt registry
+│   │   ├── types.ts            # Pipeline type definitions
+│   │   └── index.ts            # Re-exports
+│   │
 │   ├── chat/               # Chat engine (SPQA pattern)
 │   │   ├── engine.ts           # ChatEngine — main orchestrator
 │   │   ├── pipeline.ts         # Prompt pipeline (assembly chain)
@@ -52,7 +63,8 @@ src/lib/
 │   │   ├── template-engine.ts # {{var}} resolution
 │   │   ├── lorebook.ts        # Lorebook matching & injection
 │   │   ├── regex.ts           # Regex scripting
-│   │   └── use-chat.ts        # Reactive bridge: engine ↔ UI
+│   │   ├── use-chat.ts        # Reactive bridge: engine ↔ UI
+│   │   └── use-chat-illustration.ts # Post-streaming image generation
 │   │
 │   ├── image/              # Image generation core
 │   │   └── generator.ts       # ImageGenerator orchestrator
@@ -101,6 +113,8 @@ src/lib/
 │   ├── chats.ts               # Chat session CRUD
 │   ├── personas.ts            # Persona CRUD
 │   ├── settings.ts            # Settings read/write
+│   ├── session-agent-state.ts # Agent session state persistence
+│   ├── memories.ts            # Vector memory storage
 │   └── paths.ts               # Storage path helpers
 │
 ├── stores/                # Svelte reactive stores
@@ -108,6 +122,7 @@ src/lib/
 │   ├── chat.ts                # Chat state store
 │   ├── scene.ts               # Scene store
 │   ├── settings.ts            # Settings store
+│   ├── agent-progress.ts      # Agent pipeline progress tracking
 │   └── theme.ts               # Theme store
 │
 ├── components/
@@ -150,6 +165,7 @@ src-tauri/src/                 # Rust backend
 └── scripting.rs               # Lua scripting (Rust side)
 
 tests/                         # Vitest test files (mirror src/ structure)
+├── core/agents/            # agent-pipeline, extraction, turn-maintenance, section-world, injection, prompts, types
 ├── core/chat/                 # engine, lorebook, pipeline, prompt-assembler, regex, template-engine
 ├── core/image-gen/            # novelai-constants
 ├── core/image/                # generator
@@ -161,7 +177,7 @@ tests/                         # Vitest test files (mirror src/ structure)
 ├── plugins/prompt-builder/    # builtin, default
 ├── plugins/providers/         # builtin, claude, openai-compatible, sse
 ├── plugins/                   # registry
-├── storage/                   # characters, chats, database, personas
+├── storage/                   # characters, chats, database, personas, session-agent-state
 └── stores/                    # characters-store, chat
 ```
 
@@ -185,6 +201,7 @@ Review cadence: Check after every 5th plan completion, or when `git log` shows s
 | Domain | Core path(s) | UI path(s) | Storage | Tests |
 |--------|-------------|------------|---------|-------|
 | Chat engine | `core/chat/engine.ts`, `core/chat/pipeline.ts`, `core/chat/use-chat.ts` | `routes/chat/` | `storage/chats.ts` | `tests/core/chat/` |
+| Agent Pipeline | `core/agents/agent-pipeline.ts`, `core/agents/extraction.ts`, `core/agents/turn-maintenance.ts`, `core/agents/section-world.ts`, `core/agents/injection.ts` | `components/AgentPipelineIndicator.svelte`, `routes/settings/agents/+page.svelte` | `storage/session-agent-state.ts` | `tests/core/agents/` |
 | Prompt/Preset | `core/chat/prompt-assembler.ts`, `core/chat/template-engine.ts` | `components/editors/PromptItemEditor.svelte`, `components/editors/PresetList.svelte` | `storage/settings.ts` | `tests/core/chat/prompt-assembler.test.ts`, `tests/core/chat/template-engine.test.ts` |
 | Lorebook | `core/chat/lorebook.ts` | `components/editors/LorebookEditor.svelte` | — | `tests/core/chat/lorebook.test.ts` |
 | Regex | `core/chat/regex.ts` | `components/editors/RegexEditor.svelte` | — | `tests/core/chat/regex.test.ts` |
@@ -290,6 +307,7 @@ Based on the task domain, tell the subagent to read these files first:
 
 | Domain | Read first |
 |--------|-----------|
+| Agent Pipeline | `src/lib/core/agents/agent-pipeline.ts`, `src/lib/core/agents/types.ts`, `src/lib/core/agents/extraction.ts`, `src/lib/core/agents/turn-maintenance.ts`, `src/lib/core/agents/prompts.ts` |
 | Chat engine | `src/lib/core/chat/engine.ts`, `src/lib/core/chat/pipeline.ts`, `src/lib/stores/chat.ts`, `src/lib/core/chat/use-chat.ts` |
 | Prompt/Preset | `src/lib/core/chat/prompt-assembler.ts`, `src/lib/core/chat/template-engine.ts`, `src/lib/core/presets/defaults.ts` |
 | Providers | `src/lib/plugins/providers/builtin.ts`, `src/lib/plugins/providers/sse.ts`, `src/lib/types/config.ts` |

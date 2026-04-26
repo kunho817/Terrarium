@@ -5,6 +5,7 @@
 import type { PluginRegistry } from '$lib/plugins/registry';
 import { createOpenAICompatibleProvider } from './openai-compatible';
 import { createClaudeProvider } from './claude';
+import { createOpenCodeGoProvider } from './opencode-go';
 
 export function registerBuiltinProviders(registry: PluginRegistry): void {
   // Priority order: NanoGPT → OpenAI → Claude → Local LLM
@@ -26,6 +27,8 @@ export function registerBuiltinProviders(registry: PluginRegistry): void {
       requiresApiKey: true,
     })
   );
+
+  registry.registerProvider(createOpenCodeGoProvider());
 
   registry.registerProvider(createClaudeProvider());
 

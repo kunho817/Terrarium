@@ -6,15 +6,23 @@
 
 	let { children } = $props();
 	let sidebarCollapsed = $state(false);
+	let settingsReady = $state(false);
 
-	onMount(() => {
-		settingsRepo.load();
+	onMount(async () => {
+		await settingsRepo.ensureLoaded();
+		settingsReady = true;
 	});
 </script>
 
-<div class="flex h-screen overflow-hidden">
-	<Sidebar collapsed={sidebarCollapsed} onToggle={() => sidebarCollapsed = !sidebarCollapsed} />
-	<main class="flex-1 flex flex-col overflow-hidden">
-		{@render children()}
-	</main>
-</div>
+{#if settingsReady}
+	<div class="flex h-screen overflow-hidden">
+		<Sidebar collapsed={sidebarCollapsed} onToggle={() => sidebarCollapsed = !sidebarCollapsed} />
+		<main class="flex-1 flex flex-col overflow-hidden">
+			{@render children()}
+		</main>
+	</div>
+{:else}
+	<div class="flex h-screen items-center justify-center text-subtext0">
+		Loading settings...
+	</div>
+{/if}

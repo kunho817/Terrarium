@@ -1,158 +1,290 @@
 /**
- * Preset ↔ Block migration utilities
+ * Preset <-> block graph migration helpers.
+ *
+ * The runtime still consumes ordered prompt items, so the graph editor stores
+ * its visual state alongside a flattened preset representation.
  */
 
-import type { PromptPreset, PromptItem, BlockGraph, BlockInstance, Connection } from '$lib/types';
+import type {
+  BlockGraph,
+  BlockInstance,
+  PromptBlockToggle,
+  PromptItem,
+  PromptItemRole,
+  PromptItemType,
+  PromptPreset,
+} from '$lib/types';
 
-export function presetToBlocks(preset: PromptPreset): BlockGraph {
-  const blocks: BlockInstance[] = [];
-  let yOffset = 50;
+const BLOCK_START_X = 120;
+const BLOCK_START_Y = 80;
+const BLOCK_SPACING_Y = 140;
 
-  for (const item of preset.items) {
-    if (!item.enabled) continue;
+const TEXT_ITEM_TYPES = new Set<PromptItemType>([
+  'system',
+  'authornote',
+  'postHistoryInstructions',
+  'jailbreak',
+  'prefill',
+  'plain',
+]);
 
-    const block = promptItemToBlock(item, yOffset);
-    if (block) {
-      blocks.push(block);
-      yOffset += 100;
-    }
-  }
-
-  // Note: We don't create connections between blocks because:
-  // 1. TextBlocks don't have input ports
-  // 2. The execution engine processes blocks by Y-position order
-  // 3. Each block produces its own fragment that gets assembled
-
+function cloneGraph(graph: BlockGraph): BlockGraph {
   return {
     version: '1.0',
-    blocks,
-    connections: [],
+    blocks: graph.blocks.map((block) => ({
+      ...block,
+      position: { ...block.position },
+      config: { ...block.config },
+    })),
+    connections: graph.connections.map((connection) => ({
+      ...connection,
+      from: { ...connection.from },
+      to: { ...connection.to },
+    })),
   };
 }
 
-function promptItemToBlock(item: PromptItem, y: number): BlockInstance | null {
-  const base = {
-    id: `preset-${item.id}`,
-    position: { x: 100, y },
+function makeBlockBase(id: string, index: number) {
+  return {
+    id,
+    position: {
+      x: BLOCK_START_X,
+      y: BLOCK_START_Y + index * BLOCK_SPACING_Y,
+    },
   };
+}
 
-  switch (item.type) {
-    case 'system':
-    case 'jailbreak':
-    case 'personality':
-    case 'scenario':
-      return {
-        ...base,
-        type: 'TextBlock',
-        config: {
-          content: item.content,
-          enabled: item.enabled,
-        },
-      };
+function normalizePromptRole(role: unknown): PromptItemRole {
+  return role === 'assistant' || role === 'user' ? role : 'system';
+}
 
-    case 'description':
-      return {
-        ...base,
-        type: 'FieldBlock',
-        config: {
-          fieldType: 'description',
-          fallback: item.content,
-        },
-      };
-
-    case 'lorebook':
-      return {
-        ...base,
-        type: 'LorebookBlock',
-        config: {
-          activationMode: 'keyword',
-          maxEntries: 5,
-        },
-      };
-
-    case 'chatHistory':
-      // Chat history isn't a block - it's handled by chat system
-      return null;
-
-    default:
-      // Unknown types become text blocks
-      return {
-        ...base,
-        type: 'TextBlock',
-        config: {
-          content: item.content || '',
-          enabled: item.enabled,
-        },
-      };
+function normalizePromptType(type: unknown): PromptItemType {
+  if (typeof type !== 'string') {
+    return 'plain';
   }
+
+  const validTypes = new Set<PromptItemType>([
+    'system',
+    'description',
+    'persona',
+    'personality',
+    'scenario',
+    'exampleMessages',
+    'chatHistory',
+    'lorebook',
+    'authornote',
+    'postHistoryInstructions',
+    'depthPrompt',
+    'jailbreak',
+    'prefill',
+    'plain',
+    'memory',
+    'director',
+    'sceneState',
+    'characterState',
+    'worldDescription',
+    'narrativeGuidance',
+    'sectionWorld',
+    'worldRelations',
+  ]);
+
+  return validTypes.has(type as PromptItemType) ? (type as PromptItemType) : 'plain';
 }
 
-export function blocksToPreset(
-  graph: BlockGraph,
-  toggles: Map<string, boolean>
-): PromptPreset {
-  const items: PromptItem[] = [];
-  let order = 0;
+function promptItemToBlock(item: PromptItem, index: number): BlockInstance {
+  const base = makeBlockBase(`preset-${item.id}`, index);
 
-  // Sort blocks by Y position (top to bottom)
-  const sortedBlocks = [...graph.blocks].sort((a, b) => a.position.y - b.position.y);
+  if (item.type === 'memory') {
+    return {
+      ...base,
+      type: 'MemoryBlock',
+      config: {
+        enabled: item.enabled,
+        itemName: item.name,
+        role: item.role,
+        format: 'bullet',
+        threshold: 0.7,
+        count: 3,
+        template: item.content,
+      },
+    };
+  }
 
-  for (const block of sortedBlocks) {
-    const item = blockToPromptItem(block, order);
-    if (item) {
-      items.push(item);
-      order++;
-    }
+  if (item.type === 'lorebook') {
+    return {
+      ...base,
+      type: 'LorebookBlock',
+      config: {
+        enabled: item.enabled,
+        itemName: item.name,
+        role: item.role,
+        lorebookPosition: item.lorebookPosition ?? 'before_char',
+        activationMode: 'keyword',
+        maxEntries: 5,
+        template: item.content,
+      },
+    };
+  }
+
+  if (TEXT_ITEM_TYPES.has(item.type)) {
+    return {
+      ...base,
+      type: 'TextBlock',
+      config: {
+        enabled: item.enabled,
+        itemType: item.type,
+        itemName: item.name,
+        role: item.role,
+        content: item.content,
+      },
+    };
   }
 
   return {
-    id: 'migrated',
-    name: 'Migrated from Blocks',
-    assistantPrefill: '',
-    items,
+    ...base,
+    type: 'FieldBlock',
+    config: {
+      enabled: item.enabled,
+      fieldType: item.type,
+      itemName: item.name,
+      role: item.role,
+      template: item.content,
+      lorebookPosition: item.lorebookPosition,
+    },
   };
 }
 
-function blockToPromptItem(block: BlockInstance, order: number): PromptItem | null {
-  const base = {
-    id: `block-${block.id}`,
-    name: block.type,
-    enabled: (block.config.enabled as boolean) ?? true,
-    role: 'system' as const,
-  };
-
+function blockToPromptItem(block: BlockInstance): PromptItem | null {
   switch (block.type) {
     case 'TextBlock':
       return {
-        ...base,
-        type: 'plain' as const,
-        content: (block.config.content as string) || '',
+        id: `block-${block.id}`,
+        type: normalizePromptType(block.config.itemType),
+        name: String(block.config.itemName || 'Text'),
+        enabled: (block.config.enabled as boolean) ?? true,
+        role: normalizePromptRole(block.config.role),
+        content: String(block.config.content || ''),
       };
 
     case 'FieldBlock':
       return {
-        ...base,
-        type: 'plain' as const,
-        content: (block.config.fallback as string) || '',
+        id: `block-${block.id}`,
+        type: normalizePromptType(block.config.fieldType),
+        name: String(block.config.itemName || 'Field'),
+        enabled: (block.config.enabled as boolean) ?? true,
+        role: normalizePromptRole(block.config.role),
+        content: String(block.config.template ?? block.config.fallback ?? ''),
+        lorebookPosition: block.config.lorebookPosition as PromptItem['lorebookPosition'],
       };
 
     case 'MemoryBlock':
-    case 'LorebookBlock':
       return {
-        ...base,
-        type: 'plain' as const,
-        content: '',
+        id: `block-${block.id}`,
+        type: 'memory',
+        name: String(block.config.itemName || 'Memory'),
+        enabled: (block.config.enabled as boolean) ?? true,
+        role: normalizePromptRole(block.config.role),
+        content: String(block.config.template || ''),
       };
 
-    case 'IfBlock':
-    case 'ToggleBlock':
+    case 'LorebookBlock':
       return {
-        ...base,
-        type: 'plain' as const,
-        content: '[Conditional content based on toggle]',
+        id: `block-${block.id}`,
+        type: 'lorebook',
+        name: String(block.config.itemName || 'Lorebook'),
+        enabled: (block.config.enabled as boolean) ?? true,
+        role: normalizePromptRole(block.config.role),
+        content: String(block.config.template || ''),
+        lorebookPosition:
+          (block.config.lorebookPosition as PromptItem['lorebookPosition']) ?? 'before_char',
       };
 
     default:
       return null;
   }
+}
+
+function sortBlocksForFlattening(graph: BlockGraph): BlockInstance[] {
+  return [...graph.blocks].sort((left, right) => {
+    if (left.position.y === right.position.y) {
+      return left.position.x - right.position.x;
+    }
+    return left.position.y - right.position.y;
+  });
+}
+
+export function presetToBlocks(preset: PromptPreset): BlockGraph {
+  if (preset.blockGraph) {
+    return cloneGraph(preset.blockGraph);
+  }
+
+  return {
+    version: '1.0',
+    blocks: preset.items.map((item, index) => promptItemToBlock(item, index)),
+    connections: [],
+  };
+}
+
+export function normalizePromptBlockToggles(
+  toggles: PromptBlockToggle[] | undefined,
+  graph: BlockGraph,
+): PromptBlockToggle[] {
+  const referencedToggleIds = new Set<string>();
+  const normalized = new Map<string, PromptBlockToggle>();
+
+  for (const toggle of toggles ?? []) {
+    if (!toggle?.id) {
+      continue;
+    }
+    normalized.set(toggle.id, {
+      id: toggle.id,
+      name: toggle.name || 'Toggle',
+      value: Boolean(toggle.value),
+    });
+  }
+
+  for (const block of graph.blocks) {
+    if (block.type !== 'ToggleBlock') {
+      continue;
+    }
+
+    const toggleId = String(block.config.toggleId || block.id);
+    referencedToggleIds.add(toggleId);
+
+    const existing = normalized.get(toggleId);
+    normalized.set(toggleId, {
+      id: toggleId,
+      name: String(block.config.toggleName || existing?.name || `Toggle ${normalized.size + 1}`),
+      value: existing?.value ?? Boolean(block.config.defaultValue ?? false),
+    });
+  }
+
+  if (referencedToggleIds.size === 0) {
+    return [...normalized.values()];
+  }
+
+  return [...normalized.values()].filter((toggle) => referencedToggleIds.has(toggle.id));
+}
+
+export function buildPromptBlockToggleMap(
+  toggles: PromptBlockToggle[] | undefined,
+): Map<string, boolean> {
+  return new Map((toggles ?? []).map((toggle) => [toggle.id, Boolean(toggle.value)]));
+}
+
+export function blocksToPreset(
+  graph: BlockGraph,
+  basePreset?: Pick<PromptPreset, 'id' | 'name' | 'assistantPrefill'>,
+): PromptPreset {
+  const items = sortBlocksForFlattening(graph)
+    .map((block) => blockToPromptItem(block))
+    .filter((item): item is PromptItem => item !== null);
+
+  return {
+    id: basePreset?.id ?? 'migrated',
+    name: basePreset?.name ?? 'Graph Preset',
+    assistantPrefill: basePreset?.assistantPrefill ?? '',
+    items,
+    blockGraph: cloneGraph(graph),
+  };
 }

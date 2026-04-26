@@ -213,4 +213,11 @@ describe('assemblePromptMessages', () => {
     expect(depthIdx).toBeGreaterThan(0); // After system prompt
     expect(depthIdx).toBeLessThan(helloIdx);
   });
+
+  it('appends response length instruction when a tier is provided', () => {
+    const result = assemblePromptMessages('System', [], [], baseCard, 'detailed');
+    const lastSystem = result.filter((m) => m.role === 'system').at(-1);
+    expect(lastSystem?.content).toContain('Final response-length requirement:');
+    expect(lastSystem?.content).toContain('7 to 9 paragraphs');
+  });
 });

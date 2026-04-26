@@ -5,6 +5,7 @@
  */
 
 import type { Message, LorebookEntry, LorebookPosition, CharacterCard } from '$lib/types';
+import { buildResponseLengthInstruction } from '$lib/types/chat-settings';
 
 export function groupLoreByPosition(entries: LorebookEntry[]): Map<LorebookPosition, string> {
   const map = new Map<LorebookPosition, string>();
@@ -48,6 +49,7 @@ export function assemblePromptMessages(
   messages: Message[],
   lorebookMatches: LorebookEntry[],
   card: CharacterCard,
+  responseLengthTier?: string,
 ): Message[] {
   const result: Message[] = [];
   const sys = (content: string): Message => ({ role: 'system', content, type: 'system', timestamp: 0 });
@@ -96,6 +98,10 @@ export function assemblePromptMessages(
   // 9. Lorebook: author_note
   const authorNote = loreByPos.get('author_note');
   if (authorNote) result.push(sys(authorNote));
+
+  if (responseLengthTier) {
+    result.push(sys(buildResponseLengthInstruction(responseLengthTier)));
+  }
 
   return result;
 }

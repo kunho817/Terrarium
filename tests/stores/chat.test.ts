@@ -47,6 +47,32 @@ describe('chatStore', () => {
       expect(state.messages).toHaveLength(1);
       expect(state.messages[0].content).toBe('Hello');
     });
+
+    it('replaces a specific stored message without touching later messages', () => {
+      const firstAssistant: Message = {
+        role: 'assistant',
+        content: 'First response',
+        type: 'dialogue',
+        timestamp: 2000,
+      };
+      const secondAssistant: Message = {
+        role: 'assistant',
+        content: 'Second response',
+        type: 'dialogue',
+        timestamp: 3000,
+      };
+
+      chatStore.addMessage(firstAssistant);
+      chatStore.addMessage(secondAssistant);
+      chatStore.replaceMessage(firstAssistant, {
+        ...firstAssistant,
+        segments: [{ type: 'image', dataUrl: 'data:image/png;base64,abc', id: 'img-1' }],
+      });
+
+      const state = get(chatStore);
+      expect(state.messages[0].segments).toHaveLength(1);
+      expect(state.messages[1].content).toBe('Second response');
+    });
   });
 
   describe('streaming', () => {

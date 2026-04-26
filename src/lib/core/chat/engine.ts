@@ -18,6 +18,7 @@ import type { WorldCard } from '$lib/types/world';
 import type { ChatMetadata } from '$lib/types/plugin';
 import type { PluginRegistry } from '$lib/plugins/registry';
 import type { PromptPreset } from '$lib/types/prompt-preset';
+import type { AgentPromptSections, AgentPromptSectionType } from '$lib/core/agents/types';
 import type { UserPersona } from '$lib/types/persona';
 import { applyRegexScripts } from './regex';
 import { TriggerExecutor } from '../lua/trigger-executor';
@@ -34,10 +35,38 @@ import {
 	startPipeline,
 	updateStep,
 	resetPipeline,
+  updateStepDiagnostic,
+  snapshotPipeline,
 } from '$lib/stores/agent-progress';
 import { makeSessionId, makeCharacterId } from '$lib/types/branded';
 import { get } from 'svelte/store';
 import { settingsStore } from '$lib/stores/settings';
+
+const AGENT_PROMPT_SECTION_ORDER: AgentPromptSectionType[] = [
+  'sceneState',
+  'characterState',
+  'memory',
+  'narrativeGuidance',
+  'director',
+  'worldRelations',
+  'sectionWorld',
+];
+
+function buildResidualAgentPrompt(
+  sections: AgentPromptSections | undefined,
+  claimedTypes: Set<string>,
+): string | undefined {
+  if (!sections) {
+    return undefined;
+  }
+
+  const remaining = AGENT_PROMPT_SECTION_ORDER
+    .filter((type) => !claimedTypes.has(type))
+    .map((type) => sections[type])
+    .filter((section): section is string => !!section && section.trim().length > 0);
+
+  return remaining.length > 0 ? remaining.join('\n\n') : undefined;
+}
 
 function buildWorldCharacterLore(worldCard: WorldCard): LorebookEntry[] {
   return worldCard.characters.map(char => {
@@ -125,6 +154,7 @@ export interface SendResult {
   userMessage: Message;
   stream: AsyncGenerator<string>;
   onComplete: Promise<Message>;
+  afterGeneration: Promise<void>;
   abort: () => void;
 }
 
@@ -135,8 +165,15 @@ export class ChatEngine {
 
   constructor(private registry: PluginRegistry) {}
 
+	getPipeline(): import('$lib/core/agents/agent-pipeline').AgentPipeline {
+		return this.pipeline;
+	}
+
   async send(options: SendMessageOptions): Promise<SendResult> {
     this.aborted = false;
+    const resolvedSessionId = options.sessionId
+      ? makeSessionId(options.sessionId)
+      : makeSessionId(crypto.randomUUID());
 
     const processedInput = applyRegexScripts(
       options.input,
@@ -205,7 +242,7 @@ export class ChatEngine {
 
     const pipelineResult = await this.pipeline.runBeforeGeneration(
       {
-        sessionId: makeSessionId(options.sessionId || options.characterId || ''),
+        sessionId: resolvedSessionId,
         cardId: makeCharacterId(options.characterId || ''),
         cardType: options.worldCard ? 'world' : 'character',
         messages: allMessages,
@@ -224,6 +261,16 @@ export class ChatEngine {
     let prefillText: string | null = null;
 
     if (options.preset) {
+      const settings = get(settingsStore);
+      const claimedAgentTypes = new Set(
+        options.preset.items
+          .filter((item) => item.enabled)
+          .map((item) => item.type),
+      );
+      const residualAgentPrompt = buildResidualAgentPrompt(
+        pipelineResult.promptSections,
+        claimedAgentTypes,
+      );
       const result = assembleWithPreset(options.preset, {
         card: ctx.card,
         scene: ctx.scene,
@@ -231,19 +278,23 @@ export class ChatEngine {
         lorebookMatches: ctx.lorebookMatches,
         persona: options.persona,
         worldCard: options.worldCard,
-        additionalPrompt: ctx.additionalPrompt,
-        outputLanguage: get(settingsStore).outputLanguage || '',
+        additionalPrompt: residualAgentPrompt,
+        outputLanguage: settings.outputLanguage || '',
+        responseLengthTier: settings.responseLengthTier,
+        agentPromptSections: pipelineResult.promptSections,
       });
       assembled = result.messages;
       prefillText = result.prefill;
     } else {
       const promptBuilder = this.registry.getPromptBuilder('default');
       const systemPrompt = promptBuilder.buildSystemPrompt(ctx.card, ctx.scene);
+      const settings = get(settingsStore);
       assembled = assemblePromptMessages(
         systemPrompt,
         ctx.messages,
         ctx.lorebookMatches,
         ctx.card,
+        settings.responseLengthTier,
       );
     }
 
@@ -260,12 +311,19 @@ export class ChatEngine {
     const onComplete = new Promise<Message>((resolve) => {
       resolveComplete = resolve;
     });
+    let resolveAfterGeneration!: () => void;
+    const afterGeneration = new Promise<void>((resolve) => {
+      resolveAfterGeneration = resolve;
+    });
+    void afterGeneration.finally(() => {
+      setTimeout(resetPipeline, 5000);
+    });
 
     const self = this;
     const capturedCtx = ctx;
     const capturedConfig = options.config;
     const capturedCharacterId = options.characterId;
-    const capturedSessionId = options.sessionId;
+    const capturedSessionId = resolvedSessionId;
     const capturedCardType = options.worldCard ? 'world' : 'character';
 
     async function* tokenStream(): AsyncGenerator<string> {
@@ -273,11 +331,28 @@ export class ChatEngine {
       let fullResponse = '';
       const metadata: ChatMetadata = {};
       let providerError: unknown = null;
+      const streamStartedAt = Date.now();
+      let firstTokenAt: number | null = null;
 
       updateStep('generation', 'running');
+      updateStepDiagnostic('generation', {
+        providerId: capturedConfig.providerId,
+        model: capturedConfig.model ?? null,
+        temperature: capturedConfig.temperature ?? null,
+        maxTokens: capturedConfig.maxTokens ?? null,
+        inputTokens: null,
+        outputTokens: null,
+        resultPreview: '',
+        resultFull: '',
+        error: null,
+        subTasks: [],
+      });
       try {
         for await (const token of provider.chat(assembled, capturedConfig, metadata)) {
           if (self.aborted) break;
+          if (firstTokenAt === null) {
+            firstTokenAt = Date.now();
+          }
           fullResponse += token;
           yield token;
         }
@@ -291,18 +366,19 @@ export class ChatEngine {
         'modify_output',
       );
 
-      try {
-        await self.pipeline.runAfterGeneration({
-          sessionId: makeSessionId(capturedSessionId || capturedCharacterId || ''),
-          cardId: makeCharacterId(capturedCharacterId || ''),
-          cardType: capturedCardType,
-          messages: capturedCtx.messages,
-          scene: capturedCtx.scene,
-          turnNumber: capturedCtx.messages.filter(m => m.role === 'user').length,
-          config: capturedConfig,
-        }, processed, (step, status) => updateStep(step, status));
-      } catch {
-      }
+      void self.pipeline.runAfterGeneration({
+        sessionId: capturedSessionId,
+        cardId: makeCharacterId(capturedCharacterId || ''),
+        cardType: capturedCardType,
+        messages: capturedCtx.messages,
+        scene: capturedCtx.scene,
+        turnNumber: capturedCtx.messages.filter(m => m.role === 'user').length,
+        config: capturedConfig,
+      }, processed, (step, status) => updateStep(step, status))
+        .catch(() => {})
+        .finally(() => {
+          resolveAfterGeneration();
+        });
 
       if (capturedCtx.card.triggers?.length > 0) {
         try {
@@ -334,15 +410,37 @@ export class ChatEngine {
         characterId: capturedCharacterId,
         timestamp: Date.now(),
         generationInfo: {
+          providerId: capturedConfig.providerId,
           model: capturedConfig.model,
           inputTokens: metadata.inputTokens,
           outputTokens: metadata.outputTokens,
+          firstTokenLatencyMs:
+            firstTokenAt !== null ? Math.max(0, firstTokenAt - streamStartedAt) : undefined,
+          streamError:
+            providerError instanceof Error
+              ? providerError.message
+              : providerError
+                ? String(providerError)
+                : undefined,
+          pipeline: snapshotPipeline(),
         },
       };
 
       resolveComplete(assistantMessage);
+      updateStepDiagnostic('generation', {
+        outputChars: processed.length,
+        resultPreview: processed.slice(0, 200),
+        resultFull: processed,
+        inputTokens: metadata.inputTokens ?? null,
+        outputTokens: metadata.outputTokens ?? null,
+        error:
+          providerError instanceof Error
+            ? providerError.message
+            : providerError
+              ? String(providerError)
+              : null,
+      });
       updateStep('generation', 'done');
-      setTimeout(resetPipeline, 300);
 
       if (providerError) {
         throw providerError;
@@ -357,6 +455,7 @@ export class ChatEngine {
         resetPipeline();
       },
       onComplete,
+      afterGeneration,
     };
   }
 }
@@ -370,5 +469,6 @@ export async function consumeStream(
     tokens.push(token);
   }
   const message = await result.onComplete;
+  await result.afterGeneration;
   return { tokens, message };
 }

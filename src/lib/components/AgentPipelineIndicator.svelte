@@ -1,5 +1,6 @@
 <script lang="ts">
   import { agentProgress } from '$lib/stores/agent-progress';
+  import AgentPipelineDetail from './AgentPipelineDetail.svelte';
 
   const statusIcon: Record<string, string> = {
     pending: '○',
@@ -9,12 +10,20 @@
     skipped: '—',
   };
 
-  let state = $derived($agentProgress);
+  let showDetail = $state(false);
+  let pipelineState = $derived($agentProgress);
 </script>
 
-{#if state.active}
-  <div class="flex items-center justify-center gap-2 bg-surface0/90 backdrop-blur-sm text-text text-xs px-3 py-1.5 border-t border-surface0 animate-in">
-    {#each state.steps as step}
+{#if pipelineState.active}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="flex items-center justify-center gap-2 bg-surface0/90 backdrop-blur-sm text-text text-xs px-3 py-1.5 border-t border-surface0 animate-in cursor-pointer hover:bg-surface1 transition-colors"
+    onclick={() => showDetail = true}
+    role="button"
+    tabindex="0"
+    onkeydown={(e) => { if (e.key === 'Enter') showDetail = true; }}
+  >
+    {#each pipelineState.steps as step}
       <span class="flex items-center gap-1 whitespace-nowrap">
         {#if step.status === 'running'}
           <span class="animate-pulse">{statusIcon[step.status]}</span>
@@ -25,6 +34,10 @@
       </span>
     {/each}
   </div>
+{/if}
+
+{#if showDetail}
+  <AgentPipelineDetail onclose={() => showDetail = false} />
 {/if}
 
 <style>

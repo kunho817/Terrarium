@@ -11,17 +11,23 @@
   const categories = [
     { id: 'foundation', label: 'Foundation' },
     { id: 'logic', label: 'Logic' },
+    { id: 'structure', label: 'Structure' },
     { id: 'data', label: 'Data' },
   ] as const;
 
   const categoryColors: Record<string, string> = {
     foundation: '#89b4fa',
     logic: '#f38ba8',
+    structure: '#74c7ec',
     data: '#a6e3a1',
   };
 
+  const hiddenPaletteTypes = new Set(['StageBlock']);
+
   function getBlocksByCategory(category: string): BlockDefinition[] {
-    return blockRegistry.getAllByCategory(category as BlockDefinition['category']);
+    return blockRegistry
+      .getAllByCategory(category as BlockDefinition['category'])
+      .filter((definition) => !hiddenPaletteTypes.has(definition.type));
   }
 </script>
 

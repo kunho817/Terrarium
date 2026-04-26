@@ -5,6 +5,7 @@ import {
   startPipeline,
   updateStep,
   resetPipeline,
+  updateStepDiagnostic,
 } from '$lib/stores/agent-progress';
 
 describe('agent-progress store', () => {
@@ -23,9 +24,9 @@ describe('agent-progress store', () => {
     const state = get(agentProgress);
     expect(state.active).toBe(true);
     expect(state.steps).toEqual([
-      { agentId: 'memory', label: 'Memory', status: 'pending' },
-      { agentId: 'director', label: 'Director', status: 'pending' },
-      { agentId: 'llm-generation', label: 'Generating', status: 'pending' },
+      { agentId: 'memory', label: 'Memory', status: 'pending', diagnostic: expect.any(Object) },
+      { agentId: 'director', label: 'Director', status: 'pending', diagnostic: expect.any(Object) },
+      { agentId: 'llm-generation', label: 'Generating', status: 'pending', diagnostic: expect.any(Object) },
     ]);
     expect(state.startedAt).toBeGreaterThan(0);
     resetPipeline();

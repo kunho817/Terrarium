@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GenerationInfo } from '$lib/types';
+  import PipelineDiagnosticsView from './PipelineDiagnosticsView.svelte';
 
   let { info, onclose } = $props<{
     info: GenerationInfo;
@@ -15,6 +16,14 @@
       ? info.durationMs >= 1000
         ? `${(info.durationMs / 1000).toFixed(1)}s`
         : `${info.durationMs}ms`
+      : null,
+  );
+
+  const firstTokenLatency = $derived(
+    info.firstTokenLatencyMs != null
+      ? info.firstTokenLatencyMs >= 1000
+        ? `${(info.firstTokenLatencyMs / 1000).toFixed(1)}s`
+        : `${info.firstTokenLatencyMs}ms`
       : null,
   );
 
@@ -40,7 +49,7 @@
 >
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="bg-mantle rounded-lg p-6 max-w-md w-full shadow-xl"
+    class="bg-mantle rounded-lg p-6 max-w-4xl w-full shadow-xl max-h-[85vh] overflow-y-auto"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
   >
@@ -60,15 +69,33 @@
 
     <!-- Model -->
     <div class="mb-4">
+      {#if info.providerId}
+        <span class="text-subtext0 text-xs uppercase tracking-wide">Provider</span>
+        <p class="text-text text-sm mt-1 mb-3">{info.providerId}</p>
+      {/if}
       <span class="text-subtext0 text-xs uppercase tracking-wide">Model</span>
       <p class="text-text text-sm mt-1">{info.model ?? 'Unknown Model'}</p>
     </div>
 
-    <!-- Generation Time -->
-    {#if duration}
-      <div class="mb-4">
-        <span class="text-subtext0 text-xs uppercase tracking-wide">Generation Time</span>
-        <p class="text-text text-sm mt-1">{duration}</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+      {#if duration}
+        <div>
+          <span class="text-subtext0 text-xs uppercase tracking-wide">Generation Time</span>
+          <p class="text-text text-sm mt-1">{duration}</p>
+        </div>
+      {/if}
+      {#if firstTokenLatency}
+        <div>
+          <span class="text-subtext0 text-xs uppercase tracking-wide">First Token</span>
+          <p class="text-text text-sm mt-1">{firstTokenLatency}</p>
+        </div>
+      {/if}
+    </div>
+
+    {#if info.streamError}
+      <div class="mb-5 rounded border border-red/30 bg-red/10 px-3 py-2">
+        <span class="text-subtext0 text-xs uppercase tracking-wide">Stream Warning</span>
+        <p class="mt-1 text-sm text-text">{info.streamError}</p>
       </div>
     {/if}
 
@@ -106,6 +133,19 @@
       <div>
         <span class="text-subtext0 text-xs uppercase tracking-wide">Context Usage</span>
         <p class="text-subtext0 text-sm mt-1 italic">No token data available</p>
+      </div>
+    {/if}
+
+    {#if info.pipeline}
+      <div class="mt-6">
+        <div class="mb-3">
+          <span class="text-subtext0 text-xs uppercase tracking-wide">Agent Pipeline Detail</span>
+        </div>
+        <PipelineDiagnosticsView
+          steps={info.pipeline.steps}
+          startedAt={info.pipeline.startedAt}
+          finishedAt={info.pipeline.finishedAt}
+        />
       </div>
     {/if}
   </div>

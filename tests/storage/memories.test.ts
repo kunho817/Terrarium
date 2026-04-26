@@ -33,7 +33,9 @@ vi.mock('$lib/storage/db', () => ({
 					summariesStore.delete(params[0] as string);
 				} else if (sql.startsWith('DELETE FROM summaries')) {
 					for (const [id, summary] of summariesStore) {
-						if (summary.sessionId === params[0]) summariesStore.delete(id);
+						if (summary.sessionId !== params[0]) continue;
+						if (params.length > 1 && summary.endTurn < (params[1] as number)) continue;
+						summariesStore.delete(id);
 					}
 				} else if (sql.startsWith('DELETE FROM memories WHERE id')) {
 					memoriesStore.delete(params[0] as string);
@@ -136,6 +138,7 @@ import {
 	getSummariesForSession,
 	getLatestSummaryTurn,
 	deleteMemoriesForSession,
+	deleteSummariesFromTurn,
 	countMemories,
 	updateMemory,
 	deleteSummary,
@@ -256,6 +259,15 @@ describe('memories storage', () => {
 		await deleteMemoriesForSession('sess-1');
 		expect(await getMemoriesForSession('sess-1')).toHaveLength(0);
 		expect(await getSummariesForSession('sess-1')).toHaveLength(0);
+	});
+
+	it('deleteSummariesFromTurn removes summaries that overlap the reroll turn', async () => {
+		await insertSummary(makeSummary({ id: 's1', startTurn: 1, endTurn: 4 }));
+		await insertSummary(makeSummary({ id: 's2', startTurn: 5, endTurn: 8 }));
+		await deleteSummariesFromTurn('sess-1', 5);
+		const results = await getSummariesForSession('sess-1');
+		expect(results).toHaveLength(1);
+		expect(results[0].id).toBe('s1');
 	});
 
 	it('countMemories returns count for a session', async () => {

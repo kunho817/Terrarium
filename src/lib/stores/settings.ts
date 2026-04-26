@@ -8,12 +8,27 @@ import type { AgentSettings } from '$lib/types/config';
 import * as settingsStorage from '$lib/storage/settings';
 import { createDefaultPresetSettings, migratePresetItems, createDefaultPreset } from '$lib/core/presets/defaults';
 import { DEFAULT_IMAGE_CONFIG } from '$lib/types/image-config';
+import { DEFAULT_RESPONSE_LENGTH_TIER } from '$lib/types/chat-settings';
+import {
+  createDefaultAgentPrefills,
+  createDefaultAgentPromptOverrides,
+} from '$lib/core/agents/prompt-defaults';
 
 const DEFAULT_AGENT_SETTINGS: AgentSettings = {
   enabled: true,
-  turnMaintenance: { enabled: true, contextMessages: 20, tokenBudget: 2048 },
+  jailbreak: '',
+  turnMaintenance: { enabled: true, contextMessages: 20, tokenBudget: 2048, timeoutMs: 240000 },
   extraction: { enabled: true, tokenBudget: 1024, repairAttempts: 2 },
   director: { mode: 'light' },
+  worldMode: {
+    extractEntities: true,
+    extractRelations: true,
+    sectionWorldInjection: true,
+  },
+  promptOverrides: createDefaultAgentPromptOverrides(),
+  prefills: createDefaultAgentPrefills(),
+  promptGraphs: {},
+  promptBoard: undefined,
 };
 
 function createSettingsStore() {
@@ -23,6 +38,7 @@ function createSettingsStore() {
     providers: {},
     developerMode: false,
     imageGeneration: { ...DEFAULT_IMAGE_CONFIG } as import('$lib/types/image-config').ImageGenerationConfig,
+    modelProfiles: {},
     modelSlots: {},
     memorySettings: {
       extractionBatchSize: 5,
@@ -34,6 +50,7 @@ function createSettingsStore() {
       embeddingModel: '',
     },
     outputLanguage: '',
+    responseLengthTier: DEFAULT_RESPONSE_LENGTH_TIER,
     agentSettings: { ...DEFAULT_AGENT_SETTINGS },
   });
 
@@ -69,6 +86,7 @@ function createSettingsStore() {
         providers: {},
         developerMode: false,
         imageGeneration: { ...DEFAULT_IMAGE_CONFIG } as import('$lib/types/image-config').ImageGenerationConfig,
+        modelProfiles: {},
         modelSlots: {},
         memorySettings: {
           extractionBatchSize: 5,
@@ -80,6 +98,7 @@ function createSettingsStore() {
           embeddingModel: '',
         },
         outputLanguage: '',
+        responseLengthTier: DEFAULT_RESPONSE_LENGTH_TIER,
         agentSettings: { ...DEFAULT_AGENT_SETTINGS },
       });
     },

@@ -4,7 +4,8 @@
 	import { settingsRepo } from '$lib/repositories/settings-repo';
 	import { DEFAULT_ART_PRESETS } from '$lib/types';
 	import type { ImageGenerationConfig } from '$lib/types';
-	import { DEFAULT_IMAGE_CONFIG } from '$lib/types';
+	import { DEFAULT_IMAGE_CONFIG, DEFAULT_IMAGE_JAILBREAK, DEFAULT_IMAGE_PLACEMENT_INSTRUCTIONS } from '$lib/types';
+	import { clampTargetImageCount, getResponseLengthTier } from '$lib/types/chat-settings';
 	import { NOVELAI_MODELS, getCompatibleNoiseSchedules } from '$lib/core/image-gen/novelai-constants';
 	import type { ArtStylePreset } from '$lib/types/art-style';
 	import { getRegistry } from '$lib/core/bootstrap';
@@ -21,8 +22,12 @@
 	let autoGenerate = $state(false);
 	let artStylePresetId = $state('anime');
 	let imagePromptInstructions = $state('');
+	let jailbreak = $state(DEFAULT_IMAGE_JAILBREAK);
 	let positivePrompt = $state('');
 	let negativePrompt = $state('');
+	let maxTokens = $state(64000);
+	let targetImageCount = $state(2);
+	let placementInstructions = $state(DEFAULT_IMAGE_PLACEMENT_INSTRUCTIONS);
 
 	let novelaiApiKey = $state('');
 	let novelaiModel = $state('');
@@ -47,6 +52,8 @@
 
 	const allPresets = $derived([...DEFAULT_ART_PRESETS, ...customPresets]);
 	const compatibleSchedules = $derived(getCompatibleNoiseSchedules(novelaiModel, novelaiSampler));
+	const activeResponseLengthTier = $derived(getResponseLengthTier($settingsStore.responseLengthTier));
+	const maxImagesForTier = $derived(activeResponseLengthTier.maxImages);
 
 	const modelGroups = $derived(() => {
 		const groups: Record<string, typeof NOVELAI_MODELS> = {};
@@ -62,6 +69,10 @@
 		provider = ig.provider ?? 'none';
 		autoGenerate = ig.autoGenerate ?? false;
 		artStylePresetId = ig.artStylePresetId ?? 'anime';
+		jailbreak = ig.jailbreak ?? DEFAULT_IMAGE_JAILBREAK;
+		maxTokens = ig.maxTokens ?? 64000;
+		targetImageCount = clampTargetImageCount(ig.targetImageCount ?? 2, $settingsStore.responseLengthTier);
+		placementInstructions = ig.placementInstructions ?? DEFAULT_IMAGE_PLACEMENT_INSTRUCTIONS;
 		imagePromptInstructions = ig.imagePromptInstructions ?? DEFAULT_IMAGE_CONFIG.imagePromptInstructions;
 
 		novelaiApiKey = ig.novelai?.apiKey ?? '';
@@ -86,10 +97,16 @@
 	}
 
 	function buildConfig(): ImageGenerationConfig {
+		const clampedTargetImageCount = clampTargetImageCount(targetImageCount, $settingsStore.responseLengthTier);
 		return {
+			...($settingsStore.imageGeneration ?? DEFAULT_IMAGE_CONFIG),
 			provider: provider as ImageGenerationConfig['provider'],
 			autoGenerate,
 			artStylePresetId,
+			jailbreak,
+			maxTokens,
+			targetImageCount: clampedTargetImageCount,
+			placementInstructions,
 			imagePromptInstructions,
 			novelai: {
 				apiKey: novelaiApiKey,
@@ -153,6 +170,13 @@
 		loadFromStore();
 		loaded = true;
 	});
+
+	$effect(() => {
+		const clamped = clampTargetImageCount(targetImageCount, $settingsStore.responseLengthTier);
+		if (clamped !== targetImageCount) {
+			targetImageCount = clamped;
+		}
+	});
 </script>
 
 {#if !loaded}
@@ -190,9 +214,66 @@
 			<ImagePromptConfig
 				bind:autoGenerate
 				bind:imagePromptInstructions
+				bind:jailbreak
 				bind:positivePrompt
 				bind:negativePrompt
 			/>
+
+			<section class="space-y-2 rounded-lg border border-surface1 p-4">
+				<div>
+					<h2 class="text-sm font-medium text-text">Prompt Model Budget</h2>
+					<p class="text-xs text-subtext0">Maximum tokens for the illustration planning and tag-generation model.</p>
+				</div>
+
+				<div class="space-y-1">
+					<label for="image-max-tokens" class="text-sm text-text">Max Tokens: {maxTokens}</label>
+					<input
+						id="image-max-tokens"
+						type="range"
+						min="4096"
+						max="64000"
+						step="512"
+						value={maxTokens}
+						oninput={(e) => { maxTokens = Number((e.target as HTMLInputElement).value); }}
+						class="w-full accent-mauve"
+					/>
+				</div>
+			</section>
+
+			<section class="space-y-4 rounded-lg border border-surface1 p-4">
+				<div>
+					<h2 class="text-sm font-medium text-text">Illustration Placement</h2>
+					<p class="text-xs text-subtext0">Guide how many images should appear and which moments deserve them. The current response-length profile allows up to {maxImagesForTier} image(s).</p>
+				</div>
+
+				<div class="space-y-1">
+					<label for="image-target-count" class="text-sm text-text">Target Images Per Response: {targetImageCount}</label>
+					<input
+						id="image-target-count"
+						type="range"
+						min="1"
+						max={maxImagesForTier}
+						step="1"
+						value={targetImageCount}
+						oninput={(e) => { targetImageCount = clampTargetImageCount(Number((e.target as HTMLInputElement).value), $settingsStore.responseLengthTier); }}
+						class="w-full accent-mauve"
+					/>
+					<p class="text-xs text-subtext0">The planner will aim for this many inserts, but can return fewer when the response lacks enough distinct visual beats. Adjust the response-length profile in <a href="/settings/chat-controls" class="text-mauve hover:text-lavender">Chat Controls</a> to raise or lower the cap.</p>
+				</div>
+
+				<div class="space-y-1">
+					<label for="image-placement-instructions" class="text-sm text-text">Placement Guidance</label>
+					<textarea
+						id="image-placement-instructions"
+						rows="5"
+						value={placementInstructions}
+						oninput={(e) => { placementInstructions = (e.target as HTMLTextAreaElement).value; }}
+						class="w-full rounded-md border border-surface1 bg-base px-3 py-2 text-sm text-text"
+						placeholder="Describe which kinds of moments should receive illustrations..."
+					></textarea>
+					<p class="text-xs text-subtext0">This guidance is sent to the illustration planner so it can choose fitting insertion points.</p>
+				</div>
+			</section>
 
 			<ImagePresetManager
 				bind:artStylePresetId

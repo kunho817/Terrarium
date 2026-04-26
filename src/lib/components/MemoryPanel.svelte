@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { memoryRepo, type MemoryView } from '$lib/repositories/memory-repo';
 	import { MEMORY_TYPES, type MemoryType, type SessionSummary } from '$lib/types/memory';
+	import { memorySyncStore } from '$lib/stores/memory-sync';
 	import MemoryCard from './MemoryCard.svelte';
 	import SummaryList from './SummaryList.svelte';
 
@@ -37,7 +37,11 @@
 		}
 	}
 
-	onMount(load);
+	$effect(() => {
+		sessionId;
+		$memorySyncStore;
+		void load();
+	});
 
 	function toggleType(t: MemoryType) {
 		const next = new Set(typeFilter);

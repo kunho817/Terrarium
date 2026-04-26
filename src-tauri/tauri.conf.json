@@ -1,6 +1,6 @@
 {
   "productName": "Terrarium",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "identifier": "com.terrarium.app",
   "build": {
     "frontendDist": "../build",
@@ -36,7 +36,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhEMkQxRjQ5MDU1QTA2RTAKUldUZ0Jsb0ZTUjh0amI1MHJ1RFRBVDNaVGZydG5OODB5Sm9TeWF0VUs0REVsek9VdWVDdWZCZVcK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDNzY0RjEzRUM0Q0RDQjQKUldTMDNFenNFMDkyYkRTOHJMOGJJUUNGQXZ4dGJxWkd4cS91d2lIVmJGdHk2Ujc4QllVMmU0UHUK",
       "endpoints": [
         "https://github.com/kunho817/Terrarium/releases/latest/download/latest.json"
       ],
